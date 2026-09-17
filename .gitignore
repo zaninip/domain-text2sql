@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# Secrets
+.env
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Data, models, artifacts (large or reproducible)
+data/
+*.duckdb
+*.duckdb.wal
+*.gguf
+*.safetensors
+*.bin
+checkpoints/
+outputs/
+
+# Experiment tracking
+wandb/
+mlruns/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
