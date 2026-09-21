@@ -1,6 +1,6 @@
 UV ?= uv
 
-.PHONY: install lint format test check
+.PHONY: install lint format test check data
 
 install:
 	$(UV) sync --all-groups
@@ -18,3 +18,7 @@ test:
 	$(UV) run pytest
 
 check: lint test
+
+# Download the eCO2mix export once (data/raw/), rebuild data/eco2mix.duckdb and schema.md
+data:
+	$(UV) run python domains/eco2mix/ingest.py
