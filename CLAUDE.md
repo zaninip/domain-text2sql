@@ -147,7 +147,7 @@ Before writing any ingestion code:
 - **Done when:** `make data` builds the DB from scratch; a handful of hand-written reference queries return sensible values (checked against published RTE figures where possible); DB size is recorded.
 
 ### Phase 2 — Dataset
-- Templates in YAML, each with: `template_id`, `family` (aggregation, comparison, ranking, time series, share/ratio, peak/extremes, multi-condition…), typed slots (region, source, period, granularity…), question variants in FR/EN/IT, SQL template.
+- Templates in YAML, each with: `template_id`, `family` (aggregation, comparison, ranking, time series, share/ratio, peak/extremes, multi-condition…), typed slots (region, source, period, granularity…), question variants in FR/IT, SQL template.
 - Aim for ~40–80 templates spread across families; many should encode glossary conventions.
 - Pipeline: generate → execute → drop errors, empty results and all-NULL results → paraphrase questions with a larger LLM (cached on disk, seeded) → deduplicate (normalized text + fuzzy matching) → split **by `template_id`** (e.g. 70/15/15 train/val/test templates).
 - Output: chat-format JSONL (`system`, `user`, `assistant`), where `system` is built by `prompts.py` and `assistant` contains only the SQL.
@@ -211,7 +211,7 @@ Model-generated SQL is untrusted input, including in the public demo.
 
 ## 11. Web app specification
 
-- **Main tab — side by side.** One question box; example chips (curated questions where the difference is clear, in FR/EN/IT). Two panels: "Base model" and "Fine-tuned model". Each shows generated SQL (highlighted), result table, auto chart (time column → line; categorical → bar; single value → big number), latency. For curated examples, show a correct/incorrect badge against the gold answer; for free questions show "no reference answer".
+- **Main tab — side by side.** One question box; example chips (curated questions where the difference is clear, in FR/IT). Two panels: "Base model" and "Fine-tuned model". Each shows generated SQL (highlighted), result table, auto chart (time column → line; categorical → bar; single value → big number), latency. For curated examples, show a correct/incorrect badge against the gold answer; for free questions show "no reference answer".
 - **Arena tab.** Blind A/B: the two answers are shown in random order, the user votes, then the models are revealed.
 - **Results tab.** Evaluation table and per-family chart loaded from `results/`.
 - **About tab.** What the project shows, when fine-tuning is (and is not) the right tool, links to repo and model card.
