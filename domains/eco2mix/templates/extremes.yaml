@@ -16,8 +16,10 @@ templates:
         keep: {kind: [production, demand]}
       extremum:
         values:
-          - {id: max, label: {fr: le pic, it: il picco}, agg: max}
-          - {id: min, label: {fr: le minimum, it: il minimo}, agg: min}
+          # Real questions are about the peak; the low is asked for rarely, so it keeps a
+          # small share instead of half the instances.
+          - {id: max, label: {fr: le pic, it: il picco}, agg: max, weight: 1.0}
+          - {id: min, label: {fr: le minimum, it: il minimo}, agg: min, weight: 0.15}
       region:
         from: regions
       annee:

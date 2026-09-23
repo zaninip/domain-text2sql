@@ -9,6 +9,7 @@ from t2sql.prompts import (
     PromptTooLongError,
     approx_tokens,
     build_system_prompt,
+    caveats,
     chat_messages,
     conventions,
     system_prompt,
@@ -99,3 +100,31 @@ def test_chat_messages_carry_the_answer_only_when_it_is_known():
     assert training[2]["content"] == "SELECT 1"
     inference = chat_messages("SYS", "question ?")
     assert [m["role"] for m in inference] == ["system", "user"]
+
+
+def test_caveats_are_extracted_for_the_demo_users():
+    text = (
+        GLOSSARY
+        + """
+## 9. Known data caveats
+
+**Caveats**
+
+- One published value is visibly wrong, and is
+  kept as published.
+- Coverage ends mid-2026.
+"""
+    )
+    items = caveats(text)
+    assert items == [
+        "One published value is visibly wrong, and is kept as published.",
+        "Coverage ends mid-2026.",
+    ]
+
+
+def test_caveats_never_reach_the_model():
+    glossary = Path(DOMAIN_DIR / "glossary.md").read_text(encoding="utf-8")
+    prompt = system_prompt(DOMAIN_DIR)
+    assert caveats(glossary), "the domain must declare its caveats"
+    for caveat in caveats(glossary):
+        assert caveat[:40] not in prompt

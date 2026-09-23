@@ -1,7 +1,9 @@
 # Energy units. `expr` is the whole scaling expression applied to a SUM of MW: it carries the
 # 30-minute step factor of glossary §1, and avoids a pointless "/ 1" in the MWh case, since the
 # gold SQL is what the model learns to write.
+# `weight` reflects how a person would state the question: GWh is the natural scale for a
+# region over a year, MWh for shorter periods, TWh is rarely what someone asks for here.
 energy_units:
-  - {id: MWh, expr: "* 0.5", label: {fr: MWh, it: MWh}}
-  - {id: GWh, expr: "* 0.5 / 1000", label: {fr: GWh, it: GWh}}
-  - {id: TWh, expr: "* 0.5 / 1000000", label: {fr: TWh, it: TWh}}
+  - {id: MWh, expr: "* 0.5", weight: 0.6, label: {fr: MWh, it: MWh}}
+  - {id: GWh, expr: "* 0.5 / 1000", weight: 1.0, label: {fr: GWh, it: GWh}}
+  - {id: TWh, expr: "* 0.5 / 1000000", weight: 0.1, label: {fr: TWh, it: TWh}}

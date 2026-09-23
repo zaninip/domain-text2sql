@@ -155,6 +155,20 @@ def satisfies(constraints: list[str], combination: dict[str, Any]) -> bool:
     return True
 
 
+def combination_weight(combination: dict[str, Any]) -> float:
+    """How likely one combination is, relative to the others: the product of its slot weights.
+
+    A slot value may carry ``weight`` (default 1.0) to say how often a real user would ask for
+    it: nobody asks for the minimum as often as for the peak, and TWh is the wrong scale for
+    one region over one month. Weight 0 removes a value without deleting it.
+    """
+    weight = 1.0
+    for value in combination.values():
+        if isinstance(value, dict):
+            weight *= float(value.get("weight", 1.0))
+    return weight
+
+
 def sample_combinations(
     template: dict, catalogues: dict[str, list[dict]], seed: int
 ) -> list[dict[str, Any]]:
@@ -172,8 +186,16 @@ def sample_combinations(
     combinations = [c for c in combinations if satisfies(constraints, c)]
     # Seeding per template keeps the samples of the other templates stable when one is added.
     rng = random.Random(f"{seed}:{template['template_id']}")
-    rng.shuffle(combinations)
-    return combinations[: template.get("max_instances", len(combinations))]
+    # Weighted sampling without replacement (Efraimidis-Spirakis): give each combination the
+    # key -ln(u)/w and keep the smallest. With every weight at 1 this is a plain shuffle.
+    keyed = []
+    for combination in combinations:
+        weight = combination_weight(combination)
+        if weight > 0:
+            keyed.append((-math.log(1.0 - rng.random()) / weight, combination))
+    keyed.sort(key=lambda pair: pair[0])
+    wanted = template.get("max_instances", len(keyed))
+    return [combination for _, combination in keyed[:wanted]]
 
 
 def surface_form(value: Any, lang: str, rng: random.Random, alias_ratio: float) -> Any:

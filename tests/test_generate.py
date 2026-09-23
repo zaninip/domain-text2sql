@@ -7,6 +7,7 @@ import pytest
 
 from t2sql.dataset.generate import (
     TemplateError,
+    combination_weight,
     generate,
     instances,
     load_templates,
@@ -211,3 +212,44 @@ def test_generate_writes_one_json_object_per_line(tmp_path: Path):
     assert written == len(lines)
     record = json.loads(lines[0])
     assert {"id", "template_id", "family", "conventions", "lang", "question", "sql"} <= set(record)
+
+
+# --- weights ----------------------------------------------------------------------------------
+
+
+def test_combination_weight_multiplies_and_defaults_to_one():
+    assert combination_weight({"a": {"id": "x"}, "b": 2023}) == 1.0
+    assert combination_weight({"a": {"id": "x", "weight": 0.2}, "b": {"id": "y"}}) == 0.2
+    assert combination_weight({"a": {"weight": 0.5}, "b": {"weight": 0.5}}) == 0.25
+
+
+WEIGHTED_TEMPLATE = {
+    "template_id": "weighted",
+    "slots": {
+        "pick": {
+            "values": [
+                {"id": "often", "weight": 10},
+                {"id": "rarely", "weight": 1},
+                {"id": "never", "weight": 0},
+            ]
+        },
+        "year": {"range": [1900, 1999]},
+    },
+    "max_instances": 60,
+}
+
+
+def test_weight_zero_removes_a_value():
+    picked = {c["pick"]["id"] for c in sample_combinations(WEIGHTED_TEMPLATE, {}, seed=1)}
+    assert "never" not in picked
+
+
+def test_a_heavier_value_is_drawn_more_often():
+    chosen = [c["pick"]["id"] for c in sample_combinations(WEIGHTED_TEMPLATE, {}, seed=1)]
+    assert chosen.count("often") > 3 * chosen.count("rarely")
+
+
+def test_weighted_sampling_stays_reproducible():
+    first = sample_combinations(WEIGHTED_TEMPLATE, {}, seed=3)
+    assert first == sample_combinations(WEIGHTED_TEMPLATE, {}, seed=3)
+    assert first != sample_combinations(WEIGHTED_TEMPLATE, {}, seed=4)

@@ -147,3 +147,31 @@ Format: date, decision, reason, alternatives considered.
   the equality in the training data.
 - **Alternatives:** keep the aliases (false equality trained); drop them entirely (undefined
   behaviour, likely an empty table in the demo).
+
+## 2026-09-23 — Slot values carry a weight; sampling is weighted, not uniform
+
+- **Decision:** a slot value may declare `weight` (default 1.0) and `sample_combinations` draws
+  with it (Efraimidis-Spirakis, without replacement). First uses: `min` 0.15 against `max` 1.0
+  in the extremes family, and TWh 0.1 / MWh 0.6 / GWh 1.0 for energy units.
+- **Reason:** uniform sampling made half the extremes questions ask for a minimum, which no
+  real user asks for, and a third of the energy questions ask for TWh, where a region over a
+  month answers "0.017". The dataset has to look like the questions the demo will receive.
+- **Alternatives:** delete the rare values (the model would then be unable to answer a
+  legitimate question about a minimum); duplicate the frequent values in the YAML (same effect,
+  unreadable). Weight 0 remains available to disable a value without deleting it.
+
+## 2026-09-23 — Anomalous published values are kept, and disclosed to the demo users
+
+- **Decision:** the database keeps exactly what RTE publishes, anomalies included. The glossary
+  gains a third audience marker, `**Caveats**`, extracted by `prompts.caveats()` and meant
+  for the About tab of the demo; caveats never enter the system prompt.
+- **Reason:** correcting a published value would make our answers disagree with the official
+  site and would require a robust definition of "anomaly", which the data does not support (a
+  hydro turbine really can start within one step, a biomass plant cannot). The model learns SQL
+  patterns, not values, so an artefact costs nothing in training; a user reading "2300 MW"
+  deserves an explanation, so the honest place for it is the app, not the prompt.
+- **Evidence:** 17 isolated spikes in 2.84 M rows (value above 5x both neighbours). The largest,
+  bioenergies in Île-de-France on 2021-03-25 15:30 (143 -> 2300 -> 145 MW), comes with an equal
+  jump in consumption and a balanced residual, so the source injected it into two columns.
+- **Alternatives:** null out the outliers (breaks agreement with RTE, arbitrary threshold);
+  say nothing to users (cheaper, less honest for a portfolio about data quality).

@@ -3,8 +3,9 @@
 Every statement below was checked against the data in `data/eco2mix.duckdb`; conventions that
 are choices rather than facts (seasons, peak hours, source groups) are recorded in
 `docs/decisions.md`.
-Items in the "Prompt" sections are meant to be included in the system prompt; "Notes" are for
-humans (dataset generation, evaluation) only.
+Each section is written for three audiences: "Prompt" goes into the system prompt read by the
+models, "Notes" are for us (dataset generation, evaluation), and "Caveats" are shown to the
+users of the demo, in the About tab, so that a surprising answer can be understood.
 
 ## 1. Power vs energy
 
@@ -113,6 +114,13 @@ humans (dataset generation, evaluation) only.
 **Notes**
 
 - TCO checked on Bretagne 2024-06-15 12:00: wind 789 / consumption 2071 = 38.1 % = `tco_eolien`.
+- Isolated spikes survey (2026-09-23): 17 steps in 2.84 M rows have a value above 5x both
+  neighbours. The largest is bioenergies in Île-de-France on 2021-03-25 15:30 (143 -> 2300 ->
+  145 MW), where consumption jumps by the same amount and the balance still holds, so the
+  source injected one bogus value into two columns. Most of the others are hydro in
+  Bourgogne-Franche-Comté around 200 MW and are plausibly real (a turbine can start within a
+  step). Nothing is corrected in the database: it must keep matching what RTE publishes, and
+  the model learns SQL patterns, not values. Keep such instants out of `demo_examples.yaml`.
 
 ## 6. Regions
 
@@ -178,3 +186,28 @@ humans (dataset generation, evaluation) only.
 - Execution accuracy compares the returned rows as multisets, ignoring column names, so a
   correct computation with an extra or missing column is scored as wrong. This section exists
   to make the expected shape explicit for every model.
+
+## 9. Known data caveats
+
+**Caveats**
+
+- The dataset covers the 12 metropolitan regions. Corsica and the overseas territories are not
+  in éCO2mix regional data, so a "France" total here excludes them.
+- Coverage ends mid-2026: the last year is partial, and data from 2025 on is "consolidated",
+  not yet "definitive", so RTE may still revise it.
+- A few published values are visibly wrong. The clearest is bioenergy in Île-de-France on
+  25 March 2021 at 15:30, published as 2300 MW against a usual 145 MW. Such values are kept as
+  published: correcting them would put this demo at odds with the official figures.
+- One thing is corrected, though. On the March clock-change day the source publishes each of
+  the two steps of that hour twice, once under the hour that does not exist (02:00) and once
+  under the real one (03:00), with the same value. Charts that group by timestamp, including
+  those on the source portal, then show that instant doubled — a national consumption near
+  108 GW instead of 54 GW. The duplicate is removed here, so the curve stays smooth.
+- Where a region has no plant of a kind (no nuclear in Brittany, no pumped storage in
+  Île-de-France), the value is empty until 2020 and 0 afterwards. A 0 means "no such plant",
+  not "the plant was idle".
+- The onshore/offshore split of wind is only available from 2024; before that, only the total.
+- The two clock-change days are not alike here. The March day holds 46 steps, which is right:
+  that day really lasts 23 hours. The October day should last 25 hours but the source
+  publishes only 24, so its repeated hour is missing and a daily total for that day falls
+  short by about one hour of energy (roughly 45 GWh nationally).

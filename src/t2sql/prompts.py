@@ -46,6 +46,21 @@ def conventions(glossary_md: str) -> str:
     return "# Conventions\n\n" + "\n\n".join(kept)
 
 
+def caveats(glossary_md: str) -> list[str]:
+    """The ``**Caveats**`` bullets, written for the users of the demo (About tab).
+
+    They are deliberately kept out of the system prompt: a model does not need to know that a
+    published value is wrong, but a person reading the answer does.
+    """
+    found: list[str] = []
+    for section in glossary_md.split("\n## ")[1:]:
+        if "**Caveats**" not in section:
+            continue
+        block = section.split("**Caveats**", 1)[1].split("\n**", 1)[0]
+        found += block.split("\n- ")[1:]
+    return [" ".join(item.split()) for item in found]  # one line per caveat, wrapping undone
+
+
 def approx_tokens(text: str) -> int:
     """Rough token count, good enough to catch a prompt that grew too large."""
     return round(len(text) / CHARS_PER_TOKEN)

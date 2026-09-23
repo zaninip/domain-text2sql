@@ -10,3 +10,4 @@ paths:
   clean: data/dataset/clean.jsonl
   splits: data/dataset
   report: results/dataset_stats.json
+  sample: results/dataset_sample.md   # 30 examples for human review

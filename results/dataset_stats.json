@@ -7,7 +7,7 @@
   },
   "splits": {
     "train": {
-      "examples": 820,
+      "examples": 856,
       "templates": [
         "agg_energy_source_region_year",
         "cls_exchange_role_season",
@@ -15,49 +15,49 @@
         "ts_monthly_energy_region_year"
       ],
       "by_family": {
-        "aggregation": 220,
+        "aggregation": 228,
         "classification": 160,
-        "extremes": 200,
+        "extremes": 228,
         "timeseries": 240
       },
       "by_language": {
-        "fr": 410,
-        "it": 410
+        "fr": 428,
+        "it": 428
       },
       "by_template": {
-        "agg_energy_source_region_year": 220,
+        "agg_energy_source_region_year": 228,
         "cls_exchange_role_season": 160,
-        "ext_peak_timestamp_region_year": 200,
+        "ext_peak_timestamp_region_year": 228,
         "ts_monthly_energy_region_year": 240
       },
       "by_convention": {
-        "energy_conversion": 460,
-        "unit_scaling": 460,
+        "energy_conversion": 468,
+        "unit_scaling": 468,
         "exchange_sign": 160,
         "season": 160,
-        "result_shape": 600,
-        "extremum_with_timestamp": 200,
-        "tie_break": 200
+        "result_shape": 628,
+        "extremum_with_timestamp": 228,
+        "tie_break": 228
       }
     },
     "val": {
-      "examples": 212,
+      "examples": 232,
       "templates": [
         "cmp_yearly_change_pct_region"
       ],
       "by_family": {
-        "comparison": 212
+        "comparison": 232
       },
       "by_language": {
-        "fr": 106,
-        "it": 106
+        "fr": 116,
+        "it": 116
       },
       "by_template": {
-        "cmp_yearly_change_pct_region": 212
+        "cmp_yearly_change_pct_region": 232
       },
       "by_convention": {
-        "percentage_change": 212,
-        "result_shape": 212
+        "percentage_change": 232,
+        "result_shape": 232
       }
     },
     "test": {
@@ -91,16 +91,16 @@
     "ts_monthly_energy_region_year": "train"
   },
   "chat_bytes": {
-    "train": 10085366,
-    "val": 2627374,
-    "test": 2951263
+    "train": 10529216,
+    "val": 2875106,
+    "test": 2951320
   },
   "system_prompt_tokens": 3285,
+  "sample": 30,
   "generated": 1360,
-  "kept": 1272,
+  "kept": 1328,
   "dropped": {
-    "all_null": 36,
-    "all_zero": 12,
-    "precondition": 40
+    "all_null": 20,
+    "precondition": 12
   }
 }
