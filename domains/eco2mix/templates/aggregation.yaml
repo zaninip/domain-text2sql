@@ -1,0 +1,39 @@
+# Family "aggregation": one number summarising a column over a period.
+
+templates:
+  - template_id: agg_energy_source_region_year
+    family: aggregation
+    conventions: [energy_conversion, unit_scaling]
+    description: >
+      Energy produced by one source, in one region, over one calendar year, in the requested
+      unit. Exercises "MW are average power, energy = SUM(MW) * 0.5" and the unit scaling.
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: production}
+      region:
+        from: regions
+      annee:
+        range: [2013, 2025]    # 2026 is partial, excluded from "one full year" templates
+      unite:
+        from: energy_units
+
+    max_instances: 60          # sampled with the global seed out of 6 x 12 x 13 x 3 = 2808 combinations
+
+    questions:
+      fr:
+        - "Quelle quantité d'énergie {mesure} a été produite {region.in} en {annee}, en {unite} ?"
+        - "Production {mesure} {region.in} sur l'année {annee}, en {unite} ?"
+      it:
+        - "Quanta energia {mesure} è stata prodotta {region.in} nel {annee}, in {unite}?"
+        - "Produzione {mesure} {region.in} nell'anno {annee}, in {unite}?"
+
+    sql: |
+      SELECT SUM({mesure.sql}) {unite.expr} AS energie_{unite.id}
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+
+    result:
+      columns: [energie]
+      order_matters: false

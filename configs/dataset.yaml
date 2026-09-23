@@ -1,0 +1,12 @@
+# Dataset build (phase 2). Paths are relative to the repository root.
+
+seed: 20260922          # drives slot sampling, alias choice and the template split
+alias_ratio: 0.25       # share of region mentions written as an alias ("PACA") when one exists
+
+paths:
+  templates: domains/eco2mix/templates
+  database: data/eco2mix.duckdb
+  raw: data/dataset/raw.jsonl
+  clean: data/dataset/clean.jsonl
+  splits: data/dataset
+  report: results/dataset_stats.json

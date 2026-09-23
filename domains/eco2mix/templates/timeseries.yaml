@@ -1,0 +1,41 @@
+# Family "timeseries": one row per time bucket, in chronological order.
+
+templates:
+  - template_id: ts_monthly_energy_region_year
+    family: timeseries
+    conventions: [energy_conversion, unit_scaling, result_shape]
+    description: >
+      Month-by-month energy of one measure in one region over a year. Exercises grouping by
+      the convenience column `mois`, the chronological order, and the energy conversion.
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: [production, demand]}
+      region:
+        from: regions
+      annee:
+        range: [2013, 2025]
+      unite:
+        from: energy_units
+
+    max_instances: 60
+
+    questions:
+      fr:
+        - "Quelle a été l'évolution mois par mois de l'énergie {mesure} {region.in} en {annee}, en {unite} ?"
+        - "Énergie {mesure} par mois {region.in} en {annee}, en {unite} ?"
+      it:
+        - "Qual è stato l'andamento mese per mese dell'energia {mesure} {region.in} nel {annee}, in {unite}?"
+        - "Energia {mesure} mese per mese {region.in} nel {annee}, in {unite}?"
+
+    sql: |
+      SELECT mois, SUM({mesure.sql}) {unite.expr} AS energie_{unite.id}
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+      GROUP BY mois
+      ORDER BY mois
+
+    result:
+      columns: [mois, energie]
+      order_matters: true

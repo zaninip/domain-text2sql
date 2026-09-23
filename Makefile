@@ -1,6 +1,6 @@
 UV ?= uv
 
-.PHONY: install lint format test check data
+.PHONY: install lint format test check data dataset
 
 install:
 	$(UV) sync --all-groups
@@ -22,3 +22,7 @@ check: lint test
 # Download the eCO2mix export once (data/raw/), rebuild data/eco2mix.duckdb and schema.md
 data:
 	$(UV) run python domains/eco2mix/ingest.py
+
+# Generate, execute-and-filter, then split the question/SQL dataset (configs/dataset.yaml)
+dataset:
+	$(UV) run python -m t2sql.dataset.build

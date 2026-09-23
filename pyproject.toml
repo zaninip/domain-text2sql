@@ -9,6 +9,7 @@ authors = [{ name = "Paolo Zanini" }]
 dependencies = [
     "duckdb>=1.5.5",
     "httpx>=0.28.1",
+    "pyyaml>=6.0.3",
     "sqlglot>=30.18.0",
 ]
 

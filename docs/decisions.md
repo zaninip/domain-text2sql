@@ -92,3 +92,58 @@ Format: date, decision, reason, alternatives considered.
   `FROM read_csv(...)` (both parse as `exp.Table`) without listing every table function.
 - **Alternatives:** function allow-list (too restrictive for model output), regex checks
   (fragile), `duckdb` `query_timeout` (not exposed in the Python API).
+
+## 2026-09-22 — Questions in French and Italian only (English dropped for éCO2mix)
+
+- **Decision:** templates carry FR and IT question variants; English is dropped for this
+  domain and kept for the tennis domain later. CLAUDE.md §1 still says FR/EN/IT and should be
+  updated by the owner.
+- **Reason:** each language multiplies the hand-written surface forms (region names, locative
+  prepositions, source adjectives); two languages already cover the multilingual claim, and
+  the freed effort goes into more SQL skeletons, which is what the split by template needs.
+- **Alternatives:** keep English (more surface work per template, no new SQL behaviour).
+
+## 2026-09-22 — Template format
+
+- **Decision:** one YAML file per family under `domains/eco2mix/templates/`, each template with
+  `template_id`, `family`, `conventions` (error taxonomy in phase 3), `description`, typed
+  `slots` with per-language labels and SQL attributes, `max_instances` (seeded sampling),
+  2 question variants per language, `sql`, `result.columns`, `order_matters`. Placeholders:
+  `{slot}` renders the label in the current language, `{slot.attr}` an explicit attribute
+  (`.sql`, `.literal`, `.divisor`, `.in`).
+- **Reason:** one definition drives question and SQL; attributes keep language and SQL apart;
+  the generator owns escaping (`d'Azur` -> `d''Azur`), never the template author.
+- **Alternatives:** Jinja templates (more power than needed, harder to validate), one file per
+  template (too many files), SQL written per instance (defeats the split by template).
+
+## 2026-09-22 — Region surface forms in `templates/regions.yaml`
+
+- **Decision:** the 12 regions with, per language, an ordered list of surface forms
+  (`name` + locative `in`), the first canonical and the rest aliases (PACA, IDF, AURA,
+  historical regions, Italian names). `id` is the exact database value.
+- **Reason:** French requires a per-region preposition ("en Bretagne" vs "dans les
+  Hauts-de-France"), so it cannot be hard-coded in the question text; using aliases as slot
+  values turns glossary §6 into training signal instead of documentation.
+
+## 2026-09-22 — Gold SQL never rounds; all-zero results are dropped
+
+- **Decision:** gold SQL returns raw computed values (no `ROUND`); `validate.py` drops
+  instances whose result is empty, all NULL, or all zero.
+- **Reason:** execution accuracy uses a 1e-4 relative tolerance, so a rounded gold would score
+  a correct unrounded prediction as wrong; rounding belongs to the app. Sources absent from a
+  region are 0 (not NULL) from 2021 on, so "nuclear in Île-de-France in 2023" would otherwise
+  produce a useless 0 MWh example.
+
+## 2026-09-22 — Historical regions stay out of the training data
+
+- **Decision:** slot values contain only true aliases of the same territory (PACA, AURA, IDF,
+  région parisienne, Italian names). Names of the pre-2016 regions (Alsace, Picardie,
+  Aquitaine…) were removed from `regions.yaml` and moved to glossary §6 as a rule: answer with
+  the current region that contains them.
+- **Reason:** each old region is entirely inside exactly one current region, but is much
+  smaller, so gold SQL mapping "Alsace" to "Grand Est" would train a false equality and the
+  demo would show a number roughly three times too large with no warning. Stating the rule in
+  the prompt keeps the behaviour defined and identical for the three models, without asserting
+  the equality in the training data.
+- **Alternatives:** keep the aliases (false equality trained); drop them entirely (undefined
+  behaviour, likely an empty table in the demo).

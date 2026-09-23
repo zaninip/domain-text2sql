@@ -1,0 +1,56 @@
+# Family "extremes": the highest or lowest 30-minute value, and when it happened.
+
+templates:
+  - template_id: ext_peak_timestamp_region_year
+    family: extremes
+    conventions: [extremum_with_timestamp, tie_break, result_shape]
+    description: >
+      When the peak (or the low) of one measure was reached in a region over a year. Asking
+      "when" forbids `MAX(...)`: the answer needs the instant. Several instants can share the
+      extreme value (up to 1371 times in this data), so the answer is the earliest one plus
+      the number of instants that reach it, never an arbitrary row (glossary §8).
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: [production, demand]}
+      extremum:
+        values:
+          - {id: max, label: {fr: le pic, it: il picco}, agg: max}
+          - {id: min, label: {fr: le minimum, it: il minimo}, agg: min}
+      region:
+        from: regions
+      annee:
+        range: [2013, 2025]
+
+    max_instances: 60
+
+    questions:
+      fr:
+        - "Quand a été atteint {extremum} {mesure.de} {region.in} en {annee} ?"
+        - "À quelle date et à quelle heure {extremum} {mesure.de} a-t-il été atteint {region.in} en {annee} ?"
+      it:
+        - "Quando è stato raggiunto {extremum} {mesure.de} {region.in} nel {annee}?"
+        - "In che giorno e a che ora è stato raggiunto {extremum} {mesure.de} {region.in} nel {annee}?"
+
+    # A source the region does not have is stored as 0 (or NULL) at every step: the question
+    # "when was its minimum" then has no meaning. Require the measure to vary.
+    require: |
+      SELECT count(DISTINCT {mesure.sql}) > 1
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+
+    sql: |
+      WITH v AS (
+        SELECT date_heure, {mesure.sql} AS valeur_mw
+        FROM eco2mix
+        WHERE region = {region.literal} AND annee = {annee}
+      )
+      SELECT min(date_heure) AS date_heure, valeur_mw, count(*) AS ex_aequo
+      FROM v
+      WHERE valeur_mw = (SELECT {extremum.agg}(valeur_mw) FROM v)
+      GROUP BY valeur_mw
+
+    result:
+      columns: [date_heure, valeur_mw, ex_aequo]
+      order_matters: false

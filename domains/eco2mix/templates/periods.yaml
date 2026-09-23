@@ -1,0 +1,61 @@
+# Time slot catalogues: calendar months, seasons, and parts of the day/week.
+# `in` is the form used inside a question ("en février", "a febbraio"), because the preposition
+# is irregular. `start`/`end` of a season are rendered against the bound `annee`; `{annee-1}`
+# is the offset syntax the generator supports for integer slots (winter starts the year before).
+# `where` is a SQL predicate: written here once, so no template repeats the convention.
+
+months:
+  - {id: 1, label: {fr: janvier, it: gennaio}, in: {fr: en janvier, it: a gennaio}}
+  - {id: 2, label: {fr: février, it: febbraio}, in: {fr: en février, it: a febbraio}}
+  - {id: 3, label: {fr: mars, it: marzo}, in: {fr: en mars, it: a marzo}}
+  - {id: 4, label: {fr: avril, it: aprile}, in: {fr: en avril, it: ad aprile}}
+  - {id: 5, label: {fr: mai, it: maggio}, in: {fr: en mai, it: a maggio}}
+  - {id: 6, label: {fr: juin, it: giugno}, in: {fr: en juin, it: a giugno}}
+  - {id: 7, label: {fr: juillet, it: luglio}, in: {fr: en juillet, it: a luglio}}
+  - {id: 8, label: {fr: août, it: agosto}, in: {fr: en août, it: ad agosto}}
+  - {id: 9, label: {fr: septembre, it: settembre}, in: {fr: en septembre, it: a settembre}}
+  - {id: 10, label: {fr: octobre, it: ottobre}, in: {fr: en octobre, it: a ottobre}}
+  - {id: 11, label: {fr: novembre, it: novembre}, in: {fr: en novembre, it: a novembre}}
+  - {id: 12, label: {fr: décembre, it: dicembre}, in: {fr: en décembre, it: a dicembre}}
+
+# Astronomical seasons with the fixed boundaries of glossary §2. Winter is named after the year
+# it ends in, so it starts on 21 December of the previous year.
+seasons:
+  - id: printemps
+    label: {fr: printemps, it: primavera}
+    in: {fr: au printemps, it: nella primavera del}
+    start: "{annee}-03-20"
+    end: "{annee}-06-20"
+  - id: ete
+    label: {fr: été, it: estate}
+    in: {fr: en été, it: "nell'estate del"}
+    start: "{annee}-06-21"
+    end: "{annee}-09-21"
+  - id: automne
+    label: {fr: automne, it: autunno}
+    in: {fr: en automne, it: "nell'autunno del"}
+    start: "{annee}-09-22"
+    end: "{annee}-12-20"
+  - id: hiver
+    label: {fr: hiver, it: inverno}
+    in: {fr: en hiver, it: "nell'inverno del"}
+    start: "{annee-1}-12-21"
+    end: "{annee}-03-19"
+
+# Parts of the day or week, as defined in glossary §2.
+moments:
+  - id: pointe
+    in: {fr: aux heures de pointe, it: nelle ore di punta}
+    where: "(heure BETWEEN 8 AND 12 OR heure BETWEEN 18 AND 20)"
+  - id: pointe_soir
+    in: {fr: à la pointe du soir, it: nella punta serale}
+    where: "heure BETWEEN 18 AND 20"
+  - id: nuit
+    in: {fr: la nuit, it: di notte}
+    where: "(heure < 6 OR heure >= 22)"
+  - id: weekend
+    in: {fr: le week-end, it: nei fine settimana}
+    where: "isodow(date) IN (6, 7)"
+  - id: semaine
+    in: {fr: en semaine, it: nei giorni feriali}
+    where: "isodow(date) BETWEEN 1 AND 5"

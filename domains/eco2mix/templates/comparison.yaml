@@ -1,0 +1,45 @@
+# Family "comparison": two aggregates compared inside a single query.
+
+templates:
+  - template_id: cmp_yearly_change_pct_region
+    family: comparison
+    conventions: [percentage_change, result_shape]
+    description: >
+      Relative change of one measure in a region between two years. Two aggregates must live
+      in one query (FILTER or CTE), and the percentage is (later - earlier) / earlier; the
+      energy factor cancels out in the ratio, so it is deliberately absent.
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: [production, demand]}
+      region:
+        from: regions
+      annee_a:
+        range: [2013, 2023]
+      annee_b:
+        range: [2015, 2025]
+
+    constraints:
+      - "annee_b > annee_a"
+
+    max_instances: 60
+
+    questions:
+      fr:
+        - "De combien la production {mesure} a-t-elle changé {region.in} entre {annee_a} et {annee_b}, en pourcentage ?"
+        - "Variation en pourcentage de l'énergie {mesure} {region.in} de {annee_a} à {annee_b} ?"
+      it:
+        - "Di quanto è cambiata in percentuale la produzione {mesure} {region.in} fra il {annee_a} e il {annee_b}?"
+        - "Variazione percentuale dell'energia {mesure} {region.in} dal {annee_a} al {annee_b}?"
+
+    sql: |
+      SELECT 100.0 * (SUM({mesure.sql}) FILTER (WHERE annee = {annee_b})
+                    - SUM({mesure.sql}) FILTER (WHERE annee = {annee_a}))
+                    / SUM({mesure.sql}) FILTER (WHERE annee = {annee_a}) AS variation_pct
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee IN ({annee_a}, {annee_b})
+
+    result:
+      columns: [variation_pct]
+      order_matters: false

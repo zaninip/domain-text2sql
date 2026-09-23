@@ -64,7 +64,7 @@ humans (dataset generation, evaluation) only.
   `hydraulique`, `bioenergies`.
 - Renewables (RTE convention): `eolien + solaire + hydraulique +
   bioenergies`. Pumped-storage pumping (`pompage_mw`) is not subtracted.
-- Low-carbon / decarbonised: renewables + `nucleaire`.
+- Low-carbon / decarbonised / clean energy ("propre", "pulita"): renewables + `nucleaire`.
 - Fossil = `thermique_mw` alone.
 - Wind split: `eolien_terrestre_mw` (onshore) and `eolien_offshore_mw` are meaningful from
   2024 only and NULL before. For any wind question that is not explicitly onshore/offshore, use `eolien_mw`.
@@ -84,9 +84,12 @@ humans (dataset generation, evaluation) only.
 
 - `pompage_mw` ≤ 0: power consumed by pumped-storage pumps. Pumping energy = `-SUM(pompage_mw) * 0.5`.
 - `ech_physiques_mw`: net physical exchanges with neighbouring regions and countries.
-  Positive = the region imports, negative = the region exports. "Exported energy" of a region
-  = `-SUM(ech_physiques_mw) * 0.5` restricted to `ech_physiques_mw < 0` only if the question
-  asks for gross exports; otherwise net balance = `SUM(ech_physiques_mw) * 0.5`.
+  Positive = the region imports, negative = the region exports.
+- "Exported energy" = gross exports: `-SUM(ech_physiques_mw) * 0.5` over the steps where
+  `ech_physiques_mw < 0` only. "Imported energy" = `SUM(ech_physiques_mw) * 0.5` over the steps
+  where `ech_physiques_mw > 0` only.
+- "Exchange balance" / "net exporter or importer" = net: `SUM(ech_physiques_mw) * 0.5` over all
+  steps; negative balance = net exporter, positive = net importer.
 
 ## 5. Coverage rate (TCO) and load factor (TCH)
 
@@ -103,6 +106,9 @@ humans (dataset generation, evaluation) only.
   ratios is not the ratio of sums). "Average coverage rate" as a question about the TCO
   indicator itself → `AVG(tco_x_pct)`.
 - "Share of source X in production" → `100 * SUM(x_mw) / SUM(total production)`.
+- No region in the question = national aggregate over the 12 regions. For rates, recompute
+  from the MW columns (`100 * SUM(x_mw) / SUM(consommation_mw)`); never average `tco_*` or
+  `tch_*` across regions.
 
 **Notes**
 
@@ -125,6 +131,13 @@ humans (dataset generation, evaluation) only.
   Nouvelle-Aquitaine; Midi-Pyrénées / Languedoc → Occitanie; Brittany → Bretagne;
   Normandy → Normandie. Italian: Bretagna → Bretagne, Normandia → Normandie,
   Isola di Francia → Île-de-France, Provenza → Provence-Alpes-Côte d'Azur.
+- Historical regions merged in 2016 are not in the dataset and are not equal to any row.
+  A question naming one is answered with the current region that contains it, which always
+  contains it entirely: Alsace / Lorraine / Champagne-Ardenne -> Grand Est; Nord-Pas-de-Calais
+  / Picardie -> Hauts-de-France; Aquitaine / Limousin / Poitou-Charentes -> Nouvelle-Aquitaine;
+  Midi-Pyrénées / Languedoc-Roussillon -> Occitanie; Bourgogne / Franche-Comté ->
+  Bourgogne-Franche-Comté; Auvergne / Rhône-Alpes -> Auvergne-Rhône-Alpes. The answer then
+  covers a larger territory than the question asked about.
 - `code_insee_region` is text ('11', '24', …); prefer filtering on `region`.
 
 ## 7. NULL and data-quality rules
@@ -140,3 +153,28 @@ humans (dataset generation, evaluation) only.
 
 - 108 rows of 2013 have NULL `eolien_mw` (source had "-" / "ND"); the first step of
   2013-01-01 00:00 has NULL consumption in all regions.
+
+## 8. Result shape
+
+**Prompt**
+
+- Return only the grouping columns the question implies (region, year, month, …) and the value
+  the answer is based on. For a classification or a ranking, include that value next to the
+  label (e.g. `region, balance_gwh, role`). No extra columns.
+- Name computed columns after what they contain, with the unit (`energie_gwh`, `part_pct`,
+  `conso_max_mw`); give values in the unit the question asks for, MWh by default for energy.
+- Order the rows when the question implies an order (ranking, time series); otherwise no
+  `ORDER BY` is needed.
+- When a question asks *when* an extreme was reached, several instants can share the extreme
+  value. Return the earliest of them, and a last column counting how many instants reach it
+  (1 when it is unique), so that the answer does not depend on an arbitrary choice:
+  `WITH v AS (SELECT date_heure, <col> AS valeur_mw FROM …) SELECT min(date_heure),
+  valeur_mw, count(*) AS ex_aequo FROM v WHERE valeur_mw = (SELECT max(valeur_mw) FROM v)
+  GROUP BY valeur_mw`. A question asking only for the extreme *value* needs no such care:
+  `MAX(col)` is unambiguous.
+
+**Notes**
+
+- Execution accuracy compares the returned rows as multisets, ignoring column names, so a
+  correct computation with an extra or missing column is scored as wrong. This section exists
+  to make the expected shape explicit for every model.

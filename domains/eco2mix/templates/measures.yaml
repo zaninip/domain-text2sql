@@ -1,0 +1,48 @@
+# What a question can ask about: one column (or expression) of the table.
+# `kind` lets a template restrict the slot (a "production by source" template must not pick
+# consumption). `sql` is the expression, because it is not derivable from `id`.
+# `label` is the adjective used after "énergie"/"energia"; `de` is the genitive form with its
+# article, which French and Italian contract irregularly ("du nucléaire", "de l'éolien").
+
+measures:
+  - id: eolien
+    kind: production
+    sql: eolien_mw
+    label: {fr: éolienne, it: eolica}
+    de: {fr: de l'éolien, it: dell'eolico}
+
+  - id: solaire
+    kind: production
+    sql: solaire_mw
+    label: {fr: solaire, it: solare}
+    de: {fr: du solaire, it: del solare}
+
+  - id: nucleaire
+    kind: production
+    sql: nucleaire_mw
+    label: {fr: nucléaire, it: nucleare}
+    de: {fr: du nucléaire, it: del nucleare}
+
+  - id: hydraulique
+    kind: production
+    sql: hydraulique_mw
+    label: {fr: hydraulique, it: idroelettrica}
+    de: {fr: de l'hydraulique, it: dell'idroelettrico}
+
+  - id: thermique
+    kind: production
+    sql: thermique_mw
+    label: {fr: thermique, it: termica}
+    de: {fr: du thermique, it: del termico}
+
+  - id: bioenergies
+    kind: production
+    sql: bioenergies_mw
+    label: {fr: issue des bioénergies, it: da bioenergie}
+    de: {fr: des bioénergies, it: delle bioenergie}
+
+  - id: consommation
+    kind: demand
+    sql: consommation_mw
+    label: {fr: consommée, it: consumata}
+    de: {fr: de la consommation, it: del consumo}

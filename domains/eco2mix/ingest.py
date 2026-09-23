@@ -159,7 +159,7 @@ SCHEMA_PATH = ROOT / "domains" / "eco2mix" / "schema.md"
 # so this dict must cover every column of the clean table (checked in write_schema_md).
 _COLUMN_DOCS: dict[str, tuple[str, str]] = {
     "code_insee_region": ("", "INSEE code of the region (2 digits, text)"),
-    "region": ("", "Region name with accents, e.g. 'Île-de-France', 'Provence-Alpes-Côte d'Azur'"),
+    "region": ("", "Region name with accents; quote as 'Provence-Alpes-Côte d''Azur'"),
     "nature": ("", "'Données définitives' (up to 2024) or 'Données consolidées' (2025 onwards)"),
     "date_heure": ("", "Start of the time step, local French time (naive TIMESTAMP)"),
     "date": ("", "Calendar date of date_heure"),

@@ -1,0 +1,40 @@
+# Family "rate": a ratio between two aggregates, expressed as a percentage.
+
+templates:
+  - template_id: rate_coverage_national_month_moment
+    family: rate
+    conventions: [national_aggregate, coverage_rate, peak_hours]
+    description: >
+      Coverage rate of one source over France during one part of the day or week, for one
+      month. The trap is `AVG(tco_x_pct)`: the question has no region, so the answer is the
+      national ratio of sums, and averaging a per-region rate would be wrong.
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: production}
+      mois:
+        from: months
+      moment:
+        from: moments
+      annee:
+        range: [2020, 2025]   # tco_* columns exist from 2020: the wrong answer is not NULL
+
+    max_instances: 60
+
+    questions:
+      fr:
+        - "Quel a été le taux de couverture moyen {mesure.de} {moment.in} {mois.in} {annee} en France ?"
+        - "En France, quelle part de la consommation a été couverte par l'énergie {mesure} {moment.in} {mois.in} {annee} ?"
+      it:
+        - "Qual è stato il tasso di copertura medio {mesure.de} {moment.in} {mois.in} {annee} in Francia?"
+        - "In Francia, quale parte del consumo è stata coperta dall'energia {mesure} {moment.in} {mois.in} {annee}?"
+
+    sql: |
+      SELECT 100.0 * SUM({mesure.sql}) / SUM(consommation_mw) AS taux_couverture_pct
+      FROM eco2mix
+      WHERE annee = {annee} AND mois = {mois.id} AND {moment.where}
+
+    result:
+      columns: [taux_couverture_pct]
+      order_matters: false

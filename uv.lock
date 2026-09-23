@@ -345,6 +345,7 @@ source = { editable = "." }
 dependencies = [
     { name = "duckdb" },
     { name = "httpx" },
+    { name = "pyyaml" },
     { name = "sqlglot" },
 ]
 
@@ -359,6 +360,7 @@ dev = [
 requires-dist = [
     { name = "duckdb", specifier = ">=1.5.5" },
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "sqlglot", specifier = ">=30.18.0" },
 ]
 

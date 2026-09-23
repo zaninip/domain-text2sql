@@ -1,0 +1,100 @@
+# The 12 regions, with the surface forms questions can use, per language.
+# `id` is the exact value stored in the database and must never be changed.
+# For each language the first form is canonical, the others are true aliases of the same
+# territory (PACA, IDF, Italian names), which the model has to map back to `id` (glossary §6).
+# Historical regions (Alsace, Picardie, Aquitaine...) are NOT listed: they are only part of the
+# current region, so training on them would teach a false equality. Glossary §6 states how to
+# answer when a question names one. `label` is the subject form, `in` the locative form, because the
+# French preposition depends on the region ("en Bretagne" but "dans les Hauts-de-France").
+
+regions:
+  - id: Auvergne-Rhône-Alpes
+    fr:
+      - {label: Auvergne-Rhône-Alpes, in: en Auvergne-Rhône-Alpes}
+      - {label: AURA, in: en AURA}
+    it:
+      - {label: Alvernia-Rodano-Alpi, in: in Alvernia-Rodano-Alpi}
+      - {label: Auvergne-Rhône-Alpes, in: in Auvergne-Rhône-Alpes}
+
+  - id: Bourgogne-Franche-Comté
+    fr:
+      - {label: Bourgogne-Franche-Comté, in: en Bourgogne-Franche-Comté}
+      - {label: BFC, in: en BFC}
+    it:
+      - {label: Borgogna-Franca Contea, in: in Borgogna-Franca Contea}
+      - {label: Bourgogne-Franche-Comté, in: in Bourgogne-Franche-Comté}
+
+  - id: Bretagne
+    fr:
+      - {label: Bretagne, in: en Bretagne}
+    it:
+      - {label: Bretagna, in: in Bretagna}
+      - {label: Bretagne, in: in Bretagne}
+
+  - id: Centre-Val de Loire
+    fr:
+      - {label: Centre-Val de Loire, in: dans le Centre-Val de Loire}
+      - {label: CVL, in: en CVL}
+    it:
+      - {label: Centro-Valle della Loira, in: nel Centro-Valle della Loira}
+      - {label: Centre-Val de Loire, in: nel Centre-Val de Loire}
+
+  - id: Grand Est
+    fr:
+      - {label: Grand Est, in: dans le Grand Est}
+    it:
+      - {label: Grande Est, in: nel Grande Est}
+      - {label: Grand Est, in: nel Grand Est}
+
+  - id: Hauts-de-France
+    fr:
+      - {label: Hauts-de-France, in: dans les Hauts-de-France}
+    it:
+      - {label: Alta Francia, in: nell'Alta Francia}
+      - {label: Hauts-de-France, in: negli Hauts-de-France}
+
+  - id: Île-de-France
+    fr:
+      - {label: Île-de-France, in: en Île-de-France}
+      - {label: IDF, in: en IDF}
+      - {label: région parisienne, in: en région parisienne}
+    it:
+      - {label: Isola di Francia, in: nell'Isola di Francia}
+      - {label: Île-de-France, in: nell'Île-de-France}
+      - {label: regione parigina, in: nella regione parigina}
+
+  - id: Normandie
+    fr:
+      - {label: Normandie, in: en Normandie}
+    it:
+      - {label: Normandia, in: in Normandia}
+      - {label: Normandie, in: in Normandie}
+
+  - id: Nouvelle-Aquitaine
+    fr:
+      - {label: Nouvelle-Aquitaine, in: en Nouvelle-Aquitaine}
+    it:
+      - {label: Nuova Aquitania, in: in Nuova Aquitania}
+      - {label: Nouvelle-Aquitaine, in: in Nouvelle-Aquitaine}
+
+  - id: Occitanie
+    fr:
+      - {label: Occitanie, in: en Occitanie}
+    it:
+      - {label: Occitania, in: in Occitania}
+      - {label: Occitanie, in: in Occitanie}
+
+  - id: Pays de la Loire
+    fr:
+      - {label: Pays de la Loire, in: dans les Pays de la Loire}
+    it:
+      - {label: Paesi della Loira, in: nei Paesi della Loira}
+      - {label: Pays de la Loire, in: nei Pays de la Loire}
+
+  - id: Provence-Alpes-Côte d'Azur
+    fr:
+      - {label: Provence-Alpes-Côte d'Azur, in: en Provence-Alpes-Côte d'Azur}
+      - {label: PACA, in: en PACA}
+    it:
+      - {label: Provenza-Alpi-Costa Azzurra, in: in Provenza-Alpi-Costa Azzurra}
+      - {label: PACA, in: in PACA}

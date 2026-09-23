@@ -1,0 +1,79 @@
+"""Chain the dataset steps -- generate, validate, split -- from a single config file.
+
+Run with ``make dataset``. Every step is reproducible from the seed, so two runs on the same
+database and templates produce byte-identical files.
+"""
+
+import json
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+from t2sql.dataset.generate import generate
+from t2sql.dataset.split import SPLITS, split_dataset
+from t2sql.dataset.validate import validate
+from t2sql.prompts import approx_tokens, chat_messages, system_prompt
+
+ROOT = Path(__file__).resolve().parents[3]
+CONFIG_PATH = ROOT / "configs" / "dataset.yaml"
+
+
+def write_chat_files(splits_dir: Path, domain_dir: Path) -> dict[str, int]:
+    """Turn each split into the chat format a trainer reads: system, question, SQL.
+
+    The system prompt is repeated on every line, which is what SFT libraries expect; it is the
+    same string everywhere, so training and evaluation cannot drift apart.
+    """
+    system = system_prompt(domain_dir)
+    sizes = {}
+    for split in SPLITS:
+        source = splits_dir / f"{split}.jsonl"
+        target = splits_dir / f"{split}_chat.jsonl"
+        with source.open(encoding="utf-8") as lines, target.open("w", encoding="utf-8") as out:
+            for line in lines:
+                record = json.loads(line)
+                chat = {
+                    "id": record["id"],
+                    "template_id": record["template_id"],
+                    "messages": chat_messages(system, record["question"], record["sql"]),
+                }
+                out.write(json.dumps(chat, ensure_ascii=False) + "\n")
+        sizes[split] = target.stat().st_size
+    return sizes
+
+
+def build(config: dict[str, Any]) -> dict[str, Any]:
+    """Run the three steps and return the statistics report, with the drop reasons added."""
+    paths = {name: ROOT / value for name, value in config["paths"].items()}
+    written = generate(paths["templates"], paths["raw"], config["seed"], config["alias_ratio"])
+    kept, dropped = validate(paths["raw"], paths["clean"], paths["database"])
+    report = split_dataset(paths["clean"], paths["splits"], config["seed"])
+    domain_dir = paths["templates"].parent
+    report["chat_bytes"] = write_chat_files(paths["splits"], domain_dir)
+    report["system_prompt_tokens"] = approx_tokens(system_prompt(domain_dir))
+    report["generated"] = written
+    report["kept"] = kept
+    report["dropped"] = dict(dropped)
+    paths["report"].parent.mkdir(parents=True, exist_ok=True)
+    paths["report"].write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    return report
+
+
+def main() -> None:
+    config = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
+    report = build(config)
+    kept, written = report["kept"], report["generated"]
+    print(f"generated {written}, kept {kept} ({100 * kept / written:.1f}%)")
+    for reason, count in sorted(report["dropped"].items(), key=lambda item: -item[1]):
+        print(f"  dropped {count:5d}  {reason}")
+    for split, info in report["splits"].items():
+        families = ", ".join(sorted(info["by_family"]))
+        count, n_templates = info["examples"], len(info["templates"])
+        print(f"{split:6s} {count:5d} examples  {n_templates} templates  {families}")
+    print(f"system prompt: ~{report['system_prompt_tokens']} tokens, repeated on every chat line")
+    print(f"report: {config['paths']['report']}")
+
+
+if __name__ == "__main__":
+    main()

@@ -7,7 +7,7 @@
 | column | type | unit | description |
 |---|---|---|---|
 | code_insee_region | VARCHAR |  | INSEE code of the region (2 digits, text) |
-| region | VARCHAR |  | Region name with accents, e.g. 'Île-de-France', 'Provence-Alpes-Côte d'Azur' |
+| region | VARCHAR |  | Region name with accents; quote as 'Provence-Alpes-Côte d''Azur' |
 | nature | VARCHAR |  | 'Données définitives' (up to 2024) or 'Données consolidées' (2025 onwards) |
 | date_heure | TIMESTAMP |  | Start of the time step, local French time (naive TIMESTAMP) |
 | date | DATE |  | Calendar date of date_heure |

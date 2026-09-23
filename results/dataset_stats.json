@@ -1,0 +1,106 @@
+{
+  "seed": 20260922,
+  "proportions": {
+    "train": 0.7,
+    "val": 0.15,
+    "test": 0.15
+  },
+  "splits": {
+    "train": {
+      "examples": 820,
+      "templates": [
+        "agg_energy_source_region_year",
+        "cls_exchange_role_season",
+        "ext_peak_timestamp_region_year",
+        "ts_monthly_energy_region_year"
+      ],
+      "by_family": {
+        "aggregation": 220,
+        "classification": 160,
+        "extremes": 200,
+        "timeseries": 240
+      },
+      "by_language": {
+        "fr": 410,
+        "it": 410
+      },
+      "by_template": {
+        "agg_energy_source_region_year": 220,
+        "cls_exchange_role_season": 160,
+        "ext_peak_timestamp_region_year": 200,
+        "ts_monthly_energy_region_year": 240
+      },
+      "by_convention": {
+        "energy_conversion": 460,
+        "unit_scaling": 460,
+        "exchange_sign": 160,
+        "season": 160,
+        "result_shape": 600,
+        "extremum_with_timestamp": 200,
+        "tie_break": 200
+      }
+    },
+    "val": {
+      "examples": 212,
+      "templates": [
+        "cmp_yearly_change_pct_region"
+      ],
+      "by_family": {
+        "comparison": 212
+      },
+      "by_language": {
+        "fr": 106,
+        "it": 106
+      },
+      "by_template": {
+        "cmp_yearly_change_pct_region": 212
+      },
+      "by_convention": {
+        "percentage_change": 212,
+        "result_shape": 212
+      }
+    },
+    "test": {
+      "examples": 240,
+      "templates": [
+        "rate_coverage_national_month_moment"
+      ],
+      "by_family": {
+        "rate": 240
+      },
+      "by_language": {
+        "fr": 120,
+        "it": 120
+      },
+      "by_template": {
+        "rate_coverage_national_month_moment": 240
+      },
+      "by_convention": {
+        "national_aggregate": 240,
+        "coverage_rate": 240,
+        "peak_hours": 240
+      }
+    }
+  },
+  "assignment": {
+    "agg_energy_source_region_year": "train",
+    "cls_exchange_role_season": "train",
+    "cmp_yearly_change_pct_region": "val",
+    "ext_peak_timestamp_region_year": "train",
+    "rate_coverage_national_month_moment": "test",
+    "ts_monthly_energy_region_year": "train"
+  },
+  "chat_bytes": {
+    "train": 10085366,
+    "val": 2627374,
+    "test": 2951263
+  },
+  "system_prompt_tokens": 3285,
+  "generated": 1360,
+  "kept": 1272,
+  "dropped": {
+    "all_null": 36,
+    "all_zero": 12,
+    "precondition": 40
+  }
+}

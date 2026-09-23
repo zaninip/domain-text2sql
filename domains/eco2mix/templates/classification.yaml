@@ -1,0 +1,45 @@
+# Family "classification": label each row according to an aggregate.
+
+templates:
+  - template_id: cls_exchange_role_season
+    family: classification
+    conventions: [exchange_sign, season, result_shape]
+    description: >
+      Which regions were net exporters and which net importers over one season. Exercises the
+      sign of ech_physiques (negative = exporter), the fixed season boundaries, and the rule
+      that a classification returns the value the label is based on.
+
+    slots:
+      saison:
+        from: seasons
+      annee:
+        range: [2014, 2025]   # 2013 excluded: winter starts in the previous year
+
+    # Answer strings must be in the language of the question, or the comparison with the
+    # gold result would fail on the label alone.
+    constants:
+      exportatrice: {fr: exportatrice, it: esportatrice}
+      importatrice: {fr: importatrice, it: importatrice}
+
+    max_instances: 40
+
+    questions:
+      fr:
+        - "Quelles régions ont été exportatrices et lesquelles importatrices {saison.in} {annee} ?"
+        - "Solde des échanges de chaque région {saison.in} {annee} : exportatrice ou importatrice ?"
+      it:
+        - "Quali regioni sono state esportatrici e quali importatrici {saison.in} {annee}?"
+        - "Saldo degli scambi di ogni regione {saison.in} {annee}: esportatrice o importatrice?"
+
+    sql: |
+      SELECT region,
+             SUM(ech_physiques_mw) * 0.5 / 1000 AS solde_gwh,
+             CASE WHEN SUM(ech_physiques_mw) < 0 THEN '{exportatrice}' ELSE '{importatrice}' END AS role
+      FROM eco2mix
+      WHERE date BETWEEN '{saison.start}' AND '{saison.end}'
+      GROUP BY region
+      ORDER BY solde_gwh
+
+    result:
+      columns: [region, solde_gwh, role]
+      order_matters: false
