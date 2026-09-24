@@ -87,6 +87,25 @@ def holds(sql: str, con: duckdb.DuckDBPyConnection, tables: set[str]) -> bool:
     return bool(result.rows and result.rows[0][0])
 
 
+def canonical_order(rows: list[list[Any]]) -> list[list[Any]]:
+    """Sort result rows into a fixed order, for answers whose row order carries no meaning.
+
+    DuckDB aggregates on several threads, so a query without ORDER BY can return its rows in a
+    different order on every run. The metric compares rows as multisets, but a stored gold
+    that changes between two identical builds breaks reproducibility. Cells mix NULL, numbers
+    and text, which Python cannot compare directly, hence the (kind, value) key.
+    """
+
+    def key(cell: Any) -> tuple[int, Any]:
+        if cell is None:
+            return (0, 0)
+        if isinstance(cell, int | float) and not isinstance(cell, bool):
+            return (1, cell)
+        return (2, str(cell))
+
+    return sorted(rows, key=lambda row: [key(cell) for cell in row])
+
+
 def normalize_question(question: str) -> str:
     """Collapse the accidental differences between two questions: case, spacing, final mark."""
     return " ".join(question.split()).casefold().rstrip("?!. ")
@@ -94,7 +113,7 @@ def normalize_question(question: str) -> str:
 
 def validate(raw_path: Path, out_path: Path, db_path: Path) -> tuple[int, Counter]:
     """Filter ``raw_path`` into ``out_path``; return (kept records, reasons for the rest)."""
-    con = connect(db_path)
+    con = connect(db_path, threads=1)  # deterministic aggregation: reproducible gold values
     tables = list_tables(con)
     cache: dict[str, tuple[str | None, dict | None]] = {}
     preconditions: dict[str, bool] = {}
@@ -133,6 +152,8 @@ def validate(raw_path: Path, out_path: Path, db_path: Path) -> tuple[int, Counte
                 dropped["duplicate"] += 1
                 continue
             seen[key] = (record["id"], sql)
+            if not record.get("order_matters", False):
+                gold = gold | {"rows": canonical_order(gold["rows"])}
             out.write(json.dumps(record | {"gold": gold}, ensure_ascii=False) + "\n")
             kept += 1
     return kept, dropped

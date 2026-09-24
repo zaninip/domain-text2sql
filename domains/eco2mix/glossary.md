@@ -17,6 +17,9 @@ read), so that a surprising answer can be understood.
 - Energy over a period: `SUM(x_mw) * 0.5` MWh. GWh = MWh / 1000, TWh = MWh / 1e6.
 - "Average consumption/production" over a period → `AVG(x_mw)`; "total consumption/production"
   or "energy" → `SUM(x_mw) * 0.5`. Never sum MW without the step factor when energy is asked.
+- A question that names only a source (or consumption), a place and a period, with no word
+  for the quantity ("Wind in Brittany in 2023?", "Eolico Bretagna 2023?"), asks for the total
+  energy of that period: `SUM(x_mw) * 0.5`, in MWh unless a unit is given.
 - Peak / maximum / minimum power → `MAX(x_mw)` / `MIN(x_mw)` on the 30-minute values.
 - "The day (or month) with the most X" compares daily (monthly) energy totals, not the instant
   of the power peak.
@@ -279,6 +282,8 @@ read), so that a surprising answer can be understood.
   time, in MWh, GWh or TWh.
 - The unit in the question decides what is compared: a threshold in GW or MW is checked at
   every half-hour, one in GWh or MWh is compared with the energy of the whole period.
+- A question that only names a source, a place and a period ("Wind in Brittany 2023?") is
+  answered with the total energy produced over that period.
 - When no unit is given, an energy is answered in MWh and a power in MW. When the question
   names the quantity ("energy", "power"), that word wins over a unit that does not match:
   "energy in MW" is read as energy in MWh.

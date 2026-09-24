@@ -369,11 +369,11 @@ ORDER BY solde_gwh
 
 | region | solde_gwh | role |
 |---|---|---|
-| Centre-Val de Loire | -14612.968 | exportatrice |
 | Auvergne-Rhône-Alpes | -11481.7225 | exportatrice |
+| Bourgogne-Franche-Comté | 3486.785 | importatrice |
+| Bretagne | 3818.7695 | importatrice |
+| Centre-Val de Loire | -14612.968 | exportatrice |
 | Grand Est | -6527.4515 | exportatrice |
-| Normandie | -5313.6545 | exportatrice |
-| Nouvelle-Aquitaine | -3172.6005 | exportatrice |
 | _… 7 more rows_ |
 
 ## 26. Saldo degli scambi di ogni regione nell'inverno del 2025: esportatrice o importatrice?
@@ -392,11 +392,11 @@ ORDER BY solde_gwh
 
 | region | solde_gwh | role |
 |---|---|---|
+| Auvergne-Rhône-Alpes | -13849.0385 | esportatrice |
+| Bourgogne-Franche-Comté | 4411.5575 | importatrice |
+| Bretagne | 4491.9505 | importatrice |
 | Centre-Val de Loire | -17182.634 | esportatrice |
 | Grand Est | -15201.7965 | esportatrice |
-| Auvergne-Rhône-Alpes | -13849.0385 | esportatrice |
-| Normandie | -7735.743 | esportatrice |
-| Nouvelle-Aquitaine | -4621.3085 | esportatrice |
 | _… 7 more rows_ |
 
 ## 27. Pour chaque région, quelle filière a le plus produit en 2019 ?
@@ -422,11 +422,11 @@ QUALIFY row_number() OVER (PARTITION BY region ORDER BY energie_mwh DESC, source
 
 | region | source | energie_mwh |
 |---|---|---|
-| Pays de la Loire | thermique_mw | 3438432.0 |
-| Occitanie | nucleaire_mw | 16924668.5 |
+| Auvergne-Rhône-Alpes | nucleaire_mw | 85774050.5 |
+| Bourgogne-Franche-Comté | eolien_mw | 1769370.5 |
 | Bretagne | eolien_mw | 1939093.0 |
-| Hauts-de-France | nucleaire_mw | 32073037.5 |
 | Centre-Val de Loire | nucleaire_mw | 71591404.5 |
+| Grand Est | nucleaire_mw | 76314386.5 |
 | _… 7 more rows_ |
 
 ## 28. Qual è stata la principale fonte di produzione di ciascuna regione nel 2017?
@@ -452,11 +452,11 @@ QUALIFY row_number() OVER (PARTITION BY region ORDER BY energie_mwh DESC, source
 
 | region | source | energie_mwh |
 |---|---|---|
-| Grand Est | nucleaire_mw | 76827216.0 |
-| Nouvelle-Aquitaine | nucleaire_mw | 45127070.0 |
+| Auvergne-Rhône-Alpes | nucleaire_mw | 79936113.5 |
 | Bourgogne-Franche-Comté | eolien_mw | 1101316.0 |
-| Île-de-France | thermique_mw | 2439840.5 |
 | Bretagne | eolien_mw | 1545258.0 |
+| Centre-Val de Loire | nucleaire_mw | 74805310.5 |
+| Grand Est | nucleaire_mw | 76827216.0 |
 | _… 7 more rows_ |
 
 ## 29. Consommation de chaque région en 2023 : au-dessus ou en dessous de la moyenne des régions ?
@@ -478,11 +478,11 @@ FROM r
 
 | region | energie_mwh | position |
 |---|---|---|
+| Auvergne-Rhône-Alpes | 60731767.0 | au-dessus |
+| Bourgogne-Franche-Comté | 19547817.5 | en dessous |
+| Bretagne | 21410691.5 | en dessous |
 | Centre-Val de Loire | 17305048.0 | en dessous |
-| Normandie | 25597186.5 | en dessous |
-| Île-de-France | 63208700.5 | au-dessus |
-| Pays de la Loire | 25022435.5 | en dessous |
-| Nouvelle-Aquitaine | 40922872.0 | au-dessus |
+| Grand Est | 40880229.5 | au-dessus |
 | _… 7 more rows_ |
 
 ## 30. Nel 2020, indica per ogni regione se il consumo è stato sopra o sotto la media regionale.
@@ -504,9 +504,9 @@ FROM r
 
 | region | energie_mwh | position |
 |---|---|---|
-| Normandie | 26371460.5 | sotto |
+| Auvergne-Rhône-Alpes | 61803306.0 | sopra |
+| Bourgogne-Franche-Comté | 20110991.0 | sotto |
+| Bretagne | 21939736.5 | sotto |
 | Centre-Val de Loire | 18207050.0 | sotto |
-| Île-de-France | 64998136.5 | sopra |
-| Pays de la Loire | 26063877.5 | sotto |
 | Grand Est | 42564863.0 | sopra |
 | _… 7 more rows_ |

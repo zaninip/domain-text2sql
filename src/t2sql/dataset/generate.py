@@ -199,6 +199,15 @@ def sample_combinations(
     return [combination for _, combination in keyed[:wanted]]
 
 
+def capitalize_first(text: str) -> str:
+    """Upper-case the first letter of a question and leave the rest alone.
+
+    A question may start with a slot rendered in lower case ("l'éolien…", "en Bretagne…");
+    ``str.capitalize`` would also lower-case the rest, including region names and "PACA".
+    """
+    return text[:1].upper() + text[1:]
+
+
 def surface_form(value: Any, lang: str, rng: random.Random, alias_ratio: float) -> Any:
     """Flatten a catalogue entry that carries several surface forms per language.
 
@@ -255,7 +264,7 @@ def instances(
                     "conventions": template["conventions"],
                     "lang": lang,
                     "variant": variant,
-                    "question": render(question, binding, lang),
+                    "question": capitalize_first(render(question, binding, lang)),
                     "sql": sql,
                     "require": require_sql,
                     "slots": {name: slot_id(value) for name, value in combination.items()},

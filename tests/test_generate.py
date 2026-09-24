@@ -9,6 +9,7 @@ import pytest
 from t2sql.dataset.generate import (
     PLACEHOLDER,
     TemplateError,
+    capitalize_first,
     combination_weight,
     generate,
     instances,
@@ -312,3 +313,30 @@ def test_surface_form_keeps_the_attributes_of_the_entry():
 def test_surface_form_leaves_ordinary_values_alone():
     plain = {"id": "eolien", "sql": "eolien_mw", "label": {"fr": "éolienne", "it": "eolica"}}
     assert surface_form(plain, "fr", random.Random(0), alias_ratio=1.0) is plain
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("l'eolico in Bretagna nel 2023?", "L'eolico in Bretagna nel 2023?"),
+        ("à quelle place se classe…", "À quelle place se classe…"),
+        ("en Bretagne, en 2023, PACA et IDF", "En Bretagne, en 2023, PACA et IDF"),
+        ("2023 : bilan ?", "2023 : bilan ?"),
+    ],
+)
+def test_capitalize_first_touches_only_the_first_letter(text, expected):
+    assert capitalize_first(text) == expected
+
+
+def test_unit_suffix_ends_the_question_and_bare_unit_is_never_used():
+    """`{unite.suffix}` starts with a comma or is empty: it can only close a question. A bare
+    `{unite}` would print "MWh" where the implicit-unit variant must print nothing."""
+    _, templates = load_templates(TEMPLATE_DIR)
+    for template in templates:
+        for lang, questions in template["questions"].items():
+            for question in questions:
+                where = f"{template['template_id']} [{lang}] {question!r}"
+                assert "{unite}" not in question, f"bare {{unite}} in {where}"
+                if "{unite.suffix}" in question:
+                    tail = question.split("{unite.suffix}", 1)[1]
+                    assert tail.strip() in {"", "?", "."}, f"unit suffix not at the end in {where}"

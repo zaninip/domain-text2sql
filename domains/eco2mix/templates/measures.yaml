@@ -4,6 +4,12 @@
 # `label` is the adjective used after "énergie"/"energia"; `de` is the genitive form with its
 # article, which French and Italian contract irregularly ("du nucléaire", "de l'éolien").
 # `tco` / `tch` name the coverage-rate and load-factor columns of a production source.
+# `le` is the noun with its article ("l'éolien", "il nucleare"), `nom` the bare noun ("éolien",
+# "eolico") for elliptical questions ("Eolico Bretagna 2023?").
+# CONSTRAINT, both languages: use `le` and `nom` only in nominal forms, never as the subject
+# (or object) of a verb. "bioénergies" / "bioenergie" is plural, so "les bioénergies ont
+# produit" / "le bioenergie hanno prodotto" would break the agreement for one value out of
+# seven, and "quanto ha prodotto il nucleare" becomes "…ha prodotto le bioenergie".
 
 measures:
   - id: eolien
@@ -13,6 +19,8 @@ measures:
     tch: tch_eolien_pct
     label: {fr: éolienne, it: eolica}
     de: {fr: de l'éolien, it: dell'eolico}
+    le: {fr: "l'éolien", it: "l'eolico"}
+    nom: {fr: "éolien", it: "eolico"}
 
   - id: solaire
     kind: production
@@ -21,6 +29,8 @@ measures:
     tch: tch_solaire_pct
     label: {fr: solaire, it: solare}
     de: {fr: du solaire, it: del solare}
+    le: {fr: "le solaire", it: "il solare"}
+    nom: {fr: "solaire", it: "solare"}
 
   - id: nucleaire
     kind: production
@@ -29,6 +39,8 @@ measures:
     tch: tch_nucleaire_pct
     label: {fr: nucléaire, it: nucleare}
     de: {fr: du nucléaire, it: del nucleare}
+    le: {fr: "le nucléaire", it: "il nucleare"}
+    nom: {fr: "nucléaire", it: "nucleare"}
 
   - id: hydraulique
     kind: production
@@ -37,6 +49,8 @@ measures:
     tch: tch_hydraulique_pct
     label: {fr: hydraulique, it: idroelettrica}
     de: {fr: de l'hydraulique, it: dell'idroelettrico}
+    le: {fr: "l'hydraulique", it: "l'idroelettrico"}
+    nom: {fr: "hydraulique", it: "idroelettrico"}
 
   - id: thermique
     kind: production
@@ -45,6 +59,8 @@ measures:
     tch: tch_thermique_pct
     label: {fr: thermique, it: termica}
     de: {fr: du thermique, it: del termico}
+    le: {fr: "le thermique", it: "il termico"}
+    nom: {fr: "thermique", it: "termico"}
 
   - id: bioenergies
     kind: production
@@ -53,12 +69,16 @@ measures:
     tch: tch_bioenergies_pct
     label: {fr: issue des bioénergies, it: da bioenergie}
     de: {fr: des bioénergies, it: delle bioenergie}
+    le: {fr: "les bioénergies", it: "le bioenergie"}
+    nom: {fr: "bioénergies", it: "bioenergie"}
 
   - id: consommation
     kind: demand
     sql: consommation_mw
     label: {fr: consommée, it: consumata}
     de: {fr: de la consommation, it: del consumo}
+    le: {fr: "la consommation", it: "il consumo"}
+    nom: {fr: "consommation", it: "consumo"}
 
 # Groups of sources (glossary §3). Same shape as the regions: per language an ordered list of
 # forms, the first canonical and the others synonyms the model has to map to the same group.

@@ -79,11 +79,18 @@ class QueryResult:
     elapsed_s: float
 
 
-def connect(db_path: Path) -> duckdb.DuckDBPyConnection:
-    """Open the DuckDB file read-only with external access disabled and the config locked."""
+def connect(db_path: Path, threads: int | None = None) -> duckdb.DuckDBPyConnection:
+    """Open the DuckDB file read-only with external access disabled and the config locked.
+
+    ``threads=1`` makes aggregations deterministic (row order and the last digits of float
+    sums), which the dataset build needs to be reproducible; it has to be set here, before
+    the configuration is locked. Leave it to None to use every core.
+    """
     con = duckdb.connect(str(db_path), read_only=True)
+    if threads is not None:
+        con.execute(f"SET threads = {int(threads)}")
     con.execute("SET enable_external_access = false")
-    con.execute("SET lock_configuration = true")  # no later SET can undo the line above
+    con.execute("SET lock_configuration = true")  # no later SET can undo the lines above
     return con
 
 

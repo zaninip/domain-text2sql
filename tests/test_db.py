@@ -105,3 +105,13 @@ def test_connection_is_read_only_and_locked(db):
         db.execute("SET enable_external_access = true")
     with pytest.raises(duckdb.Error):
         db.execute("SELECT * FROM read_csv('pyproject.toml')")
+
+
+def test_connect_can_pin_threads_before_locking(tmp_path: Path):
+    path = tmp_path / "threads.duckdb"
+    with duckdb.connect(str(path)) as writer:
+        writer.execute("CREATE TABLE t AS SELECT 1 AS x")
+    con = connect(path, threads=1)
+    assert con.execute("SELECT current_setting('threads')").fetchone()[0] == 1
+    with pytest.raises(duckdb.Error):
+        con.execute("SET threads = 4")  # still locked

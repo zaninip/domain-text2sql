@@ -272,11 +272,11 @@
     "rate_avg_coverage_indicator_region_year": "test"
   },
   "chat_bytes": {
-    "train": 65821309,
-    "val": 14479585,
-    "test": 12403928
+    "train": 66933097,
+    "val": 14724157,
+    "test": 12613256
   },
-  "system_prompt_tokens": 4248,
+  "system_prompt_tokens": 4323,
   "sample": 30,
   "generated": 6316,
   "kept": 5864,

@@ -372,3 +372,25 @@ Format: date, decision, reason, alternatives considered.
 - **Sanity checks worth keeping:** the 2015 national peak comes out at 91.9 GW, the figure RTE
   published; Occitanie's main source in 2023 is hydro because nuclear fell to 4.7 TWh that year
   (Golfech outages), a real event rather than a bug.
+
+## 2026-09-25 — Bare questions mean total energy; nominal forms of measures; build reproducible again
+
+- **Convention (README example):** a question naming only a source (or consumption), a place
+  and a period, with no word for the quantity ("Eolico Bretagna 2023?"), asks for the total
+  energy of the period, in MWh unless a unit is given. Written in glossary §1 and in the user
+  definitions. The base model cannot guess it; the fine-tuned model learns it from the
+  elliptical variants. The owner wants it cited in the README as a concrete case of what
+  fine-tuning teaches that prompting alone does not.
+- **Forms:** measures gain `le` (noun with article: "l'éolien", "il nucleare") and `nom` (bare
+  noun: "éolien", "eolico"), for elliptical and telegraphic variants. Constraint written next
+  to them in measures.yaml, for both languages: nominal forms only, never the subject or
+  object of a verb, since "bioénergies" / "bioenergie" is plural. Questions now get their first
+  letter upper-cased by the generator, so a variant may start with a lower-case slot.
+- **Reproducibility bug:** two identical builds differed on 210 of 5,864 records, since the
+  templates added on 2026-09-24/25 (row order of queries without ORDER BY; last digits of
+  float averages computed on several threads). `validate` now opens DuckDB with `threads=1`
+  (new optional argument of `db.connect`, set before the configuration is locked) and stores
+  the gold rows in a canonical order when the template says order does not matter. Checked:
+  two consecutive builds give identical checksums for every generated file. The metric was
+  never affected (multiset comparison, 1e-4 tolerance), but "make dataset is reproducible" is
+  a phase 2 criterion.
