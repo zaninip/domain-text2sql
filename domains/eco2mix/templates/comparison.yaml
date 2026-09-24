@@ -43,3 +43,188 @@ templates:
     result:
       columns: [variation_pct]
       order_matters: false
+
+  - template_id: cmp_two_regions_measure_year
+    family: comparison
+    conventions: [energy_conversion, unit_scaling, result_shape]
+    description: >
+      One source in two regions over the same year, both values side by side. The answer is
+      the two rows, from which the larger one reads directly; no label is computed.
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: production}
+      region_a:
+        from: regions
+      region_b:
+        from: regions
+      annee:
+        range: [2013, 2025]
+      unite:
+        from: energy_units
+
+    constraints:
+      - "region_a != region_b"
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Quelle région a produit le plus d'énergie {mesure} en {annee}, entre la région {region_a} et la région {region_b}{unite.suffix} ?"
+        - "Compare la production {mesure} de la région {region_a} et de la région {region_b} en {annee}{unite.suffix}."
+        - "Production {mesure} en {annee} : région {region_a} contre région {region_b}{unite.suffix} ?"
+      it:
+        - "Quale regione ha prodotto più energia {mesure} nel {annee}, fra la regione {region_a} e la regione {region_b}{unite.suffix}?"
+        - "Confronta la produzione {mesure} della regione {region_a} e della regione {region_b} nel {annee}{unite.suffix}."
+        - "Produzione {mesure} nel {annee}: regione {region_a} contro regione {region_b}{unite.suffix}?"
+
+    # Both regions must have the source, or one side of the comparison is an empty 0.
+    require: |
+      SELECT count(DISTINCT {mesure.sql}) FILTER (WHERE region = {region_a.literal}) > 1
+         AND count(DISTINCT {mesure.sql}) FILTER (WHERE region = {region_b.literal}) > 1
+      FROM eco2mix
+      WHERE annee = {annee}
+
+    sql: |
+      SELECT region, SUM({mesure.sql}) {unite.expr} AS energie_{unite.id}
+      FROM eco2mix
+      WHERE annee = {annee} AND region IN ({region_a.literal}, {region_b.literal})
+      GROUP BY region
+
+    result:
+      columns: [region, energie]
+      order_matters: false
+
+  - template_id: cmp_same_month_two_years_region
+    family: comparison
+    conventions: [energy_conversion]
+    description: >
+      One source in one region, the same calendar month of two different years. The unit is
+      fixed to GWh, the natural scale of a regional month, to keep the slot product bounded.
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: production}
+      region:
+        from: regions
+      mois:
+        from: months
+      annee_a:
+        range: [2013, 2024]
+      annee_b:
+        range: [2014, 2025]
+
+    constraints:
+      - "annee_b > annee_a"
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Compare la production {mesure} {region.in} {mois.in} {annee_a} et {mois.in} {annee_b}, en GWh."
+        - "Quelle a été la production {mesure} {region.in} {mois.in} {annee_a} et {mois.in} {annee_b}, en GWh ?"
+        - "Production {mesure} {region.in} : {mois} {annee_a} contre {mois} {annee_b}, en GWh ?"
+      it:
+        - "Confronta la produzione {mesure} {region.in} {mois.in} {annee_a} e {mois.in} {annee_b}, in GWh."
+        - "Qual è stata la produzione {mesure} {region.in} {mois.in} {annee_a} e {mois.in} {annee_b}, in GWh?"
+        - "Produzione {mesure} {region.in}: {mois} {annee_a} contro {mois} {annee_b}, in GWh?"
+
+    require: |
+      SELECT count(DISTINCT {mesure.sql}) FILTER (WHERE annee = {annee_a}) > 1
+         AND count(DISTINCT {mesure.sql}) FILTER (WHERE annee = {annee_b}) > 1
+      FROM eco2mix
+      WHERE region = {region.literal} AND mois = {mois.id}
+
+    sql: |
+      SELECT annee, SUM({mesure.sql}) * 0.5 / 1000 AS energie_gwh
+      FROM eco2mix
+      WHERE region = {region.literal} AND mois = {mois.id} AND annee IN ({annee_a}, {annee_b})
+      GROUP BY annee
+
+    result:
+      columns: [annee, energie_gwh]
+      order_matters: false
+
+  - template_id: cmp_winter_summer_consumption_ratio_region
+    family: comparison
+    conventions: [season, ratio_of_sums]
+    description: >
+      How many times a region's consumption in winter exceeds its consumption in summer, for
+      the winter and the summer of the same named year. Winter N starts on 21 December N-1
+      (glossary §2); the energy factor cancels out in the ratio.
+
+    slots:
+      region:
+        from: regions
+      annee:
+        range: [2014, 2025]
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Quel est le rapport entre la consommation de l'hiver {annee} et celle de l'été {annee} {region.in} ?"
+        - "Rapport entre la consommation hivernale et la consommation estivale de {annee} {region.in} ?"
+        - "Combien de fois la consommation de l'hiver {annee} a-t-elle dépassé celle de l'été {annee} {region.in} ?"
+      it:
+        - "Qual è il rapporto fra il consumo dell'inverno {annee} e quello dell'estate {annee} {region.in}?"
+        - "Rapporto fra consumo invernale ed estivo del {annee} {region.in}?"
+        - "Quante volte il consumo dell'inverno {annee} è stato più alto di quello dell'estate {annee} {region.in}?"
+
+    sql: |
+      SELECT SUM(consommation_mw) FILTER (WHERE date BETWEEN '{annee-1}-12-21' AND '{annee}-03-19')
+           / SUM(consommation_mw) FILTER (WHERE date BETWEEN '{annee}-06-21' AND '{annee}-09-21')
+             AS rapport
+      FROM eco2mix
+      WHERE region = {region.literal}
+
+    result:
+      columns: [rapport]
+      order_matters: false
+
+  - template_id: cmp_last_month_vs_year_before_region
+    family: comparison
+    conventions: [relative_dates, percentage_change]
+    description: >
+      Change of one source in one region between "last month" and the same month a year
+      earlier. "Last month" is the last month of the data, not of today's calendar
+      (glossary §2); the gold computes it from max(date) so it survives a data refresh.
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: production}
+      region:
+        from: regions
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "De combien a varié, en pourcentage, la production {mesure} {region.in} le mois dernier par rapport au même mois de l'année précédente ?"
+        - "Variation en pourcentage de la production {mesure} {region.in} entre le mois dernier et le même mois un an plus tôt ?"
+        - "Le mois dernier, la production {mesure} {region.in} a-t-elle augmenté ou baissé par rapport au même mois de l'an dernier, et de combien en pourcentage ?"
+      it:
+        - "Di quanto è variata in percentuale la produzione {mesure} {region.in} il mese scorso rispetto allo stesso mese dell'anno precedente?"
+        - "Variazione percentuale della produzione {mesure} {region.in} fra il mese scorso e lo stesso mese di un anno prima?"
+        - "Il mese scorso la produzione {mesure} {region.in} è aumentata o diminuita rispetto allo stesso mese dell'anno scorso, e di quanto in percentuale?"
+
+    require: |
+      SELECT count(DISTINCT {mesure.sql}) > 1
+      FROM eco2mix
+      WHERE region = {region.literal} AND date >= (SELECT max(date) FROM eco2mix) - INTERVAL 13 MONTH
+
+    sql: |
+      WITH fin AS (SELECT max(date) AS d FROM eco2mix)
+      SELECT 100.0 * (SUM({mesure.sql}) FILTER (WHERE annee = year(d) AND mois = month(d))
+                    - SUM({mesure.sql}) FILTER (WHERE annee = year(d) - 1 AND mois = month(d)))
+                    / SUM({mesure.sql}) FILTER (WHERE annee = year(d) - 1 AND mois = month(d))
+             AS variation_pct
+      FROM eco2mix, fin
+      WHERE region = {region.literal}
+
+    result:
+      columns: [variation_pct]
+      order_matters: false

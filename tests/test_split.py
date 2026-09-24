@@ -71,3 +71,16 @@ def test_report_counts_languages_families_and_conventions(tmp_path: Path):
     train = report["splits"]["train"]
     assert set(train["by_language"]) <= {"fr", "it"}
     assert train["by_convention"] == {"energy_conversion": train["examples"]}
+
+
+def test_every_family_keeps_a_template_in_train():
+    families = {"a1": "a", "a2": "a", "a3": "a", "b1": "b", "c1": "c", "c2": "c"}
+    for seed in range(20):
+        assignment = assign_splits(families, seed=seed)
+        trained = {families[t] for t, split in assignment.items() if split == "train"}
+        assert trained == {"a", "b", "c"}, f"seed {seed}: {assignment}"
+
+
+def test_a_single_template_family_never_leaves_train():
+    families = {f"t{i:02d}": f"family{i % 5}" for i in range(20)} | {"lonely": "alone"}
+    assert assign_splits(families, seed=1)["lonely"] == "train"

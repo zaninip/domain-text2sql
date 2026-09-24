@@ -12,6 +12,8 @@ re-running the reference query.
 import json
 from collections import Counter
 from datetime import date, datetime
+from decimal import Decimal
+from numbers import Number
 from pathlib import Path
 from typing import Any
 
@@ -26,11 +28,17 @@ TIMEOUT_S = 20.0
 
 def jsonable(value: Any) -> Any:
     """Make one cell of a result JSON-serializable, keeping its exact value."""
-    if isinstance(value, datetime | date):
+    if isinstance(value, datetime):  # before `date`: a datetime is also a date
         return value.isoformat(sep=" ")
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, Decimal):
+        # DuckDB returns DECIMAL for an integer sum times 0.5 (every MWh answer, every count of
+        # hours): it is a number and must stay one, or the metric would compare text with floats.
+        return float(value)
     if isinstance(value, int | float | str | bool) or value is None:
         return value
-    return str(value)  # Decimal, Interval and friends: keep the text, never guess a float
+    return str(value)  # Interval and other exotic types: keep the text
 
 
 def judge(result: QueryResult) -> str | None:
@@ -42,7 +50,7 @@ def judge(result: QueryResult) -> str | None:
     cells = [cell for row in result.rows for cell in row]
     if all(cell is None for cell in cells):
         return "all_null"
-    numbers = [c for c in cells if isinstance(c, int | float) and not isinstance(c, bool)]
+    numbers = [c for c in cells if isinstance(c, Number) and not isinstance(c, bool)]
     if numbers and all(number == 0 for number in numbers):
         return "all_zero"
     return None
@@ -79,12 +87,18 @@ def holds(sql: str, con: duckdb.DuckDBPyConnection, tables: set[str]) -> bool:
     return bool(result.rows and result.rows[0][0])
 
 
+def normalize_question(question: str) -> str:
+    """Collapse the accidental differences between two questions: case, spacing, final mark."""
+    return " ".join(question.split()).casefold().rstrip("?!. ")
+
+
 def validate(raw_path: Path, out_path: Path, db_path: Path) -> tuple[int, Counter]:
     """Filter ``raw_path`` into ``out_path``; return (kept records, reasons for the rest)."""
     con = connect(db_path)
     tables = list_tables(con)
     cache: dict[str, tuple[str | None, dict | None]] = {}
     preconditions: dict[str, bool] = {}
+    seen: dict[str, tuple[str, str]] = {}
     dropped: Counter = Counter()
     kept = 0
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -105,6 +119,20 @@ def validate(raw_path: Path, out_path: Path, db_path: Path) -> tuple[int, Counte
             if reason:
                 dropped[reason.split(":")[0]] += 1
                 continue
+            # Two templates may end up phrasing a question the same way. If their SQL agrees,
+            # the second example teaches nothing and is dropped; if it differs, the dataset
+            # would hold two answers for one question, which is a template bug, not data.
+            key = normalize_question(record["question"])
+            if key in seen:
+                first_id, first_sql = seen[key]
+                if first_sql != sql:
+                    raise TemplateError(
+                        f"same question, two answers:\n  {first_id}: {first_sql}\n"
+                        f"  {record['id']}: {sql}\n  question: {record['question']}"
+                    )
+                dropped["duplicate"] += 1
+                continue
+            seen[key] = (record["id"], sql)
             out.write(json.dumps(record | {"gold": gold}, ensure_ascii=False) + "\n")
             kept += 1
     return kept, dropped

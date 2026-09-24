@@ -29,7 +29,8 @@ import yaml
 
 LANGUAGES = ("fr", "it")
 
-_PLACEHOLDER = re.compile(r"\{(\w+)(?:([+-]\d+))?(?:\.(\w+))?\}")
+# Public: the tests use it to compare the slots named by the hand-written variants.
+PLACEHOLDER = re.compile(r"\{(\w+)(?:([+-]\d+))?(?:\.(\w+))?\}")
 _MAX_DEPTH = 3  # a season's start is one level deep; more means a cycle
 
 
@@ -92,7 +93,7 @@ def render(text: str, binding: dict[str, Any], lang: str, _depth: int = 0) -> st
             out = render(out, binding, lang, _depth + 1)
         return out
 
-    return _PLACEHOLDER.sub(replace, text)
+    return PLACEHOLDER.sub(replace, text)
 
 
 _COMPARISON = re.compile(r"^\s*(\w+)\s*(>=|<=|==|!=|>|<)\s*(\w+)\s*$")
@@ -204,14 +205,17 @@ def surface_form(value: Any, lang: str, rng: random.Random, alias_ratio: float) 
     Regions are the case: the entry holds an ``id`` (the database value) and, per language, an
     ordered list of forms whose first element is canonical. An alias is picked with probability
     ``alias_ratio``, independently per language, so some questions say "PACA" instead of the
-    official name and the model has to map it back.
+    official name and the model has to map it back. Source groups use the same shape for their
+    synonyms ("pulita", "decarbonizzata"). Attributes outside the language lists (``sql``,
+    ``weight`` …) are kept; the chosen form only supplies the words.
     """
     if not (isinstance(value, dict) and all(isinstance(value.get(x), list) for x in LANGUAGES)):
         return value
     forms = value[lang]
     use_alias = len(forms) > 1 and rng.random() < alias_ratio
     form = rng.choice(forms[1:]) if use_alias else forms[0]
-    return {**form, "id": value["id"], "literal": sql_literal(value["id"])}
+    shared = {key: item for key, item in value.items() if key not in LANGUAGES}
+    return {**shared, **form, "literal": sql_literal(value["id"])}
 
 
 def build_binding(

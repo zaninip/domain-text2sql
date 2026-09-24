@@ -25,15 +25,5 @@
 | ech_physiques_mw | INTEGER | MW | Net physical exchanges: > 0 imports, < 0 exports |
 | eolien_terrestre_mw | INTEGER | MW | Onshore wind generation; NULL before 2024 |
 | eolien_offshore_mw | INTEGER | MW | Offshore wind generation; NULL before 2024 |
-| tco_thermique_pct | DOUBLE | % | Coverage rate: thermique generation / consumption; NULL before 2020 |
-| tch_thermique_pct | DOUBLE | % | Load factor: thermique generation / installed capacity; NULL before 2020 |
-| tco_nucleaire_pct | DOUBLE | % | Coverage rate: nucleaire generation / consumption; NULL before 2020 |
-| tch_nucleaire_pct | DOUBLE | % | Load factor: nucleaire generation / installed capacity; NULL before 2020 |
-| tco_eolien_pct | DOUBLE | % | Coverage rate: eolien generation / consumption; NULL before 2020 |
-| tch_eolien_pct | DOUBLE | % | Load factor: eolien generation / installed capacity; NULL before 2020 |
-| tco_solaire_pct | DOUBLE | % | Coverage rate: solaire generation / consumption; NULL before 2020 |
-| tch_solaire_pct | DOUBLE | % | Load factor: solaire generation / installed capacity; NULL before 2020 |
-| tco_hydraulique_pct | DOUBLE | % | Coverage rate: hydraulique generation / consumption; NULL before 2020 |
-| tch_hydraulique_pct | DOUBLE | % | Load factor: hydraulique generation / installed capacity; NULL before 2020 |
-| tco_bioenergies_pct | DOUBLE | % | Coverage rate: bioenergies generation / consumption; NULL before 2020 |
-| tch_bioenergies_pct | DOUBLE | % | Load factor: bioenergies generation / installed capacity; NULL before 2020 |
+| tco_thermique_pct, tco_nucleaire_pct, tco_eolien_pct, tco_solaire_pct, tco_hydraulique_pct, tco_bioenergies_pct | DOUBLE | % | Coverage rate of the source in the name (glossary §5); from 2020 |
+| tch_thermique_pct, tch_nucleaire_pct, tch_eolien_pct, tch_solaire_pct, tch_hydraulique_pct, tch_bioenergies_pct | DOUBLE | % | Load factor of the source in the name (glossary §5); from 2020 |

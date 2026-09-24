@@ -12,6 +12,7 @@ from t2sql.prompts import (
     caveats,
     chat_messages,
     conventions,
+    definitions,
     system_prompt,
 )
 
@@ -128,3 +129,22 @@ def test_caveats_never_reach_the_model():
     assert caveats(glossary), "the domain must declare its caveats"
     for caveat in caveats(glossary):
         assert caveat[:40] not in prompt
+
+
+def test_definitions_are_extracted_for_the_demo_users():
+    glossary = (DOMAIN_DIR / "glossary.md").read_text(encoding="utf-8")
+    items = definitions(glossary)
+    assert len(items) >= 10
+    assert any("nuclear" in item and "green" in item for item in items)
+
+
+def test_definitions_never_reach_the_model():
+    glossary = (DOMAIN_DIR / "glossary.md").read_text(encoding="utf-8")
+    prompt = system_prompt(DOMAIN_DIR)
+    for item in definitions(glossary):
+        assert item[:40] not in prompt
+
+
+def test_a_block_stops_at_the_next_marker():
+    text = "# G\n\n## 1. S\n\n**Definitions**\n\n- shown\n\n**Notes**\n\n- hidden\n"
+    assert definitions(text) == ["shown"]

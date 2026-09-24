@@ -1,11 +1,13 @@
 """Rendering rules of t2sql.dataset.generate."""
 
 import json
+import random
 from pathlib import Path
 
 import pytest
 
 from t2sql.dataset.generate import (
+    PLACEHOLDER,
     TemplateError,
     combination_weight,
     generate,
@@ -16,6 +18,7 @@ from t2sql.dataset.generate import (
     satisfies,
     slot_candidates,
     sql_literal,
+    surface_form,
 )
 
 TEMPLATE_DIR = Path(__file__).resolve().parents[1] / "domains" / "eco2mix" / "templates"
@@ -253,3 +256,59 @@ def test_weighted_sampling_stays_reproducible():
     first = sample_combinations(WEIGHTED_TEMPLATE, {}, seed=3)
     assert first == sample_combinations(WEIGHTED_TEMPLATE, {}, seed=3)
     assert first != sample_combinations(WEIGHTED_TEMPLATE, {}, seed=4)
+
+
+# --- hand-written question variants -------------------------------------------------------------
+
+
+def slot_names(text: str) -> set[str]:
+    """The slots a question mentions, ignoring which attribute of them it uses."""
+    return {match.group(1) for match in PLACEHOLDER.finditer(text)}
+
+
+def test_every_variant_of_a_template_mentions_the_same_slots():
+    """A variant that drops a slot asks a vaguer question than its SQL answers."""
+    _, templates = load_templates(TEMPLATE_DIR)
+    for template in templates:
+        variants = {
+            (lang, index): slot_names(question)
+            for lang, questions in template["questions"].items()
+            for index, question in enumerate(questions)
+        }
+        reference = variants[("fr", 0)]
+        for key, slots in variants.items():
+            assert slots == reference, (
+                f"{template['template_id']} variant {key} mentions {sorted(slots)}, "
+                f"but fr[0] mentions {sorted(reference)}"
+            )
+
+
+def test_every_slot_of_a_template_appears_in_its_questions():
+    """A slot the questions never name makes the answer undetermined."""
+    _, templates = load_templates(TEMPLATE_DIR)
+    for template in templates:
+        asked = slot_names(template["questions"]["fr"][0])
+        unused = set(template["slots"]) - asked
+        assert not unused, f"{template['template_id']} never asks about {sorted(unused)}"
+
+
+# --- entities with several surface forms --------------------------------------------------------
+
+
+def test_surface_form_keeps_the_attributes_of_the_entry():
+    group = {
+        "id": "bas_carbone",
+        "sql": "a + b",
+        "fr": [{"label": "bas-carbone"}, {"label": "propre"}],
+        "it": [{"label": "pulita"}, {"label": "decarbonizzata"}],
+    }
+    rng = random.Random(0)
+    chosen = [surface_form(group, "it", rng, alias_ratio=0.5) for _ in range(40)]
+    assert {c["label"] for c in chosen} == {"pulita", "decarbonizzata"}
+    assert all(c["sql"] == "a + b" and c["id"] == "bas_carbone" for c in chosen)
+    assert "fr" not in chosen[0] and "it" not in chosen[0]
+
+
+def test_surface_form_leaves_ordinary_values_alone():
+    plain = {"id": "eolien", "sql": "eolien_mw", "label": {"fr": "éolienne", "it": "eolica"}}
+    assert surface_form(plain, "fr", random.Random(0), alias_ratio=1.0) is plain

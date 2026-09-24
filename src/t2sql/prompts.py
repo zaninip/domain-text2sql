@@ -25,9 +25,11 @@ Rules:
 # Rough bound on the prompt size: it only catches a schema or glossary that has grown out of
 # hand. The estimate is char-based, so it can be off by a third; the real count is measured in
 # phase 3 with the tokenizer of the chosen model, together with the training sequence length
-# and the CPU latency it costs. The limit is provisional until then.
+# and the CPU latency it costs. The limit is provisional until then: 4500 is the ceiling for
+# the whole of phase 2 (raised from 3500 when the multi-condition rules were added); going
+# past it means trimming, starting with the TCO/TCH rows of the schema that repeat glossary §5.
 CHARS_PER_TOKEN = 3.5
-MAX_PROMPT_TOKENS = 3500
+MAX_PROMPT_TOKENS = 4500
 
 
 class PromptTooLongError(ValueError):
@@ -46,19 +48,36 @@ def conventions(glossary_md: str) -> str:
     return "# Conventions\n\n" + "\n\n".join(kept)
 
 
+def _bullets(glossary_md: str, marker: str) -> list[str]:
+    """Every bullet written under ``**marker**``, in any section, one line per bullet.
+
+    A block runs from its marker to the next one (``**Notes**``…) or the end of the section.
+    """
+    found: list[str] = []
+    for section in glossary_md.split("\n## ")[1:]:
+        if f"**{marker}**" not in section:
+            continue
+        block = section.split(f"**{marker}**", 1)[1].split("\n**", 1)[0]
+        found += block.split("\n- ")[1:]
+    return [" ".join(item.split()) for item in found]  # the source wrapping is undone
+
+
 def caveats(glossary_md: str) -> list[str]:
-    """The ``**Caveats**`` bullets, written for the users of the demo (About tab).
+    """The ``**Caveats**`` bullets: limits of the data, for the users of the demo (About tab).
 
     They are deliberately kept out of the system prompt: a model does not need to know that a
     published value is wrong, but a person reading the answer does.
     """
-    found: list[str] = []
-    for section in glossary_md.split("\n## ")[1:]:
-        if "**Caveats**" not in section:
-            continue
-        block = section.split("**Caveats**", 1)[1].split("\n**", 1)[0]
-        found += block.split("\n- ")[1:]
-    return [" ".join(item.split()) for item in found]  # one line per caveat, wrapping undone
+    return _bullets(glossary_md, "Caveats")
+
+
+def definitions(glossary_md: str) -> list[str]:
+    """The ``**Definitions**`` bullets: how a question is read, in plain words, for the users.
+
+    They restate for people what the ``**Prompt**`` rules tell the models ("clean energy
+    includes nuclear"), without SQL, so that an answer can be checked against its question.
+    """
+    return _bullets(glossary_md, "Definitions")
 
 
 def approx_tokens(text: str) -> int:

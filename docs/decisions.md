@@ -175,3 +175,200 @@ Format: date, decision, reason, alternatives considered.
   jump in consumption and a balanced residual, so the source injected it into two columns.
 - **Alternatives:** null out the outliers (breaks agreement with RTE, arbitrary threshold);
   say nothing to users (cheaper, less honest for a portfolio about data quality).
+
+## 2026-09-23 — Monthly spot checks against the raw export, in `make data`
+
+- **Decision:** `verify_monthly_totals` compares three monthly sums (consumption Jan 2024 and
+  Jun 2025, wind Nov 2023) between the clean table and the Parquet export, and fails on any
+  difference. March is deliberately excluded.
+- **Reason:** outside March the export holds no duplicate row, so the two must agree to the
+  last MWh; a handful of spot checks catches a cleaning change that silently shifts the
+  numbers, at no cost. Verified to have teeth: pointed at March 2024 the check fails, with a
+  gap of 94,004 MW — the hour the export counts twice.
+- **Measured:** 11 months out of 12 match the export exactly in every year; only March differs,
+  by 45 to 63 GWh nationally, which is exactly the energy of the 24 duplicated rows. Our
+  yearly total is therefore lower than the published one by about 0.01%, and it is the correct
+  one.
+- **Alternatives:** compare every month (slower, and a wall of output for no extra safety);
+  compare nothing (a future change to the cleaning would go unnoticed).
+
+## 2026-09-23 — Question variants are hand-written; no paraphrasing service
+
+- **Decision:** `paraphrase.py` is dropped. The several phrasings per language a template needs
+  are written by hand in its `questions:` block (target 5-6 per language, against 2 today), by
+  the owner with the help of his Claude subscription.
+- **Reason:** the agreed design already paraphrased the *placeholder* form of a question, which
+  is exactly a line of the YAML file, so the manual route produces the same artefact while
+  being reviewed by a human, free of an API key and of a cache, and trivially reproducible.
+- **Guardrails added, since the variants are now hand-written:** two tests assert that every
+  variant of a template names the same slots, and that no declared slot is missing from the
+  questions (a question that does not name a slot its SQL filters on is undetermined);
+  `validate.py` drops an exact repeat of a question and raises when two templates give the
+  same question two different answers.
+
+## 2026-09-24 — Bug fixed: DECIMAL results were stored as text in the gold
+
+- **What happened:** DuckDB returns `DECIMAL` for an integer sum multiplied by 0.5 without a
+  division, i.e. every answer in MWh and every count of hours. `validate.jsonable` turned
+  DECIMAL into a string, and `judge` did not count it as a number. Two consequences since the
+  first version: MWh and hour answers were stored as text (`'784066.0'`), which the phase 3
+  metric would have compared with a float and scored as wrong; and zeros of that type escaped
+  the `all_zero` filter, so 82 degenerate examples sat in the dataset.
+- **Fix:** DECIMAL becomes a float in the gold, and `judge` treats any `numbers.Number` as
+  numeric. Tests cover both. Found while checking the first multi-condition answers, where
+  `0.0` hours were being kept.
+- **Related:** the monthly timeseries now has a `require` precondition, since the month numbers
+  of an all-NULL series hid it from the degenerate-answer filter.
+
+## 2026-09-24 — Prompt budget ceiling raised to 4500 estimated tokens for phase 2
+
+- **Decision:** `MAX_PROMPT_TOKENS` 3500 -> 4500, as the ceiling for the whole of phase 2.
+- **Reason:** the multi-condition family needed four new glossary rules (hours from steps,
+  days, national value per instant, share at each step) that the base model must see to be
+  judged fairly; the prompt grew to ~3510. More conventions will follow with the remaining
+  templates. The real cost (training sequence length, CPU latency) is measured in phase 3 with
+  the chosen tokenizer; if trimming is needed, the first candidate is the twelve TCO/TCH rows
+  of the schema, whose descriptions repeat glossary §5.
+
+## 2026-09-24 — The unit of a threshold decides between power and energy
+
+- **Decision:** glossary §1 states that a threshold in MW/GW is a power compared at each
+  instant, and one in MWh/GWh/TWh an energy compared with a sum over the period. The template
+  `mc_days_national_energy_above` is the twin of `mc_days_national_consumption_above`: the
+  first variant of each language is worded identically, only the unit changes.
+- **Reason:** raised by the owner — "consumption" suggests energy in everyday language, while
+  RTE uses it for the instantaneous demand in GW. Both readings are legitimate; the unit is
+  what disambiguates, and it is exactly the kind of convention a base model misses.
+- **Also confirmed:** "days above 70 GW" = at least one half-hour above the threshold that
+  day; "days as a net exporter" = negative exchange balance over the whole day.
+
+## 2026-09-24 — Ranking family: tie-break on the label, RANK() for positions, sources by column
+
+- **Decision:** glossary §8 now fixes three result conventions: a ranking orders by the value
+  and then by the label, and keeps N rows with LIMIT; a position in a ranking is
+  `RANK() OVER (ORDER BY value DESC)`, returned with its value; production sources listed as
+  rows are named by their column (`'eolien_mw'`), the natural output of UNPIVOT.
+- **Reason:** without a tie-break the rows kept by LIMIT can depend on an arbitrary order,
+  and without a naming rule the same correct answer could say `'eolien_mw'`, `'Éolien'` or
+  `'eolico'`, which the metric compares literally. The demo can map column names to readable
+  labels at display time.
+- **Bug fixed on the way:** `validate.jsonable` passed `sep=" "` to `date.isoformat()`, which
+  only `datetime` accepts; no query had returned a plain DATE column before the ranking of
+  days. Dates and datetimes are now handled separately (datetime first, being a subclass).
+
+## 2026-09-24 — Comparison family; relative dates computed from the data in the gold
+
+- **Decision:** four comparison templates added (two regions, same month of two years, winter
+  against summer, last month against the same month a year earlier). The relative-date gold
+  computes "last month" from `max(date)` instead of writing 2026 and 6; glossary §2 now says
+  both forms are valid.
+- **Reason:** the result is identical today, but a gold written from `max(date)` stays right
+  when the data is refreshed, while literals would silently point to a month that is no
+  longer "last". A model that reads the end date in the prompt and writes the literals is
+  still scored correct, since the metric compares results, not text.
+- **Detail:** the same-month template fixes the unit to GWh; with a free unit slot the product
+  of its slots would exceed the 200,000-combination guard.
+
+## 2026-09-25 — Source groups as a catalogue with synonyms; aggregation gaps filled
+
+- **Decision:** a `source_groups` catalogue (renewable, low-carbon, fossil) with the same shape
+  as the regions: per language an ordered list of forms, the first canonical, the others
+  synonyms ("propre", "décarbonée", "pulita", "a basse emissioni di carbonio"). To allow it,
+  `surface_form` now keeps every attribute of the entry (`sql`, `weight`…) and takes only the
+  words from the chosen form; it used to keep only `id`, which was enough for regions.
+- **Templates added:** group energy by region and month (which answers the owner's first
+  seed question, "energia pulita in AURA a gennaio 2026" = 12,711,723 MWh), group energy for
+  France by year, gross exports/imports of a region, energy consumed by pumped storage.
+- **Glossary:** STEP (stations de transfert d'énergie par pompage) is now named in §4, since a
+  question may use the French technical term and the base model must be able to read it.
+
+## 2026-09-25 — "Green" means low-carbon; the interpretation rules are shown to the users
+
+- **Decision:** "verte" / "verde" are synonyms of low-carbon energy, nuclear included, and the
+  glossary Prompt section says so explicitly. The glossary gains a fourth audience marker,
+  `**Definitions**`, holding in plain words how a question is read; `prompts.definitions()`
+  extracts it for the About tab (CLAUDE.md §11), and tests assert it never enters the prompt.
+- **Reason:** everyday usage of "green energy" is ambiguous about nuclear, so the choice has to
+  be written where the models read it and where the users read it. The owner wants users to
+  know the rules behind an answer, not only the limits of the data.
+- **Refactoring:** `caveats()` and `definitions()` share one extractor; a block now runs to the
+  next marker. Checked by comparing the system prompt before and after: identical.
+- **Open for phase 6:** caveats and definitions are written in English, like the rest of the
+  glossary; they will need translating if the app speaks French and Italian.
+
+## 2026-09-25 — Share/ratio family built as contrast pairs; offshore share on total wind
+
+- **Decision:** six rate templates, designed so that similar words lead to different formulas:
+  share in consumption (sum over sum of consumption) against share in production (sum of the
+  six sources as denominator) against the average coverage rate of a region (`AVG(tco_x_pct)`);
+  plus the average load factor (`AVG(tch_x_pct)`), a region's weight in national consumption
+  (FILTER in the numerator only) and the offshore share of wind.
+- **Evidence the pairs discriminate:** wind in Bretagne 2023 gives 12.447 % of consumption,
+  38.886 % of production, and an average coverage rate of 12.628 %; the last two numbers of a
+  pair differ far beyond the metric tolerance.
+- **Offshore share:** the denominator is `eolien_mw`, now written in glossary §5. The source
+  does not keep total wind equal to onshore + offshore (Normandie 2024: 40.552 % against
+  40.485 %), so without the rule a reasonable model could be scored wrong.
+
+## 2026-09-25 — Every family keeps at least one template in train
+
+- **Decision:** `assign_splits` sends the first template met of each family to train, the
+  others follow the proportional rule as before. Families will also be brought to at least
+  three templates, so that validation and test cover them too.
+- **Reason:** with the average family added, the three single-template families
+  (classification, extremes, timeseries) all fell outside train. The fine-tuned model would
+  have been tested on SQL skeletons it never met, which measures invention, not the learning
+  of conventions the project is about. The standard setting is unseen templates of known
+  families.
+- **Also fixed on the way:** "at 19h" with no date = the whole hour (`heure = 19`, both
+  half-hours), confirmed by the owner; average daily energy = mean of the daily totals.
+
+## 2026-09-25 — Timeseries family; moving averages left out
+
+- **Decision:** four timeseries templates added (hourly profile, yearly trend over an inclusive
+  range of years, national consumption day by day, cumulative production month by month).
+  Glossary: "between 2015 and 2024" includes both years; "cumulative month by month" is
+  `SUM(SUM(x) * 0.5) OVER (ORDER BY mois)`; an hourly profile groups by `heure`.
+- **Not done:** moving averages. "7-day moving average in February" is ambiguous on the first
+  days of the month (include late January or not), and such a question is rare for a demo
+  user; it would cost a convention for little value.
+
+## 2026-09-25 — Default units are trained, and a named quantity wins over a mismatched unit
+
+- **Decision:** the energy-unit catalogue gains a fourth entry with no unit in the question
+  (weight 0.4, about 17 % of the energy questions), answered in MWh; questions now end with
+  `{unite.suffix}` (", en GWh" or nothing) instead of ", en {unite}". Power templates with a
+  fixed "en MW" get one extra variant without the unit, answered in MW. Glossary §8 states
+  both defaults; §1 adds that a question naming the quantity ("energy", "power") is read by
+  that word when the unit does not match ("energy in MW" = MWh).
+- **Reason:** raised by the owner. The MWh default was in the prompt, but none of the 5,266
+  examples omitted the unit, although it is the most natural way to ask; the model would have
+  known the rule without ever seeing it applied. "Energy in MW" was undefined: the unit rule
+  had been written for ambiguous words ("consumption"), and whoever writes "energy in MW" has
+  most likely swapped MW and MWh.
+- **Not done:** no training examples with a mismatched unit; they would be deliberately wrong
+  questions. To revisit if the phase 3 baseline shows the case matters.
+
+## 2026-09-25 — Schema rows sharing a description are merged (prompt 4389 -> 4133 tokens)
+
+- **Decision:** `write_schema_md` puts columns with the same type, unit and description on one
+  row; the six TCO and six TCH columns now share one description each and take two rows
+  instead of twelve. Every column name is still spelled out; the definitions stay in
+  glossary §5.
+- **Reason:** the estimated prompt had reached 4389 tokens against the 4500 ceiling of phase 2,
+  with templates still to write; the twelve rows repeated the same sentence six times each.
+  Listing the names in full, rather than a `tco_<source>_pct` pattern, avoids asking a small
+  model to rebuild a column name.
+
+## 2026-09-25 — Template writing complete: 45 templates, every family has at least three
+
+- **Added last:** the national consumption extremum as a value (summed per instant, in MW or GW
+  through a new `power_units` catalogue), the record day of production (daily totals, earliest
+  day plus ties), the main source of every region (UNPIVOT, QUALIFY row_number), and every
+  region above or below the regional average (window AVG over one row per region).
+- **Glossary:** "the day with the most X" compares daily totals, not the power peak; labels in
+  an answer are the words of the question, in its language; "the average of the regions" is the
+  mean of the twelve regional totals.
+- **Sanity checks worth keeping:** the 2015 national peak comes out at 91.9 GW, the figure RTE
+  published; Occitanie's main source in 2023 is hydro because nuclear fell to 4.7 TWh that year
+  (Golfech outages), a real event rather than a bug.

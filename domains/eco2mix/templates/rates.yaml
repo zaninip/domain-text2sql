@@ -1,4 +1,6 @@
 # Family "rate": a ratio between two aggregates, expressed as a percentage.
+# The templates come in contrast pairs: one word apart in the question ("consumption" or
+# "production", "share" or "average coverage rate"), a different formula in the answer.
 
 templates:
   - template_id: rate_coverage_national_month_moment
@@ -37,4 +39,250 @@ templates:
 
     result:
       columns: [taux_couverture_pct]
+      order_matters: false
+
+  - template_id: rate_share_source_consumption_region_year
+    family: rate
+    conventions: [share_ratio_of_sums]
+    description: >
+      Share of a region's consumption covered by one source over a year: the ratio of the two
+      sums. Twin of the average coverage rate below, where similar words ask for the average
+      of the published indicator instead.
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: production}
+      region:
+        from: regions
+      annee:
+        range: [2013, 2025]
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Quelle part de la consommation {region.in} a été couverte par l'énergie {mesure} en {annee}, en % ?"
+        - "Part {mesure.de} dans la consommation {region.in} en {annee} ?"
+        - "Quel pourcentage de la consommation électrique {region.in} l'énergie {mesure} a-t-elle couvert en {annee} ?"
+      it:
+        - "Quale quota del consumo {region.in} è stata coperta dall'energia {mesure} nel {annee}, in %?"
+        - "Quota {mesure.de} nel consumo {region.in} nel {annee}?"
+        - "Che percentuale del consumo elettrico {region.in} ha coperto l'energia {mesure} nel {annee}?"
+
+    require: |
+      SELECT count(DISTINCT {mesure.sql}) > 1
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+
+    sql: |
+      SELECT 100.0 * SUM({mesure.sql}) / SUM(consommation_mw) AS part_pct
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+
+    result:
+      columns: [part_pct]
+      order_matters: false
+
+  - template_id: rate_share_source_production_region_year
+    family: rate
+    conventions: [share_ratio_of_sums, total_production]
+    description: >
+      Share of one source in a region's own production over a year. The denominator is the sum
+      of the six sources (with COALESCE), not consumption: one word apart from the template
+      above, a different answer.
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: production}
+      region:
+        from: regions
+      annee:
+        range: [2013, 2025]
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Quelle a été la part {mesure.de} dans la production électrique {region.in} en {annee} ?"
+        - "Part {mesure.de} dans la production {region.in} en {annee} ?"
+        - "En pourcentage, quel a été le poids de la production {mesure} dans la production totale {region.in} en {annee} ?"
+      it:
+        - "Qual è stata la quota {mesure.de} nella produzione elettrica {region.in} nel {annee}?"
+        - "Quota {mesure.de} nella produzione {region.in} nel {annee}?"
+        - "In percentuale, quanto ha pesato la produzione {mesure} sul totale prodotto {region.in} nel {annee}?"
+
+    require: |
+      SELECT count(DISTINCT {mesure.sql}) > 1
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+
+    sql: |
+      SELECT 100.0 * SUM({mesure.sql})
+             / SUM(COALESCE(thermique_mw, 0) + COALESCE(nucleaire_mw, 0) + COALESCE(eolien_mw, 0)
+                   + COALESCE(solaire_mw, 0) + COALESCE(hydraulique_mw, 0)
+                   + COALESCE(bioenergies_mw, 0)) AS part_pct
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+
+    result:
+      columns: [part_pct]
+      order_matters: false
+
+  - template_id: rate_avg_coverage_indicator_region_year
+    family: rate
+    conventions: [coverage_indicator_average]
+    description: >
+      Average of RTE's coverage indicator (TCO) for one source in one region over a year.
+      "Average coverage rate" of a region reads the published indicator (glossary §5); the
+      national version of the question is a ratio of sums instead. Available from 2020.
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: production}
+      region:
+        from: regions
+      annee:
+        range: [2020, 2025]
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Quel a été le taux de couverture moyen {mesure.de} {region.in} en {annee} ?"
+        - "Taux de couverture moyen {mesure.de} {region.in} sur l'année {annee} ?"
+        - "En {annee}, quel a été en moyenne le taux de couverture {mesure.de} {region.in} ?"
+      it:
+        - "Qual è stato il tasso di copertura medio {mesure.de} {region.in} nel {annee}?"
+        - "Tasso di copertura medio {mesure.de} {region.in} nell'anno {annee}?"
+        - "Nel {annee}, qual è stato in media il tasso di copertura {mesure.de} {region.in}?"
+
+    require: |
+      SELECT count(DISTINCT {mesure.sql}) > 1
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+
+    sql: |
+      SELECT AVG({mesure.tco}) AS taux_couverture_moyen_pct
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+
+    result:
+      columns: [taux_couverture_moyen_pct]
+      order_matters: false
+
+  - template_id: rate_avg_load_factor_region_year
+    family: rate
+    conventions: [load_factor_average]
+    description: >
+      Average load factor (TCH) of one source in one region over a year. Installed capacity is
+      not in the data, so the published indicator is the only way; available from 2020 and
+      NULL where the region has no such plant.
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: production}
+      region:
+        from: regions
+      annee:
+        range: [2020, 2025]
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Quel a été le facteur de charge moyen {mesure.de} {region.in} en {annee} ?"
+        - "Taux de charge moyen {mesure.de} {region.in} sur l'année {annee} ?"
+        - "En {annee}, quel a été en moyenne le taux de charge {mesure.de} {region.in} ?"
+      it:
+        - "Qual è stato il fattore di carico medio {mesure.de} {region.in} nel {annee}?"
+        - "Tasso di carico medio {mesure.de} {region.in} nell'anno {annee}?"
+        - "Nel {annee}, qual è stato in media il fattore di carico {mesure.de} {region.in}?"
+
+    require: |
+      SELECT count(DISTINCT {mesure.tch}) > 1
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+
+    sql: |
+      SELECT AVG({mesure.tch}) AS taux_charge_moyen_pct
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+
+    result:
+      columns: [taux_charge_moyen_pct]
+      order_matters: false
+
+  - template_id: rate_region_share_national_consumption_year
+    family: rate
+    conventions: [region_share_of_national, national_aggregate]
+    description: >
+      Weight of one region in French consumption over a year. The region appears only in the
+      numerator (FILTER); filtering it in WHERE would divide the region by itself and always
+      answer 100 %.
+
+    slots:
+      region:
+        from: regions
+      annee:
+        range: [2013, 2025]
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Quelle part de la consommation électrique française représente la région {region} en {annee} ?"
+        - "Part de la région {region} dans la consommation nationale en {annee} ?"
+        - "En {annee}, quel pourcentage de la consommation de la France provenait de la région {region} ?"
+      it:
+        - "Quale quota del consumo elettrico francese rappresenta la regione {region} nel {annee}?"
+        - "Quota della regione {region} nel consumo nazionale nel {annee}?"
+        - "Nel {annee}, che percentuale del consumo della Francia è venuta dalla regione {region}?"
+
+    sql: |
+      SELECT 100.0 * SUM(consommation_mw) FILTER (WHERE region = {region.literal})
+             / SUM(consommation_mw) AS part_pct
+      FROM eco2mix
+      WHERE annee = {annee}
+
+    result:
+      columns: [part_pct]
+      order_matters: false
+
+  - template_id: rate_offshore_share_wind_region_year
+    family: rate
+    conventions: [offshore_share, share_ratio_of_sums]
+    description: >
+      Share of offshore wind in a region's wind production. The split exists from 2024 only,
+      and the denominator is `eolien_mw`, which the source does not keep exactly equal to
+      onshore + offshore (glossary §5).
+
+    slots:
+      region:
+        from: regions
+      annee:
+        range: [2024, 2026]   # 2026 is partial (January-June), still a valid "this year"
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Quelle part de la production éolienne {region.in} était offshore en {annee} ?"
+        - "Part de l'éolien en mer dans l'éolien total {region.in} en {annee} ?"
+        - "En {annee}, quel pourcentage de l'électricité éolienne produite {region.in} venait de l'offshore ?"
+      it:
+        - "Quale quota della produzione eolica {region.in} era offshore nel {annee}?"
+        - "Quota dell'eolico offshore sull'eolico totale {region.in} nel {annee}?"
+        - "Nel {annee}, che percentuale dell'energia eolica prodotta {region.in} veniva dall'offshore?"
+
+    sql: |
+      SELECT 100.0 * SUM(eolien_offshore_mw) / SUM(eolien_mw) AS part_offshore_pct
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+
+    result:
+      columns: [part_offshore_pct]
       order_matters: false

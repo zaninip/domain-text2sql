@@ -1,0 +1,215 @@
+# Family "average": a mean restricted to part of the time (a moment of the day or week, an hour,
+# a season), or an average of daily totals. "Average consumption" is a power (AVG of MW); an
+# average daily energy is not (glossary §1).
+
+templates:
+  - template_id: avg_consumption_moment_region_month
+    family: average
+    conventions: [average_power, peak_hours]
+    description: >
+      Average consumption of a region during one part of the day or week (peak hours, night,
+      weekend, weekdays) over one month. AVG of the MW column, with the moment's predicate.
+
+    slots:
+      moment:
+        from: moments
+      region:
+        from: regions
+      mois:
+        from: months
+      annee:
+        range: [2013, 2025]
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Quelle a été la consommation moyenne {moment.in} {region.in} {mois.in} {annee}, en MW ?"
+        - "Consommation moyenne {region.in} {moment.in}, {mois.in} {annee}, en MW ?"
+        - "Puissance moyenne consommée {moment.in} {region.in} {mois.in} {annee}, en MW ?"
+        - "Quelle a été la consommation moyenne {moment.in} {region.in} {mois.in} {annee} ?"  # no unit: MW by default
+      it:
+        - "Qual è stato il consumo medio {moment.in} {region.in} {mois.in} {annee}, in MW?"
+        - "Consumo medio {region.in} {moment.in}, {mois.in} {annee}, in MW?"
+        - "Potenza media consumata {moment.in} {region.in} {mois.in} {annee}, in MW?"
+        - "Qual è stato il consumo medio {moment.in} {region.in} {mois.in} {annee}?"  # no unit: MW by default
+
+    sql: |
+      SELECT AVG(consommation_mw) AS conso_moyenne_mw
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee} AND mois = {mois.id}
+        AND {moment.where}
+
+    result:
+      columns: [conso_moyenne_mw]
+      order_matters: false
+
+  - template_id: avg_production_moment_region_year
+    family: average
+    conventions: [average_power, peak_hours]
+    description: >
+      Average production of one source in a region during one part of the day or week, over a
+      year. Solar at night averages to zero and drops out as a degenerate answer.
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: production}
+      moment:
+        from: moments
+      region:
+        from: regions
+      annee:
+        range: [2013, 2025]
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Quelle a été la production {mesure} moyenne {moment.in} {region.in} en {annee}, en MW ?"
+        - "Production moyenne {mesure.de} {moment.in} {region.in} en {annee}, en MW ?"
+        - "En {annee}, quelle puissance moyenne a fournie la production {mesure} {moment.in} {region.in}, en MW ?"
+        - "Quelle a été la production {mesure} moyenne {moment.in} {region.in} en {annee} ?"  # no unit: MW by default
+      it:
+        - "Qual è stata la produzione {mesure} media {moment.in} {region.in} nel {annee}, in MW?"
+        - "Produzione media {mesure.de} {moment.in} {region.in} nel {annee}, in MW?"
+        - "Nel {annee}, quale potenza media ha fornito la produzione {mesure} {moment.in} {region.in}, in MW?"
+        - "Qual è stata la produzione {mesure} media {moment.in} {region.in} nel {annee}?"  # no unit: MW by default
+
+    require: |
+      SELECT count(DISTINCT {mesure.sql}) > 1
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+
+    sql: |
+      SELECT AVG({mesure.sql}) AS production_moyenne_mw
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee} AND {moment.where}
+
+    result:
+      columns: [production_moyenne_mw]
+      order_matters: false
+
+  - template_id: avg_weekday_weekend_gap_consumption_region_year
+    family: average
+    conventions: [average_power, weekday_weekend]
+    description: >
+      How much higher a region's average consumption is on weekdays than at the weekend, over a
+      year. Two conditional averages in one query (FILTER), then their difference.
+
+    slots:
+      region:
+        from: regions
+      annee:
+        range: [2013, 2025]
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "De combien la consommation moyenne en semaine a-t-elle dépassé celle du week-end {region.in} en {annee}, en MW ?"
+        - "Écart de consommation moyenne entre la semaine et le week-end {region.in} en {annee}, en MW ?"
+        - "En {annee}, quelle différence de consommation moyenne y a-t-il eu entre la semaine et le week-end {region.in}, en MW ?"
+        - "De combien la consommation moyenne en semaine a-t-elle dépassé celle du week-end {region.in} en {annee} ?"  # no unit: MW by default
+      it:
+        - "Di quanto il consumo medio dei giorni feriali ha superato quello del fine settimana {region.in} nel {annee}, in MW?"
+        - "Differenza di consumo medio fra giorni feriali e fine settimana {region.in} nel {annee}, in MW?"
+        - "Nel {annee}, quanto è stata la differenza di consumo medio fra settimana lavorativa e weekend {region.in}, in MW?"
+        - "Di quanto il consumo medio dei giorni feriali ha superato quello del fine settimana {region.in} nel {annee}?"  # no unit: MW by default
+
+    sql: |
+      SELECT AVG(consommation_mw) FILTER (WHERE isodow(date) BETWEEN 1 AND 5)
+           - AVG(consommation_mw) FILTER (WHERE isodow(date) IN (6, 7)) AS ecart_mw
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+
+    result:
+      columns: [ecart_mw]
+      order_matters: false
+
+  - template_id: avg_consumption_hour_season_region
+    family: average
+    conventions: [average_power, hour_of_day, season]
+    description: >
+      Average consumption of a region at one hour of the day over one season. "At 19h" with no
+      date is the whole hour (heure = 19, both half-hours); the season uses the fixed
+      boundaries, winter starting the year before.
+
+    slots:
+      heure_jour:
+        values:
+          - {id: 8, label: {fr: 8 h, it: "8"}}
+          - {id: 13, label: {fr: 13 h, it: "13"}}
+          - {id: 19, label: {fr: 19 h, it: "19"}}
+      saison:
+        from: seasons
+      region:
+        from: regions
+      annee:
+        range: [2014, 2025]   # 2013 excluded: winter starts in the previous year
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Quelle a été la consommation moyenne à {heure_jour} {saison.in} {annee} {region.in}, en MW ?"
+        - "Consommation moyenne {region.in} à {heure_jour}, {saison.in} {annee}, en MW ?"
+        - "Puissance moyenne consommée à {heure_jour} {region.in} {saison.in} {annee}, en MW ?"
+        - "Quelle a été la consommation moyenne à {heure_jour} {saison.in} {annee} {region.in} ?"  # no unit: MW by default
+      it:
+        - "Qual è stato il consumo medio alle {heure_jour} {saison.in} {annee} {region.in}, in MW?"
+        - "Consumo medio {region.in} alle {heure_jour}, {saison.in} {annee}, in MW?"
+        - "Potenza media consumata alle {heure_jour} {region.in} {saison.in} {annee}, in MW?"
+        - "Qual è stato il consumo medio alle {heure_jour} {saison.in} {annee} {region.in}?"  # no unit: MW by default
+
+    sql: |
+      SELECT AVG(consommation_mw) AS conso_moyenne_mw
+      FROM eco2mix
+      WHERE region = {region.literal} AND heure = {heure_jour.id}
+        AND date BETWEEN '{saison.start}' AND '{saison.end}'
+
+    result:
+      columns: [conso_moyenne_mw]
+      order_matters: false
+
+  - template_id: avg_daily_energy_region_month
+    family: average
+    conventions: [average_daily_energy, unit_decides_power_or_energy, energy_conversion]
+    description: >
+      Average energy consumed per day by a region over one month: the mean of the daily totals.
+      The unit in the question is an energy, so AVG(consommation_mw), a power, is the trap.
+
+    slots:
+      region:
+        from: regions
+      mois:
+        from: months
+      annee:
+        range: [2013, 2025]
+      unite:
+        from: energy_units
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Quelle quantité d'énergie a été consommée en moyenne par jour {region.in} {mois.in} {annee}{unite.suffix} ?"
+        - "Consommation journalière moyenne {region.in} {mois.in} {annee}{unite.suffix} ?"
+        - "Énergie consommée par jour en moyenne {region.in} {mois.in} {annee}{unite.suffix} ?"
+      it:
+        - "Quanta energia è stata consumata in media al giorno {region.in} {mois.in} {annee}{unite.suffix}?"
+        - "Consumo giornaliero medio {region.in} {mois.in} {annee}{unite.suffix}?"
+        - "Energia consumata in media ogni giorno {region.in} {mois.in} {annee}{unite.suffix}?"
+
+    sql: |
+      SELECT AVG(energie) AS energie_moyenne_{unite.id}
+      FROM (
+        SELECT date, SUM(consommation_mw) {unite.expr} AS energie
+        FROM eco2mix
+        WHERE region = {region.literal} AND annee = {annee} AND mois = {mois.id}
+        GROUP BY date
+      )
+
+    result:
+      columns: [energie_moyenne]
+      order_matters: false

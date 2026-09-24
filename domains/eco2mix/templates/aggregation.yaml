@@ -23,14 +23,249 @@ templates:
 
     questions:
       fr:
-        - "Quelle quantité d'énergie {mesure} a été produite {region.in} en {annee}, en {unite} ?"
-        - "Production {mesure} {region.in} sur l'année {annee}, en {unite} ?"
+        - "Quelle quantité d'énergie {mesure} a été produite {region.in} en {annee}{unite.suffix} ?"
+        - "Production {mesure} {region.in} sur l'année {annee}{unite.suffix} ?"
       it:
-        - "Quanta energia {mesure} è stata prodotta {region.in} nel {annee}, in {unite}?"
-        - "Produzione {mesure} {region.in} nell'anno {annee}, in {unite}?"
+        - "Quanta energia {mesure} è stata prodotta {region.in} nel {annee}{unite.suffix}?"
+        - "Produzione {mesure} {region.in} nell'anno {annee}{unite.suffix}?"
 
     sql: |
       SELECT SUM({mesure.sql}) {unite.expr} AS energie_{unite.id}
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+
+    result:
+      columns: [energie]
+      order_matters: false
+
+  - template_id: agg_energy_measure_region_month
+    family: aggregation
+    conventions: [energy_conversion, unit_scaling]
+    description: >
+      Energy produced by one source, in one region, over one calendar month. Same convention
+      as the yearly template on a shorter window, where MWh and GWh are the natural units.
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: production}
+      region:
+        from: regions
+      mois:
+        from: months
+      annee:
+        range: [2013, 2025]
+      unite:
+        from: energy_units
+
+    max_instances: 60
+
+    questions:
+      fr:
+        - "Quelle quantité d'énergie {mesure} a été produite {region.in} {mois.in} {annee}{unite.suffix} ?"
+        - "Production {mesure} {region.in} {mois.in} {annee}{unite.suffix} ?"
+      it:
+        - "Quanta energia {mesure} è stata prodotta {region.in} {mois.in} {annee}{unite.suffix}?"
+        - "Produzione {mesure} {region.in} {mois.in} {annee}{unite.suffix}?"
+
+    sql: |
+      SELECT SUM({mesure.sql}) {unite.expr} AS energie_{unite.id}
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee} AND mois = {mois.id}
+
+    result:
+      columns: [energie]
+      order_matters: false
+
+  - template_id: agg_consumption_national_month
+    family: aggregation
+    conventions: [energy_conversion, unit_scaling, national_aggregate]
+    description: >
+      Total electricity consumption of France over one month. No region is named, so the
+      answer sums the 12 regions (glossary §5); this is also the figure RTE publishes, which
+      makes the template the easiest one to check against the official site.
+
+    slots:
+      mois:
+        from: months
+      annee:
+        range: [2013, 2025]
+      unite:
+        from: energy_units
+
+    max_instances: 40
+
+    questions:
+      fr:
+        - "Quelle a été la consommation totale d'électricité en France {mois.in} {annee}{unite.suffix} ?"
+        - "Consommation électrique de la France {mois.in} {annee}{unite.suffix} ?"
+      it:
+        - "Qual è stato il consumo totale di elettricità in Francia {mois.in} {annee}{unite.suffix}?"
+        - "Consumo elettrico della Francia {mois.in} {annee}{unite.suffix}?"
+
+    sql: |
+      SELECT SUM(consommation_mw) {unite.expr} AS energie_{unite.id}
+      FROM eco2mix
+      WHERE annee = {annee} AND mois = {mois.id}
+
+    result:
+      columns: [energie]
+      order_matters: false
+
+  - template_id: agg_group_energy_region_month
+    family: aggregation
+    conventions: [source_groups, energy_conversion, unit_scaling]
+    description: >
+      Energy of a group of sources (renewable, low-carbon, fossil) in one region over one month.
+      Low-carbon includes nuclear, renewable does not, fossil is thermal alone; the groups come
+      with synonyms ("pulita", "decarbonizzata") that all map to the same expression.
+
+    slots:
+      groupe:
+        from: source_groups
+      region:
+        from: regions
+      mois:
+        from: months
+      annee:
+        range: [2013, 2026]   # the months after June 2026 have no data and drop out as all-NULL
+      unite:
+        from: energy_units
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Quelle quantité d'énergie {groupe} a été produite {region.in} {mois.in} {annee}{unite.suffix} ?"
+        - "Production d'énergie {groupe} {region.in} {mois.in} {annee}{unite.suffix} ?"
+        - "Quelle a été la production d'énergie {groupe} {region.in} {mois.in} {annee}{unite.suffix} ?"
+      it:
+        - "Quanta energia {groupe} è stata prodotta {region.in} {mois.in} {annee}{unite.suffix}?"
+        - "Produzione di energia {groupe} {region.in} {mois.in} {annee}{unite.suffix}?"
+        - "Qual è stata la produzione di energia {groupe} {region.in} {mois.in} {annee}{unite.suffix}?"
+
+    sql: |
+      SELECT SUM({groupe.sql}) {unite.expr} AS energie_{unite.id}
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee} AND mois = {mois.id}
+
+    result:
+      columns: [energie]
+      order_matters: false
+
+  - template_id: agg_group_energy_national_year
+    family: aggregation
+    conventions: [source_groups, national_aggregate, energy_conversion, unit_scaling]
+    description: >
+      Energy of a group of sources for the whole of France over a year: the same groups as the
+      regional template, without a region filter (glossary §5, no region = national).
+
+    slots:
+      groupe:
+        from: source_groups
+      annee:
+        range: [2013, 2025]
+      unite:
+        from: energy_units
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Quelle quantité d'énergie {groupe} la France a-t-elle produite en {annee}{unite.suffix} ?"
+        - "Production nationale d'énergie {groupe} en {annee}{unite.suffix} ?"
+        - "Combien d'énergie {groupe} a été produite en France en {annee}{unite.suffix} ?"
+      it:
+        - "Quanta energia {groupe} ha prodotto la Francia nel {annee}{unite.suffix}?"
+        - "Produzione nazionale di energia {groupe} nel {annee}{unite.suffix}?"
+        - "Quanta energia {groupe} è stata prodotta in Francia nel {annee}{unite.suffix}?"
+
+    sql: |
+      SELECT SUM({groupe.sql}) {unite.expr} AS energie_{unite.id}
+      FROM eco2mix
+      WHERE annee = {annee}
+
+    result:
+      columns: [energie]
+      order_matters: false
+
+  - template_id: agg_exchange_gross_region_year
+    family: aggregation
+    conventions: [exchange_sign, gross_exchanges, energy_conversion, unit_scaling]
+    description: >
+      Gross exports (or imports) of a region over a year: only the steps with the matching
+      sign count, and exports are made positive. The net balance would be a different answer
+      (glossary §4).
+
+    slots:
+      sens:
+        # `label` is the past participle after "ha"/"a-t-elle"; `adj` agrees with "energia"
+        # (Italian makes it feminine, French already is).
+        values:
+          - {id: export, op: "<", sign: "-", label: {fr: exportée, it: esportato}, adj: {fr: exportée, it: esportata}}
+          - {id: import, op: ">", sign: "", label: {fr: importée, it: importato}, adj: {fr: importée, it: importata}}
+      region:
+        from: regions
+      annee:
+        range: [2013, 2025]
+      unite:
+        from: energy_units
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Quelle quantité d'énergie la région {region} a-t-elle {sens} en {annee}{unite.suffix} ?"
+        - "Énergie {sens.adj} par la région {region} en {annee}{unite.suffix} ?"
+        - "Combien d'électricité la région {region} a-t-elle {sens} en {annee}{unite.suffix} ?"
+      it:
+        - "Quanta energia ha {sens} la regione {region} nel {annee}{unite.suffix}?"
+        - "Energia {sens.adj} dalla regione {region} nel {annee}{unite.suffix}?"
+        - "Quanta elettricità ha {sens} la regione {region} nel {annee}{unite.suffix}?"
+
+    sql: |
+      SELECT {sens.sign}SUM(ech_physiques_mw) {unite.expr} AS energie_{unite.id}
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee} AND ech_physiques_mw {sens.op} 0
+
+    result:
+      columns: [energie]
+      order_matters: false
+
+  - template_id: agg_pumping_energy_region_year
+    family: aggregation
+    conventions: [pumping_sign, energy_conversion, unit_scaling]
+    description: >
+      Energy consumed by pumped-storage plants (STEP) in a region over a year. The column is
+      negative, so the energy is -SUM(pompage_mw) * 0.5; a region without STEP drops out.
+
+    slots:
+      region:
+        from: regions
+      annee:
+        range: [2013, 2025]
+      unite:
+        from: energy_units
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Quelle quantité d'énergie les stations de pompage ont-elles consommée {region.in} en {annee}{unite.suffix} ?"
+        - "Consommation des STEP {region.in} en {annee}{unite.suffix} ?"
+        - "Combien d'énergie le pompage a-t-il absorbé {region.in} en {annee}{unite.suffix} ?"
+      it:
+        - "Quanta energia hanno consumato le stazioni di pompaggio {region.in} nel {annee}{unite.suffix}?"
+        - "Consumo degli impianti di pompaggio {region.in} nel {annee}{unite.suffix}?"
+        - "Quanta energia ha assorbito il pompaggio {region.in} nel {annee}{unite.suffix}?"
+
+    require: |
+      SELECT count(DISTINCT pompage_mw) > 1
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+
+    sql: |
+      SELECT -SUM(pompage_mw) {unite.expr} AS energie_{unite.id}
       FROM eco2mix
       WHERE region = {region.literal} AND annee = {annee}
 

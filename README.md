@@ -1,6 +1,6 @@
 # Energy Text-to-SQL: fine-tuned vs base LLM
 
-Translate natural-language questions (FR / EN / IT) about the French electricity system
+Translate natural-language questions (FR / IT) about the French electricity system
 (RTE éCO2mix open data) into SQL, run them on DuckDB, and compare a small base LLM against
 its QLoRA fine-tuned version side by side.
 

@@ -153,6 +153,34 @@ def verify_reference_values(db: Path = DB_PATH) -> None:
             print(f"reference check {ts}: {got} MW vs RTE {expected} MW  ok")
 
 
+# Monthly totals that must survive the cleaning untouched: outside March the export holds no
+# duplicate row, so our table and the raw file have to agree to the last MWh. A few spot checks
+# are enough to catch a cleaning change that silently shifts the numbers; March is left out on
+# purpose, since there the export counts one hour twice and the difference is expected.
+_MONTHLY_CHECKS = [("consommation", 2024, 1), ("consommation", 2025, 6), ("eolien", 2023, 11)]
+
+
+def verify_monthly_totals(raw: Path = RAW_PATH, db: Path = DB_PATH) -> None:
+    """Fail if a monthly total of the clean table drifts away from the raw export."""
+    # Plain connection: unlike t2sql.db, this one may read the Parquet next to the database.
+    with duckdb.connect(str(db), read_only=True) as con:
+        for column, year, month in _MONTHLY_CHECKS:
+            clean = con.execute(
+                f"SELECT sum({column}_mw) FROM {TABLE} WHERE annee = ? AND mois = ?",
+                [year, month],
+            ).fetchone()[0]
+            source = con.execute(
+                f"""SELECT sum(TRY_CAST({column} AS BIGINT)) FROM read_parquet(?)
+                    WHERE year(CAST(date AS DATE)) = ? AND month(CAST(date AS DATE)) = ?""",
+                [raw.as_posix(), year, month],
+            ).fetchone()[0]
+            if clean != source:
+                raise ValueError(
+                    f"{column} {year}-{month:02d}: clean {clean} MW, raw export {source} MW"
+                )
+            print(f"monthly check {column} {year}-{month:02d}: {clean:,} MW, matches the export")
+
+
 SCHEMA_PATH = ROOT / "domains" / "eco2mix" / "schema.md"
 
 # column -> (unit, description). Written into schema.md next to the type read from the DB,
@@ -179,11 +207,11 @@ _COLUMN_DOCS: dict[str, tuple[str, str]] = {
     "eolien_offshore_mw": ("MW", "Offshore wind generation; NULL before 2024"),
 }
 _COLUMN_DOCS |= {
-    f"tco_{src}_pct": ("%", f"Coverage rate: {src} generation / consumption; NULL before 2020")
+    f"tco_{src}_pct": ("%", "Coverage rate of the source in the name (glossary §5); from 2020")
     for src in ("thermique", "nucleaire", "eolien", "solaire", "hydraulique", "bioenergies")
 }
 _COLUMN_DOCS |= {
-    f"tch_{src}_pct": ("%", f"Load factor: {src} generation / installed capacity; NULL before 2020")
+    f"tch_{src}_pct": ("%", "Load factor of the source in the name (glossary §5); from 2020")
     for src in ("thermique", "nucleaire", "eolien", "solaire", "hydraulique", "bioenergies")
 }
 
@@ -212,9 +240,15 @@ def write_schema_md(step: timedelta, db: Path = DB_PATH, out: Path = SCHEMA_PATH
         "| column | type | unit | description |",
         "|---|---|---|---|",
     ]
+    # Columns sharing type, unit and description go on one row: the twelve TCO/TCH columns
+    # would otherwise repeat the same sentence six times each in the system prompt. Every
+    # name stays spelled out, so a model never has to rebuild one from a pattern.
+    rows: dict[tuple[str, str, str], list[str]] = {}
     for name, ctype, *_ in cols:
         unit, desc = _COLUMN_DOCS[name]
-        lines.append(f"| {name} | {ctype} | {unit} | {desc} |")
+        rows.setdefault((ctype, unit, desc), []).append(name)
+    for (ctype, unit, desc), names in rows.items():
+        lines.append(f"| {', '.join(names)} | {ctype} | {unit} | {desc} |")
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"wrote {out} ({len(cols)} columns)")
 
@@ -224,4 +258,5 @@ if __name__ == "__main__":
     time_step = check_time_step(raw_path)
     load_clean(raw_path)
     verify_reference_values()
+    verify_monthly_totals(raw_path)
     write_schema_md(time_step)

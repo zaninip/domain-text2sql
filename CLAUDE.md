@@ -6,7 +6,7 @@ This file guides Claude Code on this repository. Read it fully before starting a
 
 A portfolio project showing end-to-end LLM fine-tuning for a real task:
 
-- **Task:** translate natural-language questions (FR / EN / IT) about the French electricity system into SQL, run them, and show the result as a table and chart.
+- **Task:** translate natural-language questions (FR / IT) about the French electricity system into SQL, run them, and show the result as a table and chart.
 - **Data:** RTE éCO2mix open data (via ODRÉ), loaded into a local **DuckDB** file.
 - **Model:** a small open instruct/coder model (1.5B–3B), fine-tuned with QLoRA on a free GPU (Kaggle or Colab).
 - **Demo:** a web app (Gradio on Hugging Face Spaces, CPU) that runs the **base model** and the **fine-tuned model** side by side on the same question, so the user sees the difference directly.
@@ -75,7 +75,6 @@ The user is learning this stack while building it. He wants to understand the co
 │   ├── prompts.py                # system prompt builder (schema + glossary)
 │   ├── dataset/
 │   │   ├── generate.py           # templates -> (question, sql) pairs
-│   │   ├── paraphrase.py         # LLM paraphrasing with on-disk cache
 │   │   ├── validate.py           # execute, filter, deduplicate
 │   │   └── split.py              # split by template_id
 │   ├── train/
@@ -149,7 +148,7 @@ Before writing any ingestion code:
 ### Phase 2 — Dataset
 - Templates in YAML, each with: `template_id`, `family` (aggregation, comparison, ranking, time series, share/ratio, peak/extremes, multi-condition…), typed slots (region, source, period, granularity…), question variants in FR/IT, SQL template.
 - Aim for ~40–80 templates spread across families; many should encode glossary conventions.
-- Pipeline: generate → execute → drop errors, empty results and all-NULL results → paraphrase questions with a larger LLM (cached on disk, seeded) → deduplicate (normalized text + fuzzy matching) → split **by `template_id`** (e.g. 70/15/15 train/val/test templates).
+- Pipeline: generate → execute → drop errors, empty results, all-NULL and all-zero results → reject conflicts (the same question text produced by two templates with different SQL, which would teach two answers for one question) → split **by `template_id`** (e.g. 70/15/15 train/val/test templates). Question variants are written by hand in the templates, several per language, so no paraphrasing service is involved.
 - Output: chat-format JSONL (`system`, `user`, `assistant`), where `system` is built by `prompts.py` and `assistant` contains only the SQL.
 - Target size: 2k–5k train examples, 300–500 test examples.
 - **Done when:** `make dataset` is reproducible; a stats report (examples per family, language, template) is written to `results/`; 30 random samples have been reviewed by the user.
@@ -214,7 +213,7 @@ Model-generated SQL is untrusted input, including in the public demo.
 - **Main tab — side by side.** One question box; example chips (curated questions where the difference is clear, in FR/IT). Two panels: "Base model" and "Fine-tuned model". Each shows generated SQL (highlighted), result table, auto chart (time column → line; categorical → bar; single value → big number), latency. For curated examples, show a correct/incorrect badge against the gold answer; for free questions show "no reference answer".
 - **Arena tab.** Blind A/B: the two answers are shown in random order, the user votes, then the models are revealed.
 - **Results tab.** Evaluation table and per-family chart loaded from `results/`.
-- **About tab.** What the project shows, when fine-tuning is (and is not) the right tool, links to repo and model card.
+- **About tab.** What the project shows, when fine-tuning is (and is not) the right tool, links to repo and model card. It also lists the known data caveats, taken from the `**Caveats**` sections of `glossary.md` via `prompts.caveats()`, so that a surprising answer can be understood (excluded territories, partial last year, values published wrong, 0 meaning "no such plant", clock-change days). It also explains how questions are interpreted, taken from the `**Definitions**` block of `glossary.md` via `prompts.definitions()` (what "clean", "green" or "renewable" include, season and peak-hour boundaries, relative dates, units, shares, gross vs net exchanges), so that users can check an answer against their question.
 - Run the two models concurrently if CPU allows, otherwise sequentially with streaming. Precompute answers for curated examples at startup or ship them as a cache, so first impressions are instant.
 - Clean, modern look; mobile-friendly; no raw stack traces shown to users.
 

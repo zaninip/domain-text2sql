@@ -33,16 +33,27 @@ def interleave_families(templates: dict[str, str], seed: int) -> list[str]:
 
 
 def assign_splits(templates: dict[str, str], seed: int) -> dict[str, str]:
-    """Map every template id to a split, keeping each split close to its target share."""
+    """Map every template id to a split, keeping each split close to its target share.
+
+    The first template met of each family always goes to train: the test then measures unseen
+    templates of known families, not SQL skeletons the model never met in training. A family
+    with a single template therefore never reaches validation or test.
+    """
     assigned: Counter = Counter()
     result: dict[str, str] = {}
+    trained_families: set[str] = set()
     for position, template_id in enumerate(interleave_families(templates, seed), start=1):
-        # Give the template to whichever split is furthest behind its target so far;
-        # ties go to the earlier split of SPLITS, which keeps the result deterministic.
-        def behind(split: str, at: int = position) -> tuple[float, int]:
-            return (PROPORTIONS[split] * at - assigned[split], -SPLITS.index(split))
+        family = templates[template_id]
+        if family not in trained_families:
+            chosen = "train"
+            trained_families.add(family)
+        else:
+            # Give the template to whichever split is furthest behind its target so far;
+            # ties go to the earlier split of SPLITS, which keeps the result deterministic.
+            def behind(split: str, at: int = position) -> tuple[float, int]:
+                return (PROPORTIONS[split] * at - assigned[split], -SPLITS.index(split))
 
-        chosen = max(SPLITS, key=behind)
+            chosen = max(SPLITS, key=behind)
         result[template_id] = chosen
         assigned[chosen] += 1
     return result

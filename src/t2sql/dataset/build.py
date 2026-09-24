@@ -114,7 +114,10 @@ def build(config: dict[str, Any]) -> dict[str, Any]:
     report["kept"] = kept
     report["dropped"] = dict(dropped)
     paths["report"].parent.mkdir(parents=True, exist_ok=True)
-    paths["report"].write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    # json.dumps ends without a newline; the end-of-file-fixer hook would rewrite the file and
+    # fail every commit made after a `make dataset`.
+    text = json.dumps(report, indent=2, ensure_ascii=False) + "\n"
+    paths["report"].write_text(text, encoding="utf-8")
     return report
 
 

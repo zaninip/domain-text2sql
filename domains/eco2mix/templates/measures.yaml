@@ -3,41 +3,54 @@
 # consumption). `sql` is the expression, because it is not derivable from `id`.
 # `label` is the adjective used after "énergie"/"energia"; `de` is the genitive form with its
 # article, which French and Italian contract irregularly ("du nucléaire", "de l'éolien").
+# `tco` / `tch` name the coverage-rate and load-factor columns of a production source.
 
 measures:
   - id: eolien
     kind: production
     sql: eolien_mw
+    tco: tco_eolien_pct
+    tch: tch_eolien_pct
     label: {fr: éolienne, it: eolica}
     de: {fr: de l'éolien, it: dell'eolico}
 
   - id: solaire
     kind: production
     sql: solaire_mw
+    tco: tco_solaire_pct
+    tch: tch_solaire_pct
     label: {fr: solaire, it: solare}
     de: {fr: du solaire, it: del solare}
 
   - id: nucleaire
     kind: production
     sql: nucleaire_mw
+    tco: tco_nucleaire_pct
+    tch: tch_nucleaire_pct
     label: {fr: nucléaire, it: nucleare}
     de: {fr: du nucléaire, it: del nucleare}
 
   - id: hydraulique
     kind: production
     sql: hydraulique_mw
+    tco: tco_hydraulique_pct
+    tch: tch_hydraulique_pct
     label: {fr: hydraulique, it: idroelettrica}
     de: {fr: de l'hydraulique, it: dell'idroelettrico}
 
   - id: thermique
     kind: production
     sql: thermique_mw
+    tco: tco_thermique_pct
+    tch: tch_thermique_pct
     label: {fr: thermique, it: termica}
     de: {fr: du thermique, it: del termico}
 
   - id: bioenergies
     kind: production
     sql: bioenergies_mw
+    tco: tco_bioenergies_pct
+    tch: tch_bioenergies_pct
     label: {fr: issue des bioénergies, it: da bioenergie}
     de: {fr: des bioénergies, it: delle bioenergie}
 
@@ -46,3 +59,37 @@ measures:
     sql: consommation_mw
     label: {fr: consommée, it: consumata}
     de: {fr: de la consommation, it: del consumo}
+
+# Groups of sources (glossary §3). Same shape as the regions: per language an ordered list of
+# forms, the first canonical and the others synonyms the model has to map to the same group.
+# "Green" is a choice of the project owner: in everyday language it sometimes excludes nuclear,
+# here it means low-carbon, nuclear included, and the glossary says so.
+# COALESCE is needed because a source a region does not have is NULL up to 2020, and one NULL
+# in a row-wise sum would erase the whole row.
+source_groups:
+  - id: renouvelable
+    sql: "COALESCE(eolien_mw, 0) + COALESCE(solaire_mw, 0) + COALESCE(hydraulique_mw, 0) + COALESCE(bioenergies_mw, 0)"
+    fr:
+      - {label: renouvelable}
+    it:
+      - {label: rinnovabile}
+
+  - id: bas_carbone
+    sql: "COALESCE(eolien_mw, 0) + COALESCE(solaire_mw, 0) + COALESCE(hydraulique_mw, 0) + COALESCE(bioenergies_mw, 0) + COALESCE(nucleaire_mw, 0)"
+    fr:
+      - {label: bas-carbone}
+      - {label: propre}
+      - {label: décarbonée}
+      - {label: verte}
+    it:
+      - {label: pulita}
+      - {label: decarbonizzata}
+      - {label: a basse emissioni di carbonio}
+      - {label: verde}
+
+  - id: fossile
+    sql: "thermique_mw"
+    fr:
+      - {label: fossile}
+    it:
+      - {label: fossile}

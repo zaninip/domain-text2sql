@@ -1,0 +1,243 @@
+# Family "multi_condition": count the hours or days on which several conditions hold together.
+
+templates:
+  - template_id: mc_hours_share_above_region_year
+    family: multi_condition
+    conventions: [hours_from_steps, share_at_each_step]
+    description: >
+      Hours in a year during which one source covered more than a given share of a region's
+      consumption. The traps are counting steps as hours (each step is half an hour) and
+      averaging a share instead of testing it step by step.
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: production}
+      seuil:
+        values:
+          - {id: 25, ratio: 0.25, label: {fr: 25 %, it: 25%}}
+          - {id: 50, ratio: 0.5, label: {fr: 50 %, it: 50%}}
+          - {id: 75, ratio: 0.75, label: {fr: 75 %, it: 75%}}
+      region:
+        from: regions
+      annee:
+        range: [2013, 2025]
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Pendant combien d'heures l'énergie {mesure} a-t-elle couvert plus de {seuil} de la consommation {region.in} en {annee} ?"
+        - "Nombre d'heures {region.in} en {annee} où la production {mesure} a dépassé {seuil} de la consommation ?"
+        - "Combien d'heures, en {annee}, la part {mesure.de} a-t-elle dépassé {seuil} de la consommation {region.in} ?"
+      it:
+        - "Per quante ore l'energia {mesure} ha coperto più del {seuil} del consumo {region.in} nel {annee}?"
+        - "Numero di ore {region.in} nel {annee} in cui la produzione {mesure} ha superato il {seuil} del consumo?"
+        - "Quante ore, nel {annee}, la quota {mesure.de} ha superato il {seuil} del consumo {region.in}?"
+
+    # A source the region does not have is 0 or NULL at every step: nothing to count.
+    require: |
+      SELECT count(DISTINCT {mesure.sql}) > 1
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+
+    sql: |
+      SELECT count(*) * 0.5 AS heures
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+        AND {mesure.sql} > {seuil.ratio} * consommation_mw
+
+    result:
+      columns: [heures]
+      order_matters: false
+
+  - template_id: mc_days_national_consumption_above
+    family: multi_condition
+    conventions: [national_per_instant, days_count]
+    description: >
+      Days of a year on which national consumption exceeded a threshold at least once. The
+      national value exists only once the 12 regions are summed per instant: comparing a
+      regional row with 70 GW finds nothing, and summing over the whole day finds too much.
+
+    slots:
+      seuil:
+        # `le` carries the article Italian needs before the number ("i 70 GW", "gli 80 GW");
+        # French takes no article there, so both keys hold the bare figure.
+        values:
+          - {id: 60, mw: 60000, label: {fr: 60 GW, it: 60 GW}, le: {fr: 60 GW, it: i 60 GW}}
+          - {id: 70, mw: 70000, label: {fr: 70 GW, it: 70 GW}, le: {fr: 70 GW, it: i 70 GW}}
+          - {id: 80, mw: 80000, label: {fr: 80 GW, it: 80 GW}, le: {fr: 80 GW, it: gli 80 GW}}
+      annee:
+        range: [2013, 2025]
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Combien de jours en {annee} la consommation nationale a-t-elle dépassé {seuil} ?"
+        - "Nombre de jours de {annee} où la consommation électrique française a dépassé {seuil} ?"
+        - "En {annee}, combien de journées ont connu une consommation supérieure à {seuil} en France ?"
+      it:
+        - "Quanti giorni del {annee} il consumo nazionale ha superato {seuil.le}?"
+        - "Numero di giorni del {annee} in cui il consumo elettrico francese ha superato {seuil.le}?"
+        - "Nel {annee}, in quanti giorni la Francia ha avuto un consumo superiore a {seuil}?"
+
+    sql: |
+      WITH national AS (
+        SELECT date, date_heure, SUM(consommation_mw) AS conso_mw
+        FROM eco2mix
+        WHERE annee = {annee}
+        GROUP BY date, date_heure
+      )
+      SELECT count(DISTINCT date) AS jours
+      FROM national
+      WHERE conso_mw > {seuil.mw}
+
+    result:
+      columns: [jours]
+      order_matters: false
+
+  - template_id: mc_days_national_energy_above
+    family: multi_condition
+    conventions: [unit_decides_power_or_energy, energy_conversion, daily_total, days_count]
+    description: >
+      Twin of mc_days_national_consumption_above, with the threshold in GWh instead of GW.
+      The first variant of each language is worded identically, so the unit alone tells a
+      power compared at each instant from an energy summed over the day (glossary §1).
+
+    slots:
+      seuil:
+        # French and Italian write thousands differently; `le` adds the Italian article.
+        values:
+          - {id: 1400, gwh: 1400, label: {fr: 1 400 GWh, it: 1.400 GWh}, le: {fr: 1 400 GWh, it: i 1.400 GWh}}
+          - {id: 1600, gwh: 1600, label: {fr: 1 600 GWh, it: 1.600 GWh}, le: {fr: 1 600 GWh, it: i 1.600 GWh}}
+          - {id: 1800, gwh: 1800, label: {fr: 1 800 GWh, it: 1.800 GWh}, le: {fr: 1 800 GWh, it: i 1.800 GWh}}
+      annee:
+        range: [2013, 2025]
+
+    max_instances: 20
+
+    # NOT a copy-paste: the first variant of each language repeats, word for word, the first
+    # variant of mc_days_national_consumption_above above. Only {seuil} differs once rendered
+    # ("80 GW" there, "1 400 GWh" here), so the unit alone must tell power from energy.
+    questions:
+      fr:
+        - "Combien de jours en {annee} la consommation nationale a-t-elle dépassé {seuil} ?"
+        - "Nombre de jours de {annee} où la consommation électrique française a dépassé {seuil} sur la journée ?"
+        - "En {annee}, combien de journées ont vu la France consommer plus de {seuil} ?"
+      it:
+        - "Quanti giorni del {annee} il consumo nazionale ha superato {seuil.le}?"
+        - "Numero di giorni del {annee} in cui il consumo elettrico francese ha superato {seuil.le} nell'arco della giornata?"
+        - "Nel {annee}, in quanti giorni la Francia ha consumato più di {seuil}?"
+
+    sql: |
+      SELECT count(*) AS jours
+      FROM (
+        SELECT date
+        FROM eco2mix
+        WHERE annee = {annee}
+        GROUP BY date
+        HAVING SUM(consommation_mw) * 0.5 / 1000 > {seuil.gwh}
+      )
+
+    result:
+      columns: [jours]
+      order_matters: false
+
+  - template_id: mc_hours_source_beats_source_season
+    family: multi_condition
+    conventions: [hours_from_steps, season, column_comparison]
+    description: >
+      Hours of one season during which one source produced more than another in a region.
+      Combines the fixed season boundaries, a comparison between two columns of the same row,
+      and the conversion of steps into hours.
+
+    slots:
+      mesure_a:
+        from: measures
+        keep: {kind: production}
+      mesure_b:
+        from: measures
+        keep: {kind: production}
+      region:
+        from: regions
+      saison:
+        from: seasons
+      annee:
+        range: [2014, 2025]   # 2013 excluded: winter starts in the previous year
+
+    constraints:
+      - "mesure_a != mesure_b"
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Pendant combien d'heures la production {mesure_a} a-t-elle dépassé la production {mesure_b} {region.in} {saison.in} {annee} ?"
+        - "Nombre d'heures où la production {mesure_a} a été supérieure à la production {mesure_b} {region.in} {saison.in} {annee} ?"
+        - "Combien d'heures, {saison.in} {annee}, la production {mesure_a} a-t-elle surpassé la production {mesure_b} {region.in} ?"
+      it:
+        - "Per quante ore la produzione {mesure_a} ha superato la produzione {mesure_b} {region.in} {saison.in} {annee}?"
+        - "Numero di ore in cui la produzione {mesure_a} è stata maggiore della produzione {mesure_b} {region.in} {saison.in} {annee}?"
+        - "Quante ore, {saison.in} {annee}, la produzione {mesure_a} ha superato quella {mesure_b} {region.in}?"
+
+    # Both sources must exist in the region over that season, or the comparison is trivial.
+    require: |
+      SELECT count(DISTINCT {mesure_a.sql}) > 1 AND count(DISTINCT {mesure_b.sql}) > 1
+      FROM eco2mix
+      WHERE region = {region.literal} AND date BETWEEN '{saison.start}' AND '{saison.end}'
+
+    sql: |
+      SELECT count(*) * 0.5 AS heures
+      FROM eco2mix
+      WHERE region = {region.literal}
+        AND date BETWEEN '{saison.start}' AND '{saison.end}'
+        AND {mesure_a.sql} > {mesure_b.sql}
+
+    result:
+      columns: [heures]
+      order_matters: false
+
+  - template_id: mc_days_net_role_region_year
+    family: multi_condition
+    conventions: [exchange_sign, daily_total, days_count]
+    description: >
+      Days of a year on which a region was a net exporter (or importer) over the whole day.
+      The condition is on a daily total, so the rows are grouped by date and filtered with
+      HAVING; the sign of ech_physiques decides the role.
+
+    slots:
+      region:
+        from: regions
+      annee:
+        range: [2013, 2025]
+      role:
+        values:
+          - {id: export, op: "<", label: {fr: exportatrice nette, it: esportatrice netta}}
+          - {id: import, op: ">", label: {fr: importatrice nette, it: importatrice netta}}
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Combien de jours en {annee} la région {region} a-t-elle été {role} ?"
+        - "Sur l'année {annee}, pendant combien de jours la région {region} a-t-elle été {role} d'électricité ?"
+        - "Nombre de journées de {annee} où la région {region} a été {role} ?"
+      it:
+        - "Per quanti giorni del {annee} la regione {region} è stata {role}?"
+        - "Quanti giorni nel {annee} la regione {region} è stata {role} di elettricità?"
+        - "Nel {annee}, in quanti giorni la regione {region} è risultata {role}?"
+
+    sql: |
+      SELECT count(*) AS jours
+      FROM (
+        SELECT date
+        FROM eco2mix
+        WHERE region = {region.literal} AND annee = {annee}
+        GROUP BY date
+        HAVING SUM(ech_physiques_mw) {role.op} 0
+      )
+
+    result:
+      columns: [jours]
+      order_matters: false

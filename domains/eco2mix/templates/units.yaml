@@ -1,9 +1,21 @@
 # Energy units. `expr` is the whole scaling expression applied to a SUM of MW: it carries the
 # 30-minute step factor of glossary §1, and avoids a pointless "/ 1" in the MWh case, since the
 # gold SQL is what the model learns to write.
+# `suffix` is how the unit ends a question (", en GWh"), so that the last entry can say nothing
+# at all: a question with no unit is answered in MWh (glossary §8), and without such examples
+# the model would know the default only from the prompt, never from training.
 # `weight` reflects how a person would state the question: GWh is the natural scale for a
-# region over a year, MWh for shorter periods, TWh is rarely what someone asks for here.
+# region over a year, MWh for shorter periods, TWh is rarely what someone asks for here, and
+# leaving the unit out is common.
 energy_units:
-  - {id: MWh, expr: "* 0.5", weight: 0.6, label: {fr: MWh, it: MWh}}
-  - {id: GWh, expr: "* 0.5 / 1000", weight: 1.0, label: {fr: GWh, it: GWh}}
-  - {id: TWh, expr: "* 0.5 / 1000000", weight: 0.1, label: {fr: TWh, it: TWh}}
+  - {id: MWh, expr: "* 0.5", weight: 0.6, label: {fr: MWh, it: MWh}, suffix: {fr: ", en MWh", it: ", in MWh"}}
+  - {id: GWh, expr: "* 0.5 / 1000", weight: 1.0, label: {fr: GWh, it: GWh}, suffix: {fr: ", en GWh", it: ", in GWh"}}
+  - {id: TWh, expr: "* 0.5 / 1000000", weight: 0.1, label: {fr: TWh, it: TWh}, suffix: {fr: ", en TWh", it: ", in TWh"}}
+  - {id: MWh, expr: "* 0.5", weight: 0.4, label: {fr: MWh, it: MWh}, suffix: {fr: "", it: ""}}
+
+# Power units, same shape as the energy units. MW is the unit of the columns, so its `expr` is
+# empty; a question with no unit is answered in MW (glossary §8).
+power_units:
+  - {id: MW, expr: "", weight: 0.6, label: {fr: MW, it: MW}, suffix: {fr: ", en MW", it: ", in MW"}}
+  - {id: GW, expr: " / 1000", weight: 1.0, label: {fr: GW, it: GW}, suffix: {fr: ", en GW", it: ", in GW"}}
+  - {id: MW, expr: "", weight: 0.4, label: {fr: MW, it: MW}, suffix: {fr: "", it: ""}}

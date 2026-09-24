@@ -1,0 +1,234 @@
+# Family "ranking": order items by a value and keep the first ones, or find one item's position.
+# Every ranking breaks ties on its label, so the gold answer never depends on an arbitrary row
+# order (glossary §8).
+
+templates:
+  - template_id: rank_top_regions_measure_year
+    family: ranking
+    conventions: [ranking_tie_break, energy_conversion, unit_scaling]
+    description: >
+      The N regions that produced the most energy from one source over a year, with the
+      energy of each. Grouping by region, ordering, tie-break on the name, LIMIT.
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: production}
+      annee:
+        range: [2013, 2025]
+      n:
+        values:
+          - {id: 3, label: {fr: trois, it: tre}}
+          - {id: 5, label: {fr: cinq, it: cinque}}
+      unite:
+        from: energy_units
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Quelles sont les {n} régions qui ont produit le plus d'énergie {mesure} en {annee}{unite.suffix} ?"
+        - "Les {n} premières régions pour la production {mesure} en {annee}{unite.suffix} ?"
+        - "Classement des {n} régions les plus productrices d'énergie {mesure} en {annee}{unite.suffix} ?"
+      it:
+        - "Quali sono le {n} regioni che hanno prodotto più energia {mesure} nel {annee}{unite.suffix}?"
+        - "Le prime {n} regioni per produzione {mesure} nel {annee}{unite.suffix}?"
+        - "Classifica delle {n} regioni con la maggiore produzione {mesure} nel {annee}{unite.suffix}?"
+
+    sql: |
+      SELECT region, SUM({mesure.sql}) {unite.expr} AS energie_{unite.id}
+      FROM eco2mix
+      WHERE annee = {annee}
+      GROUP BY region
+      ORDER BY energie_{unite.id} DESC, region
+      LIMIT {n.id}
+
+    result:
+      columns: [region, energie]
+      order_matters: true
+
+  - template_id: rank_top_months_measure_region_year
+    family: ranking
+    conventions: [ranking_tie_break, energy_conversion, unit_scaling]
+    description: >
+      The N months of a year with the highest production from one source in a region.
+      Same skeleton as the regional ranking, grouped by month instead of region.
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: production}
+      region:
+        from: regions
+      annee:
+        range: [2013, 2025]
+      n:
+        values:
+          - {id: 3, label: {fr: trois, it: tre}}
+          - {id: 5, label: {fr: cinq, it: cinque}}
+      unite:
+        from: energy_units
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Quels ont été les {n} mois de plus forte production {mesure} {region.in} en {annee}{unite.suffix} ?"
+        - "Les {n} mois où la production {mesure} a été la plus élevée {region.in} en {annee}{unite.suffix} ?"
+        - "Classement des {n} meilleurs mois pour la production {mesure} {region.in} en {annee}{unite.suffix} ?"
+      it:
+        - "Quali sono stati i {n} mesi di maggiore produzione {mesure} {region.in} nel {annee}{unite.suffix}?"
+        - "I {n} mesi in cui la produzione {mesure} è stata più alta {region.in} nel {annee}{unite.suffix}?"
+        - "Classifica dei {n} mesi migliori per la produzione {mesure} {region.in} nel {annee}{unite.suffix}?"
+
+    require: |
+      SELECT count(DISTINCT {mesure.sql}) > 1
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+
+    sql: |
+      SELECT mois, SUM({mesure.sql}) {unite.expr} AS energie_{unite.id}
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+      GROUP BY mois
+      ORDER BY energie_{unite.id} DESC, mois
+      LIMIT {n.id}
+
+    result:
+      columns: [mois, energie]
+      order_matters: true
+
+  - template_id: rank_sources_region_year
+    family: ranking
+    conventions: [ranking_tie_break, source_names, energy_conversion, unit_scaling]
+    description: >
+      The production sources of a region ranked by the energy they produced over a year.
+      The six source columns become rows with UNPIVOT, and each source is named by its column
+      (glossary §8), so the answer does not depend on how a label would be translated.
+
+    slots:
+      region:
+        from: regions
+      annee:
+        range: [2013, 2025]
+      unite:
+        from: energy_units
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Classe les sources de production {region.in} en {annee} selon l'énergie produite{unite.suffix}."
+        - "Quel a été le classement des filières de production {region.in} en {annee}{unite.suffix} ?"
+        - "Quelles sources ont le plus produit {region.in} en {annee} ? Donne l'énergie de chacune{unite.suffix}."
+      it:
+        - "Classifica le fonti di produzione {region.in} nel {annee} in base all'energia prodotta{unite.suffix}."
+        - "Qual è stata la classifica delle fonti di produzione {region.in} nel {annee}{unite.suffix}?"
+        - "Quali fonti hanno prodotto di più {region.in} nel {annee}? Indica l'energia di ciascuna{unite.suffix}."
+
+    sql: |
+      SELECT source, SUM(mw) {unite.expr} AS energie_{unite.id}
+      FROM (
+        UNPIVOT (
+          SELECT thermique_mw, nucleaire_mw, eolien_mw, solaire_mw, hydraulique_mw, bioenergies_mw
+          FROM eco2mix
+          WHERE region = {region.literal} AND annee = {annee}
+        ) ON COLUMNS(*) INTO NAME source VALUE mw
+      )
+      GROUP BY source
+      ORDER BY energie_{unite.id} DESC, source
+
+    result:
+      columns: [source, energie]
+      order_matters: true
+
+  - template_id: rank_position_region_measure_year
+    family: ranking
+    conventions: [ranking_position, energy_conversion]
+    description: >
+      The position of one region among the twelve for one source over a year. A window
+      function ranks every region before the filter keeps the one asked about; filtering
+      first would always answer "1".
+
+    slots:
+      region:
+        from: regions
+      mesure:
+        from: measures
+        keep: {kind: production}
+      annee:
+        range: [2013, 2025]
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "À quelle place se classe la région {region} pour la production {mesure} en {annee} ?"
+        - "Quel est le rang de la région {region} parmi les régions françaises pour la production {mesure} en {annee} ?"
+        - "En {annee}, quelle position occupe la région {region} dans le classement de la production {mesure} ?"
+      it:
+        - "In che posizione si classifica la regione {region} per produzione {mesure} nel {annee}?"
+        - "Qual è la posizione della regione {region} fra le regioni francesi per produzione {mesure} nel {annee}?"
+        - "Nel {annee}, che posto occupa la regione {region} nella classifica della produzione {mesure}?"
+
+    # A region without the source would rank last on a 0, which says nothing.
+    require: |
+      SELECT count(DISTINCT {mesure.sql}) > 1
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+
+    sql: |
+      SELECT rang, energie_mwh
+      FROM (
+        SELECT region, SUM({mesure.sql}) * 0.5 AS energie_mwh,
+               RANK() OVER (ORDER BY SUM({mesure.sql}) DESC) AS rang
+        FROM eco2mix
+        WHERE annee = {annee}
+        GROUP BY region
+      )
+      WHERE region = {region.literal}
+
+    result:
+      columns: [rang, energie_mwh]
+      order_matters: false
+
+  - template_id: rank_top_days_national_year
+    family: ranking
+    conventions: [ranking_tie_break, national_aggregate, unit_decides_power_or_energy, energy_conversion]
+    description: >
+      The N days of a year with the highest national consumption, as energy over the day
+      (the unit in the question says so). Groups the twelve regions by date, not by instant.
+
+    slots:
+      annee:
+        range: [2013, 2025]
+      n:
+        values:
+          - {id: 3, label: {fr: trois, it: tre}}
+          - {id: 5, label: {fr: cinq, it: cinque}}
+      unite:
+        from: energy_units
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Quels ont été les {n} jours de plus forte consommation en France en {annee}{unite.suffix} ?"
+        - "Les {n} journées où la France a le plus consommé d'électricité en {annee}{unite.suffix} ?"
+        - "Classement des {n} jours les plus consommateurs de {annee} en France{unite.suffix} ?"
+      it:
+        - "Quali sono stati i {n} giorni di maggior consumo in Francia nel {annee}{unite.suffix}?"
+        - "I {n} giorni in cui la Francia ha consumato più elettricità nel {annee}{unite.suffix}?"
+        - "Classifica dei {n} giorni di consumo più alto del {annee} in Francia{unite.suffix}?"
+
+    sql: |
+      SELECT date, SUM(consommation_mw) {unite.expr} AS energie_{unite.id}
+      FROM eco2mix
+      WHERE annee = {annee}
+      GROUP BY date
+      ORDER BY energie_{unite.id} DESC, date
+      LIMIT {n.id}
+
+    result:
+      columns: [date, energie]
+      order_matters: true

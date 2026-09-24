@@ -56,3 +56,96 @@ templates:
     result:
       columns: [date_heure, valeur_mw, ex_aequo]
       order_matters: false
+
+  - template_id: ext_national_extremum_value_year
+    family: extremes
+    conventions: [national_per_instant, extremum_value, power_units]
+    description: >
+      The highest (or lowest) national consumption of a year, as a value only. The national
+      value exists once the twelve regions are summed per instant; MAX over the regional rows
+      would return one region's peak. No "when", so MAX is enough (glossary §8).
+
+    slots:
+      extremum:
+        values:
+          - {id: max, label: {fr: le pic, it: il picco}, agg: max, weight: 1.0}
+          - {id: min, label: {fr: le minimum, it: il minimo}, agg: min, weight: 0.15}
+      annee:
+        range: [2013, 2025]
+      unite:
+        from: power_units
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Quel a été {extremum} de la consommation nationale en {annee}{unite.suffix} ?"
+        - "En {annee}, quel a été {extremum} de la consommation électrique française{unite.suffix} ?"
+        - "Consommation nationale en {annee} : quel a été {extremum}{unite.suffix} ?"
+      it:
+        - "Qual è stato {extremum} del consumo nazionale nel {annee}{unite.suffix}?"
+        - "Nel {annee}, qual è stato {extremum} del consumo elettrico francese{unite.suffix}?"
+        - "Consumo nazionale nel {annee}: qual è stato {extremum}{unite.suffix}?"
+
+    sql: |
+      SELECT {extremum.agg}(conso_mw){unite.expr} AS valeur_{unite.id}
+      FROM (
+        SELECT date_heure, SUM(consommation_mw) AS conso_mw
+        FROM eco2mix
+        WHERE annee = {annee}
+        GROUP BY date_heure
+      )
+
+    result:
+      columns: [valeur]
+      order_matters: false
+
+  - template_id: ext_record_day_production_region_year
+    family: extremes
+    conventions: [record_day_daily_total, extremum_with_timestamp, tie_break]
+    description: >
+      The day of a year with the highest production of one source in a region: daily energy
+      totals, not the instant of the power peak (compare ext_peak_timestamp_region_year). Asks
+      "which day", so the earliest day and the number of days reaching the value are returned.
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: production}
+      region:
+        from: regions
+      annee:
+        range: [2013, 2025]
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Quel jour de {annee} la production {mesure} a-t-elle été la plus forte {region.in} ?"
+        - "Journée record pour la production {mesure} {region.in} en {annee} ?"
+        - "En {annee}, quel a été le jour de plus forte production {mesure} {region.in} ?"
+      it:
+        - "In quale giorno del {annee} la produzione {mesure} è stata più alta {region.in}?"
+        - "Giorno record per la produzione {mesure} {region.in} nel {annee}?"
+        - "Nel {annee}, qual è stato il giorno di massima produzione {mesure} {region.in}?"
+
+    require: |
+      SELECT count(DISTINCT {mesure.sql}) > 1
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+
+    sql: |
+      WITH v AS (
+        SELECT date, SUM({mesure.sql}) * 0.5 AS energie_mwh
+        FROM eco2mix
+        WHERE region = {region.literal} AND annee = {annee}
+        GROUP BY date
+      )
+      SELECT min(date) AS date, energie_mwh, count(*) AS ex_aequo
+      FROM v
+      WHERE energie_mwh = (SELECT max(energie_mwh) FROM v)
+      GROUP BY energie_mwh
+
+    result:
+      columns: [date, energie_mwh, ex_aequo]
+      order_matters: false

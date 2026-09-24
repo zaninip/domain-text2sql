@@ -43,3 +43,91 @@ templates:
     result:
       columns: [region, solde_gwh, role]
       order_matters: false
+
+  - template_id: cls_main_source_per_region_year
+    family: classification
+    conventions: [source_names, ranking_tie_break, energy_conversion]
+    description: >
+      The main production source of every region over a year: one row per region with its
+      top source (named by column) and that source's energy. UNPIVOT the six sources, sum per
+      region and source, keep the first per region with QUALIFY; ties go to the source name.
+
+    slots:
+      annee:
+        range: [2013, 2025]
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Quelle a été la principale source de production de chaque région en {annee} ?"
+        - "Pour chaque région, quelle filière a le plus produit en {annee} ?"
+        - "Source de production dominante par région en {annee} ?"
+      it:
+        - "Qual è stata la principale fonte di produzione di ciascuna regione nel {annee}?"
+        - "Per ogni regione, quale fonte ha prodotto di più nel {annee}?"
+        - "Fonte di produzione dominante per regione nel {annee}?"
+
+    sql: |
+      WITH s AS (
+        SELECT region, source, SUM(mw) * 0.5 AS energie_mwh
+        FROM (
+          UNPIVOT (
+            SELECT region, thermique_mw, nucleaire_mw, eolien_mw, solaire_mw, hydraulique_mw, bioenergies_mw
+            FROM eco2mix
+            WHERE annee = {annee}
+          ) ON COLUMNS(* EXCLUDE (region)) INTO NAME source VALUE mw
+        )
+        GROUP BY region, source
+      )
+      SELECT region, source, energie_mwh
+      FROM s
+      QUALIFY row_number() OVER (PARTITION BY region ORDER BY energie_mwh DESC, source) = 1
+
+    result:
+      columns: [region, source, energie_mwh]
+      order_matters: false
+
+  - template_id: cls_region_vs_average_consumption_year
+    family: classification
+    conventions: [average_of_regions, labels_from_question, energy_conversion]
+    description: >
+      Every region labelled above or below the average of the twelve regional consumptions of a
+      year. The average is taken over one row per region (a window AVG), and the labels are
+      the words the question itself uses, in its language (glossary §8).
+
+    slots:
+      annee:
+        range: [2013, 2025]
+
+    constants:
+      dessus: {fr: au-dessus, it: sopra}
+      dessous: {fr: en dessous, it: sotto}
+
+    max_instances: 20
+
+    questions:
+      fr:
+        - "Quelles régions ont consommé au-dessus de la moyenne régionale en {annee}, et lesquelles en dessous ?"
+        - "Consommation de chaque région en {annee} : au-dessus ou en dessous de la moyenne des régions ?"
+        - "En {annee}, classe chaque région au-dessus ou en dessous de la consommation régionale moyenne."
+      it:
+        - "Quali regioni hanno consumato sopra la media regionale nel {annee}, e quali sotto?"
+        - "Consumo di ciascuna regione nel {annee}: sopra o sotto la media delle regioni?"
+        - "Nel {annee}, indica per ogni regione se il consumo è stato sopra o sotto la media regionale."
+
+    sql: |
+      WITH r AS (
+        SELECT region, SUM(consommation_mw) * 0.5 AS energie_mwh
+        FROM eco2mix
+        WHERE annee = {annee}
+        GROUP BY region
+      )
+      SELECT region, energie_mwh,
+             CASE WHEN energie_mwh > AVG(energie_mwh) OVER () THEN '{dessus}' ELSE '{dessous}' END
+               AS position
+      FROM r
+
+    result:
+      columns: [region, energie_mwh, position]
+      order_matters: false
