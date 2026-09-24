@@ -422,11 +422,11 @@ QUALIFY row_number() OVER (PARTITION BY region ORDER BY energie_mwh DESC, source
 
 | region | source | energie_mwh |
 |---|---|---|
+| Pays de la Loire | thermique_mw | 3438432.0 |
 | Occitanie | nucleaire_mw | 16924668.5 |
-| Provence-Alpes-Côte d'Azur | hydraulique_mw | 8715263.5 |
-| Grand Est | nucleaire_mw | 76314386.5 |
-| Nouvelle-Aquitaine | nucleaire_mw | 47286814.0 |
-| Normandie | nucleaire_mw | 49217803.0 |
+| Bretagne | eolien_mw | 1939093.0 |
+| Hauts-de-France | nucleaire_mw | 32073037.5 |
+| Centre-Val de Loire | nucleaire_mw | 71591404.5 |
 | _… 7 more rows_ |
 
 ## 28. Qual è stata la principale fonte di produzione di ciascuna regione nel 2017?
@@ -452,11 +452,11 @@ QUALIFY row_number() OVER (PARTITION BY region ORDER BY energie_mwh DESC, source
 
 | region | source | energie_mwh |
 |---|---|---|
+| Grand Est | nucleaire_mw | 76827216.0 |
+| Nouvelle-Aquitaine | nucleaire_mw | 45127070.0 |
 | Bourgogne-Franche-Comté | eolien_mw | 1101316.0 |
-| Provence-Alpes-Côte d'Azur | thermique_mw | 9588781.0 |
 | Île-de-France | thermique_mw | 2439840.5 |
-| Centre-Val de Loire | nucleaire_mw | 74805310.5 |
-| Pays de la Loire | thermique_mw | 6750511.0 |
+| Bretagne | eolien_mw | 1545258.0 |
 | _… 7 more rows_ |
 
 ## 29. Consommation de chaque région en 2023 : au-dessus ou en dessous de la moyenne des régions ?
@@ -478,8 +478,8 @@ FROM r
 
 | region | energie_mwh | position |
 |---|---|---|
-| Normandie | 25597186.5 | en dessous |
 | Centre-Val de Loire | 17305048.0 | en dessous |
+| Normandie | 25597186.5 | en dessous |
 | Île-de-France | 63208700.5 | au-dessus |
 | Pays de la Loire | 25022435.5 | en dessous |
 | Nouvelle-Aquitaine | 40922872.0 | au-dessus |
@@ -504,9 +504,9 @@ FROM r
 
 | region | energie_mwh | position |
 |---|---|---|
-| Centre-Val de Loire | 18207050.0 | sotto |
 | Normandie | 26371460.5 | sotto |
+| Centre-Val de Loire | 18207050.0 | sotto |
 | Île-de-France | 64998136.5 | sopra |
 | Pays de la Loire | 26063877.5 | sotto |
-| Nouvelle-Aquitaine | 41711056.5 | sopra |
+| Grand Est | 42564863.0 | sopra |
 | _… 7 more rows_ |
