@@ -20,7 +20,7 @@ templates:
       annee:
         range: [2013, 2025]
 
-    max_instances: 20
+    max_instances: 35
 
     # Words that keep the variants on this template's meaning: an average power, not the average
     # daily energy of avg_daily_energy_region_month.
@@ -72,7 +72,7 @@ templates:
       annee:
         range: [2013, 2025]
 
-    max_instances: 20
+    max_instances: 35
 
     questions:
       fr:
@@ -117,7 +117,7 @@ templates:
       annee:
         range: [2013, 2025]
 
-    max_instances: 20
+    max_instances: 35
 
     questions:
       fr:
@@ -169,7 +169,7 @@ templates:
       annee:
         range: [2014, 2025]   # 2013 excluded: winter starts in the previous year
 
-    max_instances: 20
+    max_instances: 35
 
     questions:
       fr:
@@ -214,7 +214,7 @@ templates:
       unite:
         from: energy_units
 
-    max_instances: 20
+    max_instances: 35
 
     # Words that keep the variants on this template's meaning: per day makes it an energy even with no unit (glossary §1).
     must_say:

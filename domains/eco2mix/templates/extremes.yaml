@@ -25,7 +25,7 @@ templates:
       annee:
         range: [2013, 2025]
 
-    max_instances: 60
+    max_instances: 35
 
     # MOST DANGEROUS PAIR of the project, with ext_record_day_production_region_year: this one
     # asks for the INSTANT of the power peak, the other for the DAY with the largest daily
@@ -89,7 +89,7 @@ templates:
       unite:
         from: power_units
 
-    max_instances: 20
+    max_instances: 35
 
     # Words that keep the variants on this template's meaning: the value only: asking when would need the instant.
     must_not_say:
@@ -142,7 +142,7 @@ templates:
       annee:
         range: [2013, 2025]
 
-    max_instances: 20
+    max_instances: 35
 
     # MOST DANGEROUS PAIR of the project, with ext_peak_timestamp_region_year: this one asks for
     # the DAY with the largest daily total, the other for the INSTANT of the power peak. Every

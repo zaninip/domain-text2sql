@@ -23,7 +23,7 @@ templates:
       annee:
         range: [2013, 2025]
 
-    max_instances: 20
+    max_instances: 35
 
     questions:
       fr:
@@ -79,7 +79,7 @@ templates:
       annee:
         range: [2013, 2025]
 
-    max_instances: 20
+    max_instances: 35
 
     questions:
       fr:
@@ -130,7 +130,7 @@ templates:
       annee:
         range: [2013, 2025]
 
-    max_instances: 20
+    max_instances: 35
 
     # NOT a copy-paste: the first variant of each language repeats, word for word, the first
     # variant of mc_days_national_consumption_above above. Only {seuil} differs once rendered
@@ -190,7 +190,7 @@ templates:
     constraints:
       - "mesure_a != mesure_b"
 
-    max_instances: 20
+    max_instances: 35
 
     questions:
       fr:
@@ -245,7 +245,7 @@ templates:
           - {id: export, op: "<", label: {fr: exportatrice nette, it: esportatrice netta}}
           - {id: import, op: ">", label: {fr: importatrice nette, it: importatrice netta}}
 
-    max_instances: 20
+    max_instances: 35
 
     questions:
       fr:

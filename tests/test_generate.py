@@ -3,6 +3,7 @@
 import json
 import random
 import re
+from collections import Counter
 from pathlib import Path
 
 import pytest
@@ -207,6 +208,33 @@ def test_instances_share_one_sql_across_languages_and_variants():
     assert len({r["sql"] for r in first}) == 1
     assert len({r["question"] for r in first}) == 2
     assert all(r["order_matters"] for r in records)
+
+
+def rotated(variants_per_language: int | None) -> list[dict]:
+    catalogues, templates = load_templates(TEMPLATE_DIR)
+    template = next(t for t in templates if t["template_id"] == "rank_top_days_national_year")
+    return list(
+        instances(template, catalogues, seed=1, variants_per_language=variants_per_language)
+    )
+
+
+def test_one_variant_per_language_and_combination():
+    records = rotated(1)
+    per_combination = Counter((r["instance"], r["lang"]) for r in records)
+    assert set(per_combination.values()) == {1}
+    assert {r["lang"] for r in records} == {"fr", "it"}
+
+
+def test_variants_are_used_evenly_across_combinations():
+    for lang in ("fr", "it"):
+        used = Counter(r["variant"] for r in rotated(1) if r["lang"] == lang)
+        assert len(used) == 6  # every variant appears
+        assert max(used.values()) - min(used.values()) <= 1
+
+
+def test_without_the_setting_every_variant_is_kept():
+    records = rotated(None)
+    assert len(records) == len({r["instance"] for r in records}) * 12
 
 
 def test_constants_are_rendered_in_the_language_of_the_question():

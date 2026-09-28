@@ -21,7 +21,7 @@ templates:
       exportatrice: {fr: exportatrice, it: esportatrice}
       importatrice: {fr: importatrice, it: importatrice}
 
-    max_instances: 40
+    max_instances: 35
 
     # Words that keep the variants on this template's meaning: net balance, not the gross exports of agg_exchange_gross_region_year.
     must_say:
@@ -67,7 +67,7 @@ templates:
       annee:
         range: [2013, 2025]
 
-    max_instances: 20
+    max_instances: 35
 
     questions:
       fr:
@@ -121,7 +121,7 @@ templates:
       dessus: {fr: au-dessus, it: sopra}
       dessous: {fr: en dessous, it: sotto}
 
-    max_instances: 20
+    max_instances: 35
 
     questions:
       fr:

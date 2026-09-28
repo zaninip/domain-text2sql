@@ -22,7 +22,7 @@ templates:
       annee:
         range: [2020, 2025]   # tco_* columns exist from 2020: the wrong answer is not NULL
 
-    max_instances: 60
+    max_instances: 35
 
     # Words that keep the variants on this template's meaning: the whole of France, which is
     # what makes it a ratio of sums and not the average of a regional indicator.
@@ -72,7 +72,7 @@ templates:
       annee:
         range: [2013, 2025]
 
-    max_instances: 20
+    max_instances: 35
 
     # Words that keep the variants on this template's meaning: share in consumption, not in production, nor the average coverage rate.
     must_say:
@@ -129,7 +129,7 @@ templates:
       annee:
         range: [2013, 2025]
 
-    max_instances: 20
+    max_instances: 35
 
     # Words that keep the variants on this template's meaning: share in production, not in consumption.
     must_say:
@@ -189,7 +189,7 @@ templates:
       annee:
         range: [2020, 2025]
 
-    max_instances: 20
+    max_instances: 35
 
     # Words that keep the variants on this template's meaning: the published coverage rate averaged, not a share of totals.
     must_say:
@@ -248,7 +248,7 @@ templates:
       annee:
         range: [2020, 2025]
 
-    max_instances: 20
+    max_instances: 35
 
     # Words that keep the variants on this template's meaning: load factor, not coverage.
     must_say:
@@ -302,7 +302,7 @@ templates:
       annee:
         range: [2013, 2025]
 
-    max_instances: 20
+    max_instances: 35
 
     questions:
       fr:
@@ -344,7 +344,7 @@ templates:
       annee:
         range: [2024, 2026]   # 2026 is partial (January-June), still a valid "this year"
 
-    max_instances: 20
+    max_instances: 35
 
     # Words that keep the variants on this template's meaning: offshore share, not total wind.
     must_say:

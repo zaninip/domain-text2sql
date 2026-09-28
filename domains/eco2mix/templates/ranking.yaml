@@ -23,7 +23,7 @@ templates:
       unite:
         from: energy_units
 
-    max_instances: 20
+    max_instances: 35
 
     questions:
       fr:
@@ -75,7 +75,7 @@ templates:
       unite:
         from: energy_units
 
-    max_instances: 20
+    max_instances: 35
 
     questions:
       fr:
@@ -126,7 +126,7 @@ templates:
       unite:
         from: energy_units
 
-    max_instances: 20
+    max_instances: 35
 
     questions:
       fr:
@@ -177,7 +177,7 @@ templates:
       annee:
         range: [2013, 2025]
 
-    max_instances: 20
+    max_instances: 35
 
     # Words that keep the variants on this template's meaning: a position, not a top N.
     must_say:
@@ -238,7 +238,7 @@ templates:
       unite:
         from: energy_units
 
-    max_instances: 20
+    max_instances: 35
 
     questions:
       fr:

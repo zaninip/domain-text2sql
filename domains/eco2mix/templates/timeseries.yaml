@@ -19,7 +19,7 @@ templates:
       unite:
         from: energy_units
 
-    max_instances: 60
+    max_instances: 35
 
     # Words that keep the variants on this template's meaning: the energy of each month, not the
     # running total; no production words, because {mesure} can be consumption.
@@ -81,7 +81,7 @@ templates:
       annee:
         range: [2013, 2025]
 
-    max_instances: 20
+    max_instances: 35
 
     questions:
       fr:
@@ -134,7 +134,7 @@ templates:
     constraints:
       - "annee_b > annee_a"
 
-    max_instances: 20
+    max_instances: 35
 
     questions:
       fr:
@@ -183,7 +183,7 @@ templates:
       unite:
         from: energy_units
 
-    max_instances: 20
+    max_instances: 35
 
     # Words that keep the variants on this template's meaning: one value per day, not the month's
     # total of agg_consumption_national_month, which is one word away.
@@ -236,7 +236,7 @@ templates:
       unite:
         from: energy_units
 
-    max_instances: 20
+    max_instances: 35
 
     # Words that keep the variants on this template's meaning: cumulative, not month by month.
     must_say:

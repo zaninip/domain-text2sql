@@ -247,24 +247,45 @@ def build_binding(
     return binding | template.get("constants", {})
 
 
+def variant_cycle(template: dict, lang: str, seed: int) -> list[int]:
+    """The variant indices of one language in a fixed shuffled order, walked round-robin."""
+    order = list(range(len(template["questions"][lang])))
+    random.Random(f"{seed}:variants:{template['template_id']}:{lang}").shuffle(order)
+    return order
+
+
 def instances(
     template: dict,
     catalogues: dict[str, list[dict]],
     seed: int,
     alias_ratio: float = 0.25,
     oversample: int = 1,
+    variants_per_language: int | None = None,
 ) -> Iterator[dict[str, Any]]:
-    """Yield one record per (combination, language, question variant) of one template."""
+    """Yield one record per (combination, language, question variant) of one template.
+
+    With ``variants_per_language`` set, each combination is asked with only that many variants
+    per language. Combination ``i`` takes the next ones along a shuffled cycle, so every variant
+    is used equally often among the sampled combinations and a slot value is never tied to one
+    wording. Validation then drops some combinations, which leaves the kept ones slightly
+    uneven in templates with many drops. The dataset holds more distinct combinations for the
+    same size.
+    """
     rng = random.Random(f"{seed}:surface:{template['template_id']}")
+    cycles = {lang: variant_cycle(template, lang, seed) for lang in LANGUAGES}
     combinations = sample_combinations(template, catalogues, seed, oversample)
     for index, combination in enumerate(combinations):
         for lang in LANGUAGES:
+            cycle = cycles[lang]
+            k = min(variants_per_language or len(cycle), len(cycle))
+            chosen = sorted(cycle[(index * k + j) % len(cycle)] for j in range(k))
             binding = build_binding(combination, template, lang, rng, alias_ratio)
             sql = render(template["sql"], binding, lang).strip()
             # The precondition never contains labels, so one rendering serves both languages.
             require = template.get("require")
             require_sql = render(require, binding, lang).strip() if require else None
-            for variant, question in enumerate(template["questions"][lang]):
+            for variant in chosen:
+                question = template["questions"][lang][variant]
                 yield {
                     "id": f"{template['template_id']}#{index:04d}#{lang}#{variant}",
                     "template_id": template["template_id"],
@@ -289,6 +310,7 @@ def generate(
     seed: int,
     alias_ratio: float = 0.25,
     oversample: int = 1,
+    variants_per_language: int | None = None,
 ) -> int:
     """Write every template's instances to a JSONL file; return the number of records."""
     catalogues, templates = load_templates(template_dir)
@@ -296,7 +318,10 @@ def generate(
     written = 0
     with out_path.open("w", encoding="utf-8") as out:
         for template in templates:
-            for record in instances(template, catalogues, seed, alias_ratio, oversample):
+            records = instances(
+                template, catalogues, seed, alias_ratio, oversample, variants_per_language
+            )
+            for record in records:
                 out.write(json.dumps(record, ensure_ascii=False) + "\n")
                 written += 1
     return written

@@ -109,6 +109,7 @@ def build(config: dict[str, Any]) -> dict[str, Any]:
         config["seed"],
         config["alias_ratio"],
         config["oversample"],
+        config.get("variants_per_language"),
     )
     kept, dropped = validate(paths["raw"], paths["clean"], paths["database"])
     report = split_dataset(paths["clean"], paths["splits"], config["seed"])

@@ -507,3 +507,27 @@ Format: date, decision, reason, alternatives considered.
 - **Alternatives:** Jaccard on word sets (ignores order, so misses "part de X dans Y" vs "part
   de Y dans X"); comparing rendered questions (slot values differ between any two instances
   and hide the shared wording).
+
+## 2026-09-28 — Dataset size: one variant per language per combination, `max_instances` 35
+
+- **Decision:** each slot combination is asked with one question variant per language
+  (`variants_per_language: 1` in `configs/dataset.yaml`) instead of all six; combination `i`
+  takes the next variant along a shuffled cycle per template and language, independently for
+  French and Italian. `max_instances` is 35 on every template (was 60, 40 or 20). Result:
+  train 2,126 / val 402 / test 490 examples, all within the CLAUDE.md targets; build
+  reproducible (two runs, identical checksums).
+- **Reason:** with every variant kept, a combination gave 12 examples, so reaching 300-500
+  test examples by `max_instances` alone meant ~5 combinations per test template: an accuracy
+  resting on five regions or years. One variant per language gives 245 distinct test
+  combinations instead of 140 for option "2 variants, max 20" (560 examples, above target).
+  Training sees more slot values (regions, aliases, units), where the conventions live;
+  paraphrase invariance still comes from each variant appearing in ~6 combinations. The
+  system prompt (~4,250 tokens) is repeated on every example, so ~2,100 examples is ~9 M
+  tokens per epoch, comfortable within a T4 session. A single `max_instances` for all
+  templates weighs every template equally.
+- **Known limit:** the rotation is even over the sampled combinations; validation drops some,
+  so in templates with many drops (pumping, gross exchanges, source-vs-source hours) variant
+  use among kept combinations ranges from 2 to 10 out of 35. Every variant still appears.
+  Evening it out would move variant choice into validation; not worth the coupling now.
+- **Alternatives:** lowering `max_instances` only (too few combinations per template);
+  two variants per language with `max_instances` 20 (fewer combinations, test above target).

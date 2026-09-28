@@ -23,7 +23,7 @@ templates:
     constraints:
       - "annee_b > annee_a"
 
-    max_instances: 60
+    max_instances: 35
 
     # CLOSE NEIGHBOUR: cmp_last_month_vs_year_before_region computes the same percentage change
     # of the same measure in the same region; only the period differs. Here the two years are
@@ -82,7 +82,7 @@ templates:
     constraints:
       - "region_a != region_b"
 
-    max_instances: 20
+    max_instances: 35
 
     questions:
       fr:
@@ -140,7 +140,7 @@ templates:
     constraints:
       - "annee_b > annee_a"
 
-    max_instances: 20
+    max_instances: 35
 
     questions:
       fr:
@@ -188,7 +188,7 @@ templates:
       annee:
         range: [2014, 2025]
 
-    max_instances: 20
+    max_instances: 35
 
     questions:
       fr:
@@ -232,7 +232,7 @@ templates:
       region:
         from: regions
 
-    max_instances: 20
+    max_instances: 35
 
     # CLOSE NEIGHBOUR: cmp_yearly_change_pct_region computes the same percentage change with two
     # explicit years. This template has no slot for the period, so the period word is enforced

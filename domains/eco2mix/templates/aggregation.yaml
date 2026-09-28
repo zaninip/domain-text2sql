@@ -19,7 +19,7 @@ templates:
       unite:
         from: energy_units
 
-    max_instances: 60          # sampled with the global seed out of 6 x 12 x 13 x 3 = 2808 combinations
+    max_instances: 35          # sampled with the global seed out of 6 x 12 x 13 x 3 = 2808 combinations
 
     questions:
       fr:
@@ -66,7 +66,7 @@ templates:
       unite:
         from: energy_units
 
-    max_instances: 60
+    max_instances: 35
 
     questions:
       fr:
@@ -109,7 +109,7 @@ templates:
       unite:
         from: energy_units
 
-    max_instances: 40
+    max_instances: 35
 
     # Words that keep the variants on this template's meaning: the month's total, not the daily
     # series of ts_daily_consumption_national_month ("Consommation … quotidienne de la France").
@@ -162,7 +162,7 @@ templates:
       unite:
         from: energy_units
 
-    max_instances: 20
+    max_instances: 35
 
     questions:
       fr:
@@ -204,7 +204,7 @@ templates:
       unite:
         from: energy_units
 
-    max_instances: 20
+    max_instances: 35
 
     questions:
       fr:
@@ -254,7 +254,7 @@ templates:
       unite:
         from: energy_units
 
-    max_instances: 20
+    max_instances: 35
 
     # Words that keep the variants on this template's meaning: gross exports, not the net balance of the classification and multi-condition templates.
     must_not_say:
@@ -301,7 +301,7 @@ templates:
       unite:
         from: energy_units
 
-    max_instances: 20
+    max_instances: 35
 
     questions:
       fr:
