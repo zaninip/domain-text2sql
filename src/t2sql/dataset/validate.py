@@ -10,7 +10,7 @@ re-running the reference query.
 """
 
 import json
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import date, datetime
 from decimal import Decimal
 from numbers import Number
@@ -118,12 +118,20 @@ def validate(raw_path: Path, out_path: Path, db_path: Path) -> tuple[int, Counte
     cache: dict[str, tuple[str | None, dict | None]] = {}
     preconditions: dict[str, bool] = {}
     seen: dict[str, tuple[str, str]] = {}
+    accepted: defaultdict[str, set[int]] = defaultdict(set)  # valid combinations per template
     dropped: Counter = Counter()
     kept = 0
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with raw_path.open(encoding="utf-8") as source, out_path.open("w", encoding="utf-8") as out:
         for line in source:
             record = json.loads(line)
+            # The generator oversamples; records arrive in sampled order, so the first
+            # `max_instances` combinations that pass are kept and the spares are not even run.
+            combos = accepted[record.get("template_id", "")]
+            limit, instance = record.get("max_instances"), record.get("instance")
+            if limit is not None and instance not in combos and len(combos) >= limit:
+                dropped["oversampled"] += 1
+                continue
             precondition = record.get("require")
             if precondition:
                 if precondition not in preconditions:
@@ -138,6 +146,7 @@ def validate(raw_path: Path, out_path: Path, db_path: Path) -> tuple[int, Counte
             if reason:
                 dropped[reason.split(":")[0]] += 1
                 continue
+            combos.add(instance)  # a duplicate question below still means a valid combination
             # Two templates may end up phrasing a question the same way. If their SQL agrees,
             # the second example teaches nothing and is dropped; if it differs, the dataset
             # would hold two answers for one question, which is a template bug, not data.

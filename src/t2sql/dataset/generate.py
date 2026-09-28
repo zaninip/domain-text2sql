@@ -171,9 +171,15 @@ def combination_weight(combination: dict[str, Any]) -> float:
 
 
 def sample_combinations(
-    template: dict, catalogues: dict[str, list[dict]], seed: int
+    template: dict, catalogues: dict[str, list[dict]], seed: int, oversample: int = 1
 ) -> list[dict[str, Any]]:
-    """Pick ``max_instances`` slot combinations, reproducibly and independently per template."""
+    """Pick slot combinations in sampled order, reproducibly and independently per template.
+
+    ``max_instances`` is what the dataset should hold after validation, which drops
+    combinations whose answer is empty, zero or degenerate. Returning ``oversample`` times
+    more leaves validation spares to keep the first ``max_instances`` valid ones. The order
+    does not depend on ``oversample``: a longer sample only extends the shorter one.
+    """
     pools = {name: slot_candidates(spec, catalogues) for name, spec in template["slots"].items()}
     total = math.prod(len(pool) for pool in pools.values())
     if total > _MAX_COMBINATIONS:
@@ -195,7 +201,7 @@ def sample_combinations(
         if weight > 0:
             keyed.append((-math.log(1.0 - rng.random()) / weight, combination))
     keyed.sort(key=lambda pair: pair[0])
-    wanted = template.get("max_instances", len(keyed))
+    wanted = template.get("max_instances", len(keyed)) * oversample
     return [combination for _, combination in keyed[:wanted]]
 
 
@@ -246,10 +252,12 @@ def instances(
     catalogues: dict[str, list[dict]],
     seed: int,
     alias_ratio: float = 0.25,
+    oversample: int = 1,
 ) -> Iterator[dict[str, Any]]:
     """Yield one record per (combination, language, question variant) of one template."""
     rng = random.Random(f"{seed}:surface:{template['template_id']}")
-    for index, combination in enumerate(sample_combinations(template, catalogues, seed)):
+    combinations = sample_combinations(template, catalogues, seed, oversample)
+    for index, combination in enumerate(combinations):
         for lang in LANGUAGES:
             binding = build_binding(combination, template, lang, rng, alias_ratio)
             sql = render(template["sql"], binding, lang).strip()
@@ -269,17 +277,26 @@ def instances(
                     "require": require_sql,
                     "slots": {name: slot_id(value) for name, value in combination.items()},
                     "order_matters": template["result"].get("order_matters", False),
+                    # Validation keeps the first `max_instances` valid combinations by `instance`.
+                    "instance": index,
+                    "max_instances": template.get("max_instances"),
                 }
 
 
-def generate(template_dir: Path, out_path: Path, seed: int, alias_ratio: float = 0.25) -> int:
+def generate(
+    template_dir: Path,
+    out_path: Path,
+    seed: int,
+    alias_ratio: float = 0.25,
+    oversample: int = 1,
+) -> int:
     """Write every template's instances to a JSONL file; return the number of records."""
     catalogues, templates = load_templates(template_dir)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     written = 0
     with out_path.open("w", encoding="utf-8") as out:
         for template in templates:
-            for record in instances(template, catalogues, seed, alias_ratio):
+            for record in instances(template, catalogues, seed, alias_ratio, oversample):
                 out.write(json.dumps(record, ensure_ascii=False) + "\n")
                 written += 1
     return written

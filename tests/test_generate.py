@@ -2,6 +2,7 @@
 
 import json
 import random
+import re
 from pathlib import Path
 
 import pytest
@@ -179,6 +180,13 @@ def test_sampling_is_independent_between_templates():
     assert mine != sample_combinations(other, {}, seed=1)
 
 
+def test_oversampling_extends_the_sample_without_reordering_it():
+    base = sample_combinations(SAMPLE_TEMPLATE, {}, seed=1)
+    spares = sample_combinations(SAMPLE_TEMPLATE, {}, seed=1, oversample=3)
+    assert len(spares) == 30
+    assert spares[:10] == base
+
+
 def test_sampling_refuses_an_unbounded_product():
     huge = {
         "template_id": "huge",
@@ -340,3 +348,32 @@ def test_unit_suffix_ends_the_question_and_bare_unit_is_never_used():
                 if "{unite.suffix}" in question:
                     tail = question.split("{unite.suffix}", 1)[1]
                     assert tail.strip() in {"", "?", "."}, f"unit suffix not at the end in {where}"
+
+
+# --- words that tell close templates apart -----------------------------------------------------
+
+
+def keyword_pattern(keyword: str) -> re.Pattern[str]:
+    """A whole word or phrase; with a trailing '*', any word starting with it ("cumul*")."""
+    stem, tail = (keyword[:-1], "") if keyword.endswith("*") else (keyword, r"\b")
+    return re.compile(r"\b" + re.escape(stem) + tail, re.IGNORECASE)
+
+
+def test_close_templates_keep_the_words_that_tell_them_apart():
+    """`must_say`: every variant contains at least one of the words of its language.
+    `must_not_say`: no variant contains any of them. Checked on the template text, before the
+    slots are filled, so that a variant cannot drift into the question of its neighbour."""
+    _, templates = load_templates(TEMPLATE_DIR)
+    for template in templates:
+        for field in ("must_say", "must_not_say"):
+            languages = set(template.get(field, {}))
+            assert languages <= {"fr", "it"}, f"{template['template_id']}.{field}"
+        for lang, questions in template["questions"].items():
+            required = [keyword_pattern(k) for k in template.get("must_say", {}).get(lang, [])]
+            forbidden = [keyword_pattern(k) for k in template.get("must_not_say", {}).get(lang, [])]
+            for question in questions:
+                where = f"{template['template_id']} [{lang}] {question!r}"
+                if required:
+                    assert any(p.search(question) for p in required), f"missing keyword: {where}"
+                for pattern in forbidden:
+                    assert not pattern.search(question), f"{pattern.pattern!r} in {where}"

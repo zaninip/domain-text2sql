@@ -2,6 +2,7 @@
 
 seed: 20260922          # drives slot sampling, alias choice and the template split
 alias_ratio: 0.25       # share of region mentions written as an alias ("PACA") when one exists
+oversample: 5           # combinations sampled per max_instances; validation keeps the first valid ones
 
 paths:
   templates: domains/eco2mix/templates

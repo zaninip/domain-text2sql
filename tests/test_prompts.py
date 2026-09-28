@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pytest
+import yaml
 
 from t2sql.prompts import (
     MAX_PROMPT_TOKENS,
@@ -148,3 +149,15 @@ def test_definitions_never_reach_the_model():
 def test_a_block_stops_at_the_next_marker():
     text = "# G\n\n## 1. S\n\n**Definitions**\n\n- shown\n\n**Notes**\n\n- hidden\n"
     assert definitions(text) == ["shown"]
+
+
+def test_prompt_names_every_region_value_and_alias_the_dataset_uses():
+    """Fairness: the base model must be told every alias a test question may contain."""
+    path = DOMAIN_DIR / "templates" / "regions.yaml"
+    regions = yaml.safe_load(path.read_text(encoding="utf-8"))["regions"]
+    prompt = " ".join(system_prompt(DOMAIN_DIR).split())  # undo the line wrapping
+    for region in regions:
+        assert region["id"] in prompt, f"region {region['id']!r} missing from the prompt"
+        for lang in ("fr", "it"):
+            for form in region[lang]:
+                assert form["label"] in prompt, f"alias {form['label']!r} missing from the prompt"

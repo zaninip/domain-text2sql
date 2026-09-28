@@ -103,7 +103,13 @@ def write_sample(clean_path: Path, out_path: Path, seed: int, count: int = 30) -
 def build(config: dict[str, Any]) -> dict[str, Any]:
     """Run the three steps and return the statistics report, with the drop reasons added."""
     paths = {name: ROOT / value for name, value in config["paths"].items()}
-    written = generate(paths["templates"], paths["raw"], config["seed"], config["alias_ratio"])
+    written = generate(
+        paths["templates"],
+        paths["raw"],
+        config["seed"],
+        config["alias_ratio"],
+        config["oversample"],
+    )
     kept, dropped = validate(paths["raw"], paths["clean"], paths["database"])
     report = split_dataset(paths["clean"], paths["splits"], config["seed"])
     domain_dir = paths["templates"].parent

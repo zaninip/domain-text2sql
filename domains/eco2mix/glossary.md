@@ -181,25 +181,28 @@ read), so that a surprising answer can be understood.
 
 - 12 metropolitan regions; Corsica and overseas territories are not in the dataset.
   National total = sum over the 12 regions (checked against RTE national figures within rounding).
-- `region` values are the official names with accents and hyphens:
-  Auvergne-Rhône-Alpes, Bourgogne-Franche-Comté, Bretagne, Centre-Val de Loire, Grand Est,
-  Hauts-de-France, Île-de-France, Normandie, Nouvelle-Aquitaine, Occitanie, Pays de la Loire,
-  Provence-Alpes-Côte d'Azur.
-- Aliases to map: PACA → Provence-Alpes-Côte d'Azur; AURA / Rhône-Alpes / Auvergne →
-  Auvergne-Rhône-Alpes; IDF / Paris region → Île-de-France; BFC / Bourgogne / Franche-Comté →
-  Bourgogne-Franche-Comté; CVL → Centre-Val de Loire; Nord / Nord-Pas-de-Calais / Picardie →
-  Hauts-de-France; Alsace / Lorraine / Champagne → Grand Est; Aquitaine / Poitou / Limousin →
-  Nouvelle-Aquitaine; Midi-Pyrénées / Languedoc → Occitanie; Brittany → Bretagne;
-  Normandy → Normandie. Italian: Bretagna → Bretagne, Normandia → Normandie,
-  Isola di Francia → Île-de-France, Provenza → Provence-Alpes-Côte d'Azur.
-- Historical regions merged in 2016 are not in the dataset and are not equal to any row.
-  A question naming one is answered with the current region that contains it, which always
-  contains it entirely: Alsace / Lorraine / Champagne-Ardenne -> Grand Est; Nord-Pas-de-Calais
-  / Picardie -> Hauts-de-France; Aquitaine / Limousin / Poitou-Charentes -> Nouvelle-Aquitaine;
-  Midi-Pyrénées / Languedoc-Roussillon -> Occitanie; Bourgogne / Franche-Comté ->
-  Bourgogne-Franche-Comté; Auvergne / Rhône-Alpes -> Auvergne-Rhône-Alpes. The answer then
-  covers a larger territory than the question asked about.
+- `region` takes exactly one of these 12 values; the names in brackets are other ways a
+  question may name the same region, to be mapped back to the value:
+  Auvergne-Rhône-Alpes (AURA, Alvernia-Rodano-Alpi); Bourgogne-Franche-Comté (BFC,
+  Borgogna-Franca Contea); Bretagne (Bretagna); Centre-Val de Loire (CVL, Centro-Valle della
+  Loira); Grand Est (Grande Est); Hauts-de-France (Alta Francia); Île-de-France (IDF, région
+  parisienne, Isola di Francia, regione parigina); Normandie (Normandia); Nouvelle-Aquitaine
+  (Nuova Aquitania); Occitanie (Occitania); Pays de la Loire (Paesi della Loira);
+  Provence-Alpes-Côte d'Azur (PACA, Provenza-Alpi-Costa Azzurra).
+- A former region merged in 2016 (Alsace, Picardie, Aquitaine…) is answered with the current
+  region that contains it.
 - `code_insee_region` is text ('11', '24', …); prefer filtering on `region`.
+
+**Notes**
+
+- The aliases above are exactly the surface forms of `templates/regions.yaml`; a test fails if
+  the two drift apart, since the base model must be told every alias the test set uses.
+- Former regions, each entirely inside one current region: Alsace, Lorraine,
+  Champagne-Ardenne -> Grand Est; Nord-Pas-de-Calais, Picardie -> Hauts-de-France; Aquitaine,
+  Limousin, Poitou-Charentes -> Nouvelle-Aquitaine; Midi-Pyrénées, Languedoc-Roussillon ->
+  Occitanie; Bourgogne, Franche-Comté -> Bourgogne-Franche-Comté; Auvergne, Rhône-Alpes ->
+  Auvergne-Rhône-Alpes. No template asks about them (they would teach a false equality), so the
+  prompt only states the rule; a model knows this geography.
 
 ## 7. NULL and data-quality rules
 
@@ -239,8 +242,10 @@ read), so that a surprising answer can be understood.
   and keeps the rows asked for with `LIMIT`.
 - The position of one item in a ranking is `RANK() OVER (ORDER BY value DESC)`, returned with
   the value it is based on; tied items share a position.
-- When the answer labels rows (exporter/importer, above/below), the labels are the words the
-  question uses, in its language.
+- When the answer labels rows, the label is the bare role word, singular, in the language of
+  the question, whatever the wording: 'exportatrice' / 'importatrice', 'au-dessus' /
+  'en dessous' (Italian: 'esportatrice' / 'importatrice', 'sopra' / 'sotto'); no qualifier
+  such as "nette".
 - "The average of the regions" is the mean of the twelve regional totals, not the mean of the
   half-hourly rows: `AVG(total) OVER ()` over one row per region.
 - When the answer lists production sources as rows, each source is named by its column, e.g.

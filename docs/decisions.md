@@ -394,3 +394,83 @@ Format: date, decision, reason, alternatives considered.
   two consecutive builds give identical checksums for every generated file. The metric was
   never affected (multiset comparison, 1e-4 tolerance), but "make dataset is reproducible" is
   a phase 2 criterion.
+
+## 2026-09-28 — Classification labels are fixed words, not copied from the question
+
+- **Decision:** glossary §8 now lists the labels a classification answer uses: the bare role
+  word, singular, in the language of the question ('exportatrice' / 'importatrice',
+  'au-dessus' / 'en dessous'; 'esportatrice' / 'importatrice', 'sopra' / 'sotto'), with no
+  qualifier such as "nette". It replaces "the labels are the words the question uses".
+- **Reason:** the owner's variants ask "which regions exported more than they imported" or
+  "whose consumption exceeded the average": good, realistic questions that contain no label
+  word to copy; and with "exportatrices nettes" the old rule left 'exportatrice' and
+  'exportatrice nette' equally plausible, while the metric compares strings literally.
+- **Also:** at the owner's request the first variants of `cls_exchange_role_season` now say
+  "nettes" / "nette", so that most variants cannot be read as gross exports (compare
+  `agg_exchange_gross_region_year`).
+
+## 2026-09-28 — Region aliases in the prompt aligned with the dataset (fairness fix)
+
+- **Found:** glossary §6 listed the aliases written in phase 1, never realigned with
+  `templates/regions.yaml`: 11 aliases the dataset actually uses (Alvernia-Rodano-Alpi, Alta
+  Francia, Nuova Aquitania, Paesi della Loira, région parisienne…) were missing, so the base
+  model would have been scored on names the prompt never explained; meanwhile the list carried
+  the former regions, which duplicated the next rule.
+- **Decision:** §6 now lists each of the 12 values once, followed by exactly its aliases from
+  `regions.yaml`; the former-region rule is one line (the full mapping moved to Notes, since
+  no template asks about former regions). A test checks that every region value and alias of
+  `regions.yaml` appears in the system prompt.
+- **Effect:** estimated prompt 4451 -> 4252 tokens.
+
+## 2026-09-28 — `must_say` / `must_not_say`: the meaning criterion made testable for close templates
+
+- **Decision:** a template may declare, per language, words every variant must contain
+  (`must_say`, at least one of them) and words no variant may contain (`must_not_say`). A test
+  checks them on the template text. A word matches as a whole word; a trailing `*` matches the
+  start of a word ("cumul*" covers "cumulée", "cumulata"). Declared on 14 templates that have a
+  close neighbour: last month vs explicit years, net vs gross exchanges, share in consumption
+  vs in production vs average coverage rate, load factor, offshore share, record day vs peak
+  instant vs value only, daily energy, cumulative, ranking position.
+- **Reason:** raised by the owner on `cmp_last_month_vs_year_before_region`, whose period has no
+  slot, so nothing stopped a variant from dropping "le mois dernier" and becoming a question
+  with no period. The same gap existed for every contrast pair; criterion 3 of the variant pass
+  relied on review alone. Checked with deliberately wrong variants: both kinds are blocked.
+
+## 2026-09-28 — Count answers must be neither zero nor saturated
+
+- **Decision:** the three multi-condition templates whose answer is a count of steps or days
+  require, before running the query, that the condition holds on at least one step (day) and
+  fails on at least one: `count(*) FILTER (WHERE condition) BETWEEN 1 AND count(*) - 1`.
+- **Reason:** raised by the owner for zero counts; measuring showed the opposite end matters as
+  much. Out of 20 sampled combinations, "nuclear above 50 % in AURA" gave all 8,759 hours,
+  "thermal above bioenergy" every hour of a winter, "PACA net importer" 365 days of 365. A
+  saturated count is also the answer of many wrong queries (wrong threshold, wrong sign,
+  forgotten comparison), so it scores a wrong model as right. Zeros were already dropped by
+  `validate`, but they wasted samples.
+- **Consequence to handle in step 3:** these templates now keep 5, 11 and 5 combinations out of
+  20 sampled, so they are under-represented. Rather than raising `max_instances` template by
+  template, consider making it count the instances that survive validation (oversample, then
+  keep the first N valid in sampled order).
+
+## 2026-09-28 — `max_instances` counts the combinations that survive validation
+
+- **Decision:** the generator samples `oversample × max_instances` combinations
+  (`configs/dataset.yaml`, `oversample: 5`) in the same weighted order as before, and each
+  record carries its combination index (`instance`) and `max_instances`. Validation reads the
+  records in sampled order and keeps the first `max_instances` combinations that pass the
+  precondition and return a usable answer; the spares are dropped as `oversampled` without
+  running their query. A combination counts as valid on its first passing record; a question
+  dropped as a duplicate still counts, because the combination answered.
+- **Reason:** templates whose filters drop many combinations (saturated counts, pumping,
+  offshore, gross exchanges) were under-represented: 5 of 20 combinations kept for
+  `mc_hours_share_above_region_year` and `mc_days_net_role_region_year`, 8 for pumping. Raising
+  `max_instances` template by template would have to be redone after every change to a
+  `require`.
+- **Why 5:** the worst template kept 1 combination in 4; 5 gives margin. A longer sample only
+  extends the shorter one (same sort), so templates with no drops are unchanged, and the
+  build stays reproducible (two runs, identical checksums).
+- **Effect:** 42 of 45 templates now reach their quota; the other three have exhausted their
+  combination space (13 years for the two single-slot classification templates, 13
+  region-years with offshore wind). Examples 9,982 → 10,910 (train 7,916, val 1,794, test
+  1,200). Alternative considered: a fixed per-template oversampling factor in the YAML —
+  rejected, a single global factor is enough and adds no knob to each template.

@@ -176,3 +176,34 @@ def test_gold_rows_are_sorted_only_when_order_does_not_matter(tmp_path: Path, db
     free, ranked = (json.loads(line)["gold"]["rows"] for line in lines)
     assert free == [[0], [1], [2], [3], [4]]
     assert ranked == [[4], [3], [2], [1], [0]]
+
+
+def test_max_instances_counts_the_combinations_that_survive(tmp_path: Path, db: Path):
+    def record(instance: int, lang: str, sql: str) -> dict:
+        return {
+            "id": f"t#{instance}#{lang}",
+            "template_id": "t",
+            "question": f"Q{instance} {lang} ?",
+            "sql": sql,
+            "instance": instance,
+            "max_instances": 2,
+        }
+
+    good = "SELECT sum(x) + {} FROM t"
+    raw = write_records(
+        tmp_path / "raw.jsonl",
+        [
+            record(0, "fr", "SELECT sum(zero) FROM t"),  # degenerate: frees its place
+            record(0, "it", "SELECT sum(zero) FROM t"),
+            record(1, "fr", good.format(1)),
+            record(1, "it", good.format(1)),
+            record(2, "fr", good.format(2)),
+            record(2, "it", good.format(2)),
+            record(3, "fr", good.format(3)),  # a spare, not needed any more
+            record(3, "it", good.format(3)),
+        ],
+    )
+    kept, dropped = validate(raw, tmp_path / "clean.jsonl", db)
+    lines = (tmp_path / "clean.jsonl").read_text(encoding="utf-8").splitlines()
+    assert [json.loads(line)["instance"] for line in lines] == [1, 1, 2, 2]
+    assert (kept, dropped) == (4, {"all_zero": 2, "oversampled": 2})
