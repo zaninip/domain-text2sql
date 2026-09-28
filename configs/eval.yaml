@@ -1,0 +1,18 @@
+# Evaluation run (phase 3). Paths are relative to the repository root.
+# One run = one model, one split, one mode; the pilot runs this twice, changing `model` only.
+
+model: Qwen/Qwen3-1.7B           # pilot alternative: Qwen/Qwen2.5-Coder-1.5B-Instruct
+split: val                       # val for the model pilot; test only for the final baseline
+mode: zero_shot                  # zero_shot | few_shot
+limit: null                      # evaluate the first N examples only (local smoke tests)
+
+generation:
+  max_new_tokens: 256            # greedy; the same budget for every configuration
+  batch_size: 8
+  dtype: float16                 # T4 has no bf16; no 4-bit quantization at evaluation time
+
+paths:
+  domain: domains/eco2mix
+  database: data/eco2mix.duckdb
+  splits: data/dataset
+  predictions: results/predictions

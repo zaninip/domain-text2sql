@@ -13,6 +13,12 @@ dependencies = [
     "sqlglot>=30.18.0",
 ]
 
+[project.optional-dependencies]
+model = [
+    "accelerate>=1.10",
+    "transformers>=4.56",
+]
+
 [dependency-groups]
 dev = [
     "pre-commit>=4.0",
