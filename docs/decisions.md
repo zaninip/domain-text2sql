@@ -474,3 +474,36 @@ Format: date, decision, reason, alternatives considered.
   region-years with offshore wind). Examples 9,982 → 10,910 (train 7,916, val 1,794, test
   1,200). Alternative considered: a fixed per-template oversampling factor in the YAML —
   rejected, a single global factor is enough and adds no knob to each template.
+
+## 2026-09-28 — Guards on both sides of each close pair; no production words where `{mesure}` can be consumption
+
+- **Decision:** the guard words are now declared on both templates of each close pair:
+  `must_not_say` "last month" on `cmp_yearly_change_pct_region`, "per day / daily" on
+  `avg_consumption_moment_region_month`; `ts_monthly_energy_region_year` gets `must_say`
+  "mois / mensuel*" and `must_not_say` "cumul* / progressi*", mirroring the cumulative template.
+  The two templates whose `mesure` slot includes consumption also forbid "production",
+  "produi*" / "produzione", "prodott*".
+- **Reason:** raised by the owner during the timeseries pass. Checking it showed a real defect
+  of the original template, not only a risk: `cmp_yearly_change_pct_region` said
+  "la production {mesure}", which rendered "la production consommée" / "la produzione
+  consumata" in 6 of its 10 variants whenever the measure was consumption. The variants now
+  say "l'énergie {mesure}", and the forbidden words keep it from coming back.
+- **Kept on purpose:** "Production {mesure} cumulée mois par mois" in the cumulative template.
+  It is one word away from the monthly template, which is the point of a contrast pair; the
+  word that decides ("cumulée") is enforced by `must_say`.
+
+## 2026-09-28 — `make similar`: closest variants across templates, reviewed by eye
+
+- **Decision:** `src/t2sql/dataset/similar.py` lists, for each pair of templates and each
+  language, their two most similar variants (difflib ratio on word sequences, each placeholder
+  reduced to its slot name). `make similar ARGS="--only rate_ --top 30"`.
+- **Reason:** raised by the owner for the rate family. The build only stops on two identical
+  rendered questions with different SQL; near-identical wording is the real risk, and it is
+  where `must_say` / `must_not_say` must sit. The first run found the closest unguarded pair
+  of the project: `agg_consumption_national_month` vs `ts_daily_consumption_national_month`
+  (0.94, one word: "quotidienne"), now guarded, and the coverage / load factor pair, now
+  guarded both ways. The 1.00 pair at the top (`mc_days_national_consumption_above` /
+  `mc_days_national_energy_above`) is intentional: only the unit of the threshold differs.
+- **Alternatives:** Jaccard on word sets (ignores order, so misses "part de X dans Y" vs "part
+  de Y dans X"); comparing rendered questions (slot values differ between any two instances
+  and hide the shared wording).

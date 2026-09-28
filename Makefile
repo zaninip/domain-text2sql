@@ -1,6 +1,6 @@
 UV ?= uv
 
-.PHONY: install lint format test check data dataset
+.PHONY: install lint format test check data dataset similar
 
 install:
 	$(UV) sync --all-groups
@@ -26,3 +26,7 @@ data:
 # Generate, execute-and-filter, then split the question/SQL dataset (configs/dataset.yaml)
 dataset:
 	$(UV) run python -m t2sql.dataset.build
+
+# Closest question variants across templates, to review contrast pairs (ARGS="--only rate_")
+similar:
+	$(UV) run python -m t2sql.dataset.similar $(ARGS)
