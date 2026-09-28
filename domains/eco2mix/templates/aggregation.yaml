@@ -111,6 +111,12 @@ templates:
 
     max_instances: 40
 
+    # Words that keep the variants on this template's meaning: the month's total, not the daily
+    # series of ts_daily_consumption_national_month ("Consommation … quotidienne de la France").
+    must_not_say:
+      fr: ["jour", "quotidien*", "journali*"]
+      it: ["giorno", "giornalier*", "quotidian*"]
+
     questions:
       fr:
         - "Quelle a été la consommation totale d'électricité en France {mois.in} {annee}{unite.suffix} ?"
@@ -249,6 +255,11 @@ templates:
         from: energy_units
 
     max_instances: 20
+
+    # Words that keep the variants on this template's meaning: gross exports, not the net balance of the classification and multi-condition templates.
+    must_not_say:
+      fr: ["net*", "solde"]
+      it: ["nett*", "saldo"]
 
     questions:
       fr:

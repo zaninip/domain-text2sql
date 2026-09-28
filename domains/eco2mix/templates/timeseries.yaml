@@ -21,13 +21,28 @@ templates:
 
     max_instances: 60
 
+    # Words that keep the variants on this template's meaning: the energy of each month, not the
+    # running total; no production words, because {mesure} can be consumption.
+    must_say:
+      fr: ["mois", "mensuel*"]
+      it: ["mese", "mensil*"]
+    must_not_say:
+      fr: ["cumul*", "progressi*", "production", "produi*"]
+      it: ["cumul*", "progressiv*", "produzione", "prodott*"]
+
     questions:
       fr:
         - "Quelle a été l'évolution mois par mois de l'énergie {mesure} {region.in} en {annee}{unite.suffix} ?"
         - "Énergie {mesure} par mois {region.in} en {annee}{unite.suffix} ?"
+        - "Donne-moi l'énergie {mesure} de chaque mois de {annee} {region.in}{unite.suffix}."
+        - "{region.in} en {annee} : quelle énergie {mesure} mois après mois{unite.suffix} ?"
+        - "Détail mensuel de l'énergie {mesure} {region.in} en {annee}{unite.suffix} ?"
       it:
         - "Qual è stato l'andamento mese per mese dell'energia {mesure} {region.in} nel {annee}{unite.suffix}?"
         - "Energia {mesure} mese per mese {region.in} nel {annee}{unite.suffix}?"
+        - "Dammi l'energia {mesure} di ogni mese del {annee} {region.in}{unite.suffix}."
+        - "{region.in} nel {annee}: che energia {mesure} mese dopo mese{unite.suffix}?"
+        - "Dettaglio mensile dell'energia {mesure} {region.in} nel {annee}{unite.suffix}?"
 
     # A source the region does not have gives twelve empty months, which the month numbers
     # would hide from the degenerate-answer filter. Require the measure to vary.
@@ -74,11 +89,15 @@ templates:
         - "Consommation moyenne heure par heure {region.in} {jours.in}, {mois.in} {annee}, en MW ?"
         - "Donne la consommation moyenne de chaque heure de la journée {region.in} {jours.in} {mois.in} {annee}, en MW."
         - "Quel a été le profil horaire moyen de la consommation {region.in} {jours.in} {mois.in} {annee} ?"  # no unit: MW by default
+        - "Donne-moi le profil horaire moyen de la consommation {region.in} {jours.in} {mois.in} {annee}, en MW."
+        - "{region.in} {jours.in} {mois.in} {annee} : quelle consommation moyenne pour chacune des 24 heures, en MW ?"
       it:
         - "Qual è stato il profilo orario medio del consumo {region.in} {jours.in} {mois.in} {annee}, in MW?"
         - "Consumo medio ora per ora {region.in} {jours.in}, {mois.in} {annee}, in MW?"
         - "Indica il consumo medio di ogni ora del giorno {region.in} {jours.in} {mois.in} {annee}, in MW."
         - "Qual è stato il profilo orario medio del consumo {region.in} {jours.in} {mois.in} {annee}?"  # no unit: MW by default
+        - "Dammi il profilo orario medio del consumo {region.in} {jours.in} {mois.in} {annee}, in MW."
+        - "{region.in} {jours.in} {mois.in} {annee}: che consumo medio per ciascuna delle 24 ore, in MW?"
 
     sql: |
       SELECT heure, AVG(consommation_mw) AS conso_moyenne_mw
@@ -122,10 +141,16 @@ templates:
         - "Comment a évolué la production {mesure} {region.in} d'année en année entre {annee_a} et {annee_b}{unite.suffix} ?"
         - "Production {mesure} annuelle {region.in} de {annee_a} à {annee_b}{unite.suffix} ?"
         - "Donne la production {mesure} de chaque année {region.in} entre {annee_a} et {annee_b}{unite.suffix}."
+        - "Donne-moi l'évolution annuelle de la production {mesure} {region.in} de {annee_a} à {annee_b}{unite.suffix}."
+        - "{region.in} : quelle production {mesure} pour chacune des années de {annee_a} à {annee_b}{unite.suffix} ?"
+        - "Série annuelle de la production {mesure} {region.in}, {annee_a}-{annee_b}{unite.suffix} ?"
       it:
         - "Com'è cambiata anno per anno la produzione {mesure} {region.in} fra il {annee_a} e il {annee_b}{unite.suffix}?"
         - "Produzione {mesure} annua {region.in} dal {annee_a} al {annee_b}{unite.suffix}?"
         - "Indica la produzione {mesure} di ogni anno {region.in} fra il {annee_a} e il {annee_b}{unite.suffix}."
+        - "Dammi l'andamento annuale della produzione {mesure} {region.in} dal {annee_a} al {annee_b}{unite.suffix}."
+        - "{region.in}: che produzione {mesure} per ciascuno degli anni dal {annee_a} al {annee_b}{unite.suffix}?"
+        - "Serie annuale della produzione {mesure} {region.in}, {annee_a}-{annee_b}{unite.suffix}?"
 
     require: |
       SELECT count(DISTINCT {mesure.sql}) > 1
@@ -160,15 +185,27 @@ templates:
 
     max_instances: 20
 
+    # Words that keep the variants on this template's meaning: one value per day, not the month's
+    # total of agg_consumption_national_month, which is one word away.
+    must_say:
+      fr: ["jour", "quotidien*", "journali*"]
+      it: ["giorno", "giornalier*", "quotidian*"]
+
     questions:
       fr:
         - "Quelle a été la consommation nationale jour par jour {mois.in} {annee}{unite.suffix} ?"
         - "Consommation électrique quotidienne de la France {mois.in} {annee}{unite.suffix} ?"
         - "Donne la consommation de la France pour chaque jour {mois.in} {annee}{unite.suffix}."
+        - "Donne-moi la consommation de la France jour après jour {mois.in} {annee}{unite.suffix}."
+        - "{mois} {annee} : quelle consommation nationale chaque jour{unite.suffix} ?"
+        - "Série quotidienne de la consommation française {mois.in} {annee}{unite.suffix} ?"
       it:
         - "Qual è stato il consumo nazionale giorno per giorno {mois.in} {annee}{unite.suffix}?"
         - "Consumo elettrico giornaliero della Francia {mois.in} {annee}{unite.suffix}?"
         - "Indica il consumo della Francia per ogni giorno {mois.in} {annee}{unite.suffix}."
+        - "Dammi il consumo della Francia giorno dopo giorno {mois.in} {annee}{unite.suffix}."
+        - "{mois} {annee}: che consumo nazionale ogni giorno{unite.suffix}?"
+        - "Serie giornaliera del consumo francese {mois.in} {annee}{unite.suffix}?"
 
     sql: |
       SELECT date, SUM(consommation_mw) {unite.expr} AS energie_{unite.id}
@@ -201,15 +238,26 @@ templates:
 
     max_instances: 20
 
+    # Words that keep the variants on this template's meaning: cumulative, not month by month.
+    must_say:
+      fr: ["cumul*"]
+      it: ["cumul*"]
+
     questions:
       fr:
         - "Quelle a été la production {mesure} cumulée mois après mois {region.in} en {annee}{unite.suffix} ?"
         - "Production {mesure} cumulée depuis le début de l'année, mois par mois, {region.in} en {annee}{unite.suffix} ?"
         - "Donne pour chaque mois de {annee} la production {mesure} cumulée depuis janvier {region.in}{unite.suffix}."
+        - "Donne-moi le cumul de la production {mesure} depuis janvier, mois par mois, {region.in} en {annee}{unite.suffix}."
+        - "{region.in} en {annee} : quel cumul de production {mesure} à la fin de chaque mois{unite.suffix} ?"
+        - "Production {mesure} cumulée mois par mois {region.in} en {annee}{unite.suffix} ?"
       it:
         - "Qual è stata la produzione {mesure} cumulata mese dopo mese {region.in} nel {annee}{unite.suffix}?"
         - "Produzione {mesure} cumulata da inizio anno, mese per mese, {region.in} nel {annee}{unite.suffix}?"
         - "Indica per ogni mese del {annee} la produzione {mesure} cumulata da gennaio {region.in}{unite.suffix}."
+        - "Dammi il cumulato della produzione {mesure} da gennaio, mese per mese, {region.in} nel {annee}{unite.suffix}."
+        - "{region.in} nel {annee}: che produzione {mesure} cumulata alla fine di ogni mese{unite.suffix}?"
+        - "Produzione {mesure} cumulata mese per mese {region.in} nel {annee}{unite.suffix}?"
 
     require: |
       SELECT count(DISTINCT {mesure.sql}) > 1

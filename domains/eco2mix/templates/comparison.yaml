@@ -25,13 +25,28 @@ templates:
 
     max_instances: 60
 
+    # CLOSE NEIGHBOUR: cmp_last_month_vs_year_before_region computes the same percentage change
+    # of the same measure in the same region; only the period differs. Here the two years are
+    # slots, so the slot test already forces every variant to name both of them.
+    # Words that keep the variants on this template's meaning: no "last month", and no production
+    # words, because {mesure} can be consumption ("la production consommée").
+    must_not_say:
+      fr: ["mois dernier", "production", "produi*"]
+      it: ["mese scorso", "produzione", "prodott*"]
+
     questions:
       fr:
-        - "De combien la production {mesure} a-t-elle changé {region.in} entre {annee_a} et {annee_b}, en pourcentage ?"
+        - "Comment l'énergie {mesure} a-t-elle évolué {region.in} entre {annee_a} et {annee_b}, en pourcentage ?"
         - "Variation en pourcentage de l'énergie {mesure} {region.in} de {annee_a} à {annee_b} ?"
+        - "Donne-moi l'évolution en pourcentage de l'énergie {mesure} {region.in} entre {annee_a} et {annee_b}."
+        - "Évolution {mesure.de} {region.in}, {annee_a} contre {annee_b}, en pourcentage ?"
+        - "{region.in}, de combien l'énergie {mesure} a-t-elle progressé ou reculé entre {annee_a} et {annee_b}, en pourcentage ?"
       it:
-        - "Di quanto è cambiata in percentuale la produzione {mesure} {region.in} fra il {annee_a} e il {annee_b}?"
+        - "Di quanto è cambiata in percentuale l'energia {mesure} {region.in} fra il {annee_a} e il {annee_b}?"
         - "Variazione percentuale dell'energia {mesure} {region.in} dal {annee_a} al {annee_b}?"
+        - "Dammi l'evoluzione in percentuale dell'energia {mesure} {region.in} fra il {annee_a} e il {annee_b}."
+        - "Evoluzione {mesure.de} {region.in}, {annee_a} contro {annee_b}, in percentuale?"
+        - "{region.in}, di quanto è cresciuta o calata l'energia {mesure} fra il {annee_a} e il {annee_b}, in percentuale?"
 
     sql: |
       SELECT 100.0 * (SUM({mesure.sql}) FILTER (WHERE annee = {annee_b})
@@ -74,10 +89,16 @@ templates:
         - "Quelle région a produit le plus d'énergie {mesure} en {annee}, entre la région {region_a} et la région {region_b}{unite.suffix} ?"
         - "Compare la production {mesure} de la région {region_a} et de la région {region_b} en {annee}{unite.suffix}."
         - "Production {mesure} en {annee} : région {region_a} contre région {region_b}{unite.suffix} ?"
+        - "Donne-moi la production {mesure} de la région {region_a} et de la région {region_b} en {annee}{unite.suffix}."
+        - "{mesure.le} en {annee} : qui produit le plus, la région {region_a} ou la région {region_b}{unite.suffix} ?"
+        - "Entre la région {region_a} et la région {region_b}, laquelle a la plus forte production {mesure} en {annee}{unite.suffix} ?"
       it:
         - "Quale regione ha prodotto più energia {mesure} nel {annee}, fra la regione {region_a} e la regione {region_b}{unite.suffix}?"
         - "Confronta la produzione {mesure} della regione {region_a} e della regione {region_b} nel {annee}{unite.suffix}."
         - "Produzione {mesure} nel {annee}: regione {region_a} contro regione {region_b}{unite.suffix}?"
+        - "Dammi la produzione {mesure} della regione {region_a} e della regione {region_b} nel {annee}{unite.suffix}."
+        - "{mesure.le} nel {annee}: chi produce di più, la regione {region_a} o la regione {region_b}{unite.suffix}?"
+        - "Fra la regione {region_a} e la regione {region_b}, quale ha la produzione {mesure} più alta nel {annee}{unite.suffix}?"
 
     # Both regions must have the source, or one side of the comparison is an empty 0.
     require: |
@@ -126,10 +147,16 @@ templates:
         - "Compare la production {mesure} {region.in} {mois.in} {annee_a} et {mois.in} {annee_b}, en GWh."
         - "Quelle a été la production {mesure} {region.in} {mois.in} {annee_a} et {mois.in} {annee_b}, en GWh ?"
         - "Production {mesure} {region.in} : {mois} {annee_a} contre {mois} {annee_b}, en GWh ?"
+        - "Donne-moi la production {mesure} {region.in} {mois.in} {annee_a} et {mois.in} {annee_b}, en GWh."
+        - "{mois} {annee_a} contre {mois} {annee_b} : quelle production {mesure} {region.in}, en GWh ?"
+        - "Comment la production {mesure} {region.in} {mois.de} se compare-t-elle entre {annee_a} et {annee_b}, en GWh ?"
       it:
         - "Confronta la produzione {mesure} {region.in} {mois.in} {annee_a} e {mois.in} {annee_b}, in GWh."
         - "Qual è stata la produzione {mesure} {region.in} {mois.in} {annee_a} e {mois.in} {annee_b}, in GWh?"
         - "Produzione {mesure} {region.in}: {mois} {annee_a} contro {mois} {annee_b}, in GWh?"
+        - "Dammi la produzione {mesure} {region.in} {mois.in} {annee_a} e {mois.in} {annee_b}, in GWh."
+        - "{mois} {annee_a} contro {mois} {annee_b}: che produzione {mesure} {region.in}, in GWh?"
+        - "Come si confronta la produzione {mesure} {region.in} di {mois} fra il {annee_a} e il {annee_b}, in GWh?"
 
     require: |
       SELECT count(DISTINCT {mesure.sql}) FILTER (WHERE annee = {annee_a}) > 1
@@ -168,10 +195,16 @@ templates:
         - "Quel est le rapport entre la consommation de l'hiver {annee} et celle de l'été {annee} {region.in} ?"
         - "Rapport entre la consommation hivernale et la consommation estivale de {annee} {region.in} ?"
         - "Combien de fois la consommation de l'hiver {annee} a-t-elle dépassé celle de l'été {annee} {region.in} ?"
+        - "Donne-moi le rapport entre la consommation hivernale et la consommation estivale de {annee} {region.in}."
+        - "Hiver {annee} contre été {annee} {region.in} : quel rapport de consommation ?"
+        - "La consommation de l'hiver {annee} représente combien de fois celle de l'été {annee} {region.in} ?"
       it:
         - "Qual è il rapporto fra il consumo dell'inverno {annee} e quello dell'estate {annee} {region.in}?"
         - "Rapporto fra consumo invernale ed estivo del {annee} {region.in}?"
         - "Quante volte il consumo dell'inverno {annee} è stato più alto di quello dell'estate {annee} {region.in}?"
+        - "Dammi il rapporto fra il consumo invernale e quello estivo del {annee} {region.in}."
+        - "Inverno {annee} contro estate {annee} {region.in}: che rapporto di consumo?"
+        - "Il consumo dell'inverno {annee} vale quante volte quello dell'estate {annee} {region.in}?"
 
     sql: |
       SELECT SUM(consommation_mw) FILTER (WHERE date BETWEEN '{annee-1}-12-21' AND '{annee}-03-19')
@@ -201,15 +234,30 @@ templates:
 
     max_instances: 20
 
+    # CLOSE NEIGHBOUR: cmp_yearly_change_pct_region computes the same percentage change with two
+    # explicit years. This template has no slot for the period, so the period word is enforced
+    # by `must_say` below: a variant without "le mois dernier" / "il mese scorso" would be a
+    # question with no period at all.
+    # Words that keep the variants on this template's meaning: the period word of this template.
+    must_say:
+      fr: ["mois dernier"]
+      it: ["mese scorso"]
+
     questions:
       fr:
         - "De combien a varié, en pourcentage, la production {mesure} {region.in} le mois dernier par rapport au même mois de l'année précédente ?"
         - "Variation en pourcentage de la production {mesure} {region.in} entre le mois dernier et le même mois un an plus tôt ?"
         - "Le mois dernier, la production {mesure} {region.in} a-t-elle augmenté ou baissé par rapport au même mois de l'an dernier, et de combien en pourcentage ?"
+        - "Donne-moi la variation en pourcentage de la production {mesure} {region.in} entre le mois dernier et le même mois de l'année précédente."
+        - "Production {mesure} {region.in} : le mois dernier contre le même mois un an plus tôt, en pourcentage ?"
+        - "Sur un an, de combien la production {mesure} {region.in} du mois dernier a-t-elle évolué, en pourcentage ?"
       it:
         - "Di quanto è variata in percentuale la produzione {mesure} {region.in} il mese scorso rispetto allo stesso mese dell'anno precedente?"
         - "Variazione percentuale della produzione {mesure} {region.in} fra il mese scorso e lo stesso mese di un anno prima?"
         - "Il mese scorso la produzione {mesure} {region.in} è aumentata o diminuita rispetto allo stesso mese dell'anno scorso, e di quanto in percentuale?"
+        - "Dammi la variazione in percentuale della produzione {mesure} {region.in} fra il mese scorso e lo stesso mese dell'anno precedente."
+        - "Produzione {mesure} {region.in}: il mese scorso contro lo stesso mese di un anno prima, in percentuale?"
+        - "Su base annua, di quanto è variata la produzione {mesure} {region.in} del mese scorso, in percentuale?"
 
     require: |
       SELECT count(DISTINCT {mesure.sql}) > 1

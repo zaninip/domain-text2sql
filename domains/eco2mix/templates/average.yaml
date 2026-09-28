@@ -22,6 +22,12 @@ templates:
 
     max_instances: 20
 
+    # Words that keep the variants on this template's meaning: an average power, not the average
+    # daily energy of avg_daily_energy_region_month.
+    must_not_say:
+      fr: ["par jour", "journali*", "quotidien*"]
+      it: ["al giorno", "giornalier*", "quotidian*"]
+
     questions:
       fr:
         - "Quelle a été la consommation moyenne {moment.in} {region.in} {mois.in} {annee}, en MW ?"
@@ -209,6 +215,11 @@ templates:
         from: energy_units
 
     max_instances: 20
+
+    # Words that keep the variants on this template's meaning: per day makes it an energy even with no unit (glossary §1).
+    must_say:
+      fr: ["jour", "journali*", "quotidien*"]
+      it: ["giorno", "giornalier*", "quotidian*"]
 
     questions:
       fr:

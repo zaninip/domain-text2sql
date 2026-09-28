@@ -87,9 +87,9 @@ WHERE region = 'Nouvelle-Aquitaine' AND annee = 2025
 |---|
 | 3949610.0 |
 
-## 7. Énergie importée par la région BFC en 2016, en MWh ?
+## 7. Energia importata dalla regione Borgogna-Franca Contea nel 2016, in MWh?
 
-`agg_exchange_gross_region_year` · fr · conventions: exchange_sign, gross_exchanges, energy_conversion, unit_scaling
+`agg_exchange_gross_region_year` · it · conventions: exchange_sign, gross_exchanges, energy_conversion, unit_scaling
 
 ```sql
 SELECT SUM(ech_physiques_mw) * 0.5 AS energie_MWh
@@ -101,35 +101,21 @@ WHERE region = 'Bourgogne-Franche-Comté' AND annee = 2016 AND ech_physiques_mw 
 |---|
 | 19119405.0 |
 
-## 8. Quanta energia ha esportato la regione Alta Francia nel 2020?
+## 8. Énergie importée par la région Île-de-France en 2020 ?
 
-`agg_exchange_gross_region_year` · it · conventions: exchange_sign, gross_exchanges, energy_conversion, unit_scaling
+`agg_exchange_gross_region_year` · fr · conventions: exchange_sign, gross_exchanges, energy_conversion, unit_scaling
 
 ```sql
-SELECT -SUM(ech_physiques_mw) * 0.5 AS energie_MWh
+SELECT SUM(ech_physiques_mw) * 0.5 AS energie_MWh
 FROM eco2mix
-WHERE region = 'Hauts-de-France' AND annee = 2020 AND ech_physiques_mw < 0
+WHERE region = 'Île-de-France' AND annee = 2020 AND ech_physiques_mw > 0
 ```
 
 | energie_MWh |
 |---|
-| 8859761.0 |
+| 61653116.5 |
 
-## 9. Combien d'énergie renouvelable a été produite en France en 2022, en GWh ?
-
-`agg_group_energy_national_year` · fr · conventions: source_groups, national_aggregate, energy_conversion, unit_scaling
-
-```sql
-SELECT SUM(COALESCE(eolien_mw, 0) + COALESCE(solaire_mw, 0) + COALESCE(hydraulique_mw, 0) + COALESCE(bioenergies_mw, 0)) * 0.5 / 1000 AS energie_GWh
-FROM eco2mix
-WHERE annee = 2022
-```
-
-| energie_GWh |
-|---|
-| 116614.3145 |
-
-## 10. Quanta energia rinnovabile è stata prodotta in Francia nel 2022, in GWh?
+## 9. Quanta energia rinnovabile è stata prodotta in Francia nel 2022, in GWh?
 
 `agg_group_energy_national_year` · it · conventions: source_groups, national_aggregate, energy_conversion, unit_scaling
 
@@ -143,9 +129,37 @@ WHERE annee = 2022
 |---|
 | 116614.3145 |
 
-## 11. Donne-moi l'énergie bas-carbone produite en Provence-Alpes-Côte d'Azur en avril 2022, en MWh.
+## 10. Quelle quantité d'énergie renouvelable la France a-t-elle produite en 2024 ?
+
+`agg_group_energy_national_year` · fr · conventions: source_groups, national_aggregate, energy_conversion, unit_scaling
+
+```sql
+SELECT SUM(COALESCE(eolien_mw, 0) + COALESCE(solaire_mw, 0) + COALESCE(hydraulique_mw, 0) + COALESCE(bioenergies_mw, 0)) * 0.5 AS energie_MWh
+FROM eco2mix
+WHERE annee = 2024
+```
+
+| energie_MWh |
+|---|
+| 156863321.0 |
+
+## 11. Quelle a été la production d'énergie bas-carbone dans les Hauts-de-France en mai 2025, en MWh ?
 
 `agg_group_energy_region_month` · fr · conventions: source_groups, energy_conversion, unit_scaling
+
+```sql
+SELECT SUM(COALESCE(eolien_mw, 0) + COALESCE(solaire_mw, 0) + COALESCE(hydraulique_mw, 0) + COALESCE(bioenergies_mw, 0) + COALESCE(nucleaire_mw, 0)) * 0.5 AS energie_MWh
+FROM eco2mix
+WHERE region = 'Hauts-de-France' AND annee = 2025 AND mois = 5
+```
+
+| energie_MWh |
+|---|
+| 3159064.0 |
+
+## 12. Dammi l'energia verde prodotta in Provenza-Alpi-Costa Azzurra ad aprile 2022, in MWh.
+
+`agg_group_energy_region_month` · it · conventions: source_groups, energy_conversion, unit_scaling
 
 ```sql
 SELECT SUM(COALESCE(eolien_mw, 0) + COALESCE(solaire_mw, 0) + COALESCE(hydraulique_mw, 0) + COALESCE(bioenergies_mw, 0) + COALESCE(nucleaire_mw, 0)) * 0.5 AS energie_MWh
@@ -157,51 +171,37 @@ WHERE region = 'Provence-Alpes-Côte d''Azur' AND annee = 2022 AND mois = 4
 |---|
 | 916863.0 |
 
-## 12. Energia rinnovabile nell'Île-de-France a giugno 2013?
-
-`agg_group_energy_region_month` · it · conventions: source_groups, energy_conversion, unit_scaling
-
-```sql
-SELECT SUM(COALESCE(eolien_mw, 0) + COALESCE(solaire_mw, 0) + COALESCE(hydraulique_mw, 0) + COALESCE(bioenergies_mw, 0)) * 0.5 AS energie_MWh
-FROM eco2mix
-WHERE region = 'Île-de-France' AND annee = 2013 AND mois = 6
-```
-
-| energie_MWh |
-|---|
-| 96016.5 |
-
-## 13. Combien d'énergie le pompage a-t-il absorbé en Auvergne-Rhône-Alpes en 2019, en GWh ?
-
-`agg_pumping_energy_region_year` · fr · conventions: pumping_sign, energy_conversion, unit_scaling
-
-```sql
-SELECT -SUM(pompage_mw) * 0.5 / 1000 AS energie_GWh
-FROM eco2mix
-WHERE region = 'Auvergne-Rhône-Alpes' AND annee = 2019
-```
-
-| energie_GWh |
-|---|
-| 3863.3865 |
-
-## 14. Quanta energia hanno consumato le stazioni di pompaggio in Borgogna-Franca Contea nel 2022, in MWh?
+## 13. Che volume di energia è stato consumato dal pompaggio in Bretagna nel 2021, in TWh?
 
 `agg_pumping_energy_region_year` · it · conventions: pumping_sign, energy_conversion, unit_scaling
 
 ```sql
+SELECT -SUM(pompage_mw) * 0.5 / 1000000 AS energie_TWh
+FROM eco2mix
+WHERE region = 'Bretagne' AND annee = 2021
+```
+
+| energie_TWh |
+|---|
+| 0.073809 |
+
+## 14. Pompage en Bretagne en 2015, en MWh ?
+
+`agg_pumping_energy_region_year` · fr · conventions: pumping_sign, energy_conversion, unit_scaling
+
+```sql
 SELECT -SUM(pompage_mw) * 0.5 AS energie_MWh
 FROM eco2mix
-WHERE region = 'Bourgogne-Franche-Comté' AND annee = 2022
+WHERE region = 'Bretagne' AND annee = 2015
 ```
 
 | energie_MWh |
 |---|
-| 67735.5 |
+| 56481.5 |
 
-## 15. Dammi il consumo medio alle 8 nell'Isola di Francia nell'autunno del 2019, in MW.
+## 15. Quelle a été la consommation moyenne à 8 h en automne 2019 en IDF, en MW ?
 
-`avg_consumption_hour_season_region` · it · conventions: average_power, hour_of_day, season
+`avg_consumption_hour_season_region` · fr · conventions: average_power, hour_of_day, season
 
 ```sql
 SELECT AVG(consommation_mw) AS conso_moyenne_mw
@@ -214,9 +214,9 @@ WHERE region = 'Île-de-France' AND heure = 8
 |---|
 | 8867.85 |
 
-## 16. Donne-moi la consommation moyenne à 19 h en Auvergne-Rhône-Alpes en automne 2016, en MW.
+## 16. Dammi il consumo medio alle 19 in Alvernia-Rodano-Alpi nell'autunno del 2016, in MW.
 
-`avg_consumption_hour_season_region` · fr · conventions: average_power, hour_of_day, season
+`avg_consumption_hour_season_region` · it · conventions: average_power, hour_of_day, season
 
 ```sql
 SELECT AVG(consommation_mw) AS conso_moyenne_mw
@@ -229,24 +229,9 @@ WHERE region = 'Auvergne-Rhône-Alpes' AND heure = 19
 |---|
 | 8790.327777777778 |
 
-## 17. Qual è stato il consumo medio nelle ore di punta nell'Isola di Francia a settembre 2016?
+## 17. Qual è stato il consumo medio nei fine settimana nel Centro-Valle della Loira a gennaio 2018?
 
 `avg_consumption_moment_region_month` · it · conventions: average_power, peak_hours
-
-```sql
-SELECT AVG(consommation_mw) AS conso_moyenne_mw
-FROM eco2mix
-WHERE region = 'Île-de-France' AND annee = 2016 AND mois = 9
-  AND (heure BETWEEN 8 AND 12 OR heure BETWEEN 18 AND 20)
-```
-
-| conso_moyenne_mw |
-|---|
-| 7437.347916666667 |
-
-## 18. Quelle a été la consommation moyenne le week-end dans le Centre-Val de Loire en janvier 2018 ?
-
-`avg_consumption_moment_region_month` · fr · conventions: average_power, peak_hours
 
 ```sql
 SELECT AVG(consommation_mw) AS conso_moyenne_mw
@@ -259,9 +244,42 @@ WHERE region = 'Centre-Val de Loire' AND annee = 2018 AND mois = 1
 |---|
 | 2529.6901041666665 |
 
-## 19. Quelle quantité d'énergie a été consommée en moyenne par jour dans les Hauts-de-France en août 2019, en MWh ?
+## 18. Donne-moi la consommation moyenne la nuit dans les Hauts-de-France en décembre 2017, en MW.
+
+`avg_consumption_moment_region_month` · fr · conventions: average_power, peak_hours
+
+```sql
+SELECT AVG(consommation_mw) AS conso_moyenne_mw
+FROM eco2mix
+WHERE region = 'Hauts-de-France' AND annee = 2017 AND mois = 12
+  AND (heure < 6 OR heure >= 22)
+```
+
+| conso_moyenne_mw |
+|---|
+| 6691.510080645161 |
+
+## 19. Donne-moi la consommation moyenne par jour dans le Centre-Val de Loire en juillet 2021, en GWh.
 
 `avg_daily_energy_region_month` · fr · conventions: average_daily_energy, unit_decides_power_or_energy, energy_conversion
+
+```sql
+SELECT AVG(energie) AS energie_moyenne_GWh
+FROM (
+  SELECT date, SUM(consommation_mw) * 0.5 / 1000 AS energie
+  FROM eco2mix
+  WHERE region = 'Centre-Val de Loire' AND annee = 2021 AND mois = 7
+  GROUP BY date
+)
+```
+
+| energie_moyenne_GWh |
+|---|
+| 38.00029032258065 |
+
+## 20. Quanta energia è stata consumata in media al giorno nell'Alta Francia ad agosto 2019, in MWh?
+
+`avg_daily_energy_region_month` · it · conventions: average_daily_energy, unit_decides_power_or_energy, energy_conversion
 
 ```sql
 SELECT AVG(energie) AS energie_moyenne_MWh
@@ -277,27 +295,9 @@ FROM (
 |---|
 | 105966.12903225806 |
 
-## 20. Quanta energia è stata consumata in media al giorno negli Hauts-de-France a dicembre 2013, in MWh?
+## 21. Qual è stata la produzione media delle bioenergie nei fine settimana in Alvernia-Rodano-Alpi nel 2020, in MW?
 
-`avg_daily_energy_region_month` · it · conventions: average_daily_energy, unit_decides_power_or_energy, energy_conversion
-
-```sql
-SELECT AVG(energie) AS energie_moyenne_MWh
-FROM (
-  SELECT date, SUM(consommation_mw) * 0.5 AS energie
-  FROM eco2mix
-  WHERE region = 'Hauts-de-France' AND annee = 2013 AND mois = 12
-  GROUP BY date
-)
-```
-
-| energie_moyenne_MWh |
-|---|
-| 164604.51612903227 |
-
-## 21. Quelle a été la production moyenne des bioénergies le week-end en Auvergne-Rhône-Alpes en 2020, en MW ?
-
-`avg_production_moment_region_year` · fr · conventions: average_power, peak_hours
+`avg_production_moment_region_year` · it · conventions: average_power, peak_hours
 
 ```sql
 SELECT AVG(bioenergies_mw) AS production_moyenne_mw
@@ -309,23 +309,23 @@ WHERE region = 'Auvergne-Rhône-Alpes' AND annee = 2020 AND isodow(date) IN (6, 
 |---|
 | 119.63146292585171 |
 
-## 22. Nel 2020, quale potenza media ha fornito la produzione eolica nella punta serale negli Hauts-de-France, in MW?
+## 22. Quelle a été la production moyenne du solaire la nuit en Bretagne en 2019, en MW ?
 
-`avg_production_moment_region_year` · it · conventions: average_power, peak_hours
+`avg_production_moment_region_year` · fr · conventions: average_power, peak_hours
 
 ```sql
-SELECT AVG(eolien_mw) AS production_moyenne_mw
+SELECT AVG(solaire_mw) AS production_moyenne_mw
 FROM eco2mix
-WHERE region = 'Hauts-de-France' AND annee = 2020 AND heure BETWEEN 18 AND 20
+WHERE region = 'Bretagne' AND annee = 2019 AND (heure < 6 OR heure >= 22)
 ```
 
 | production_moyenne_mw |
 |---|
-| 1399.2427140255008 |
+| 0.005481329222336417 |
 
-## 23. Nel 2014, qual è stata la differenza di consumo medio fra settimana lavorativa e weekend nei Paesi della Loira, in MW?
+## 23. En 2014, quelle différence de consommation moyenne y a-t-il eu entre la semaine et le week-end dans les Pays de la Loire, en MW ?
 
-`avg_weekday_weekend_gap_consumption_region_year` · it · conventions: average_power, weekday_weekend
+`avg_weekday_weekend_gap_consumption_region_year` · fr · conventions: average_power, weekday_weekend
 
 ```sql
 SELECT AVG(consommation_mw) FILTER (WHERE isodow(date) BETWEEN 1 AND 5)
@@ -338,9 +338,9 @@ WHERE region = 'Pays de la Loire' AND annee = 2014
 |---|
 | 563.4806164692095 |
 
-## 24. En 2019, quelle différence de consommation moyenne y a-t-il eu entre la semaine et le week-end en Nouvelle-Aquitaine, en MW ?
+## 24. Nel 2019, qual è stata la differenza di consumo medio fra settimana lavorativa e weekend in Nuova Aquitania, in MW?
 
-`avg_weekday_weekend_gap_consumption_region_year` · fr · conventions: average_power, weekday_weekend
+`avg_weekday_weekend_gap_consumption_region_year` · it · conventions: average_power, weekday_weekend
 
 ```sql
 SELECT AVG(consommation_mw) FILTER (WHERE isodow(date) BETWEEN 1 AND 5)
@@ -353,30 +353,7 @@ WHERE region = 'Nouvelle-Aquitaine' AND annee = 2019
 |---|
 | 556.3900704985963 |
 
-## 25. Quelles régions ont été exportatrices et lesquelles importatrices au printemps 2023 ?
-
-`cls_exchange_role_season` · fr · conventions: exchange_sign, season, result_shape
-
-```sql
-SELECT region,
-       SUM(ech_physiques_mw) * 0.5 / 1000 AS solde_gwh,
-       CASE WHEN SUM(ech_physiques_mw) < 0 THEN 'exportatrice' ELSE 'importatrice' END AS role
-FROM eco2mix
-WHERE date BETWEEN '2023-03-20' AND '2023-06-20'
-GROUP BY region
-ORDER BY solde_gwh
-```
-
-| region | solde_gwh | role |
-|---|---|---|
-| Auvergne-Rhône-Alpes | -15116.3945 | exportatrice |
-| Bourgogne-Franche-Comté | 3355.678 | importatrice |
-| Bretagne | 3213.045 | importatrice |
-| Centre-Val de Loire | -12520.309 | exportatrice |
-| Grand Est | -10188.8615 | exportatrice |
-| _… 7 more rows_ |
-
-## 26. Quali regioni sono state esportatrici e quali importatrici nell'estate del 2023?
+## 25. Quali regioni sono state esportatrici nette e quali importatrici nette nell'inverno del 2019?
 
 `cls_exchange_role_season` · it · conventions: exchange_sign, season, result_shape
 
@@ -385,51 +362,44 @@ SELECT region,
        SUM(ech_physiques_mw) * 0.5 / 1000 AS solde_gwh,
        CASE WHEN SUM(ech_physiques_mw) < 0 THEN 'esportatrice' ELSE 'importatrice' END AS role
 FROM eco2mix
-WHERE date BETWEEN '2023-06-21' AND '2023-09-21'
+WHERE date BETWEEN '2018-12-21' AND '2019-03-19'
 GROUP BY region
 ORDER BY solde_gwh
 ```
 
 | region | solde_gwh | role |
 |---|---|---|
-| Auvergne-Rhône-Alpes | -10800.861 | esportatrice |
-| Bourgogne-Franche-Comté | 3157.05 | importatrice |
-| Bretagne | 3274.5075 | importatrice |
-| Centre-Val de Loire | -8069.094 | esportatrice |
-| Grand Est | -14057.187 | esportatrice |
+| Auvergne-Rhône-Alpes | -12726.024 | esportatrice |
+| Bourgogne-Franche-Comté | 5131.1765 | importatrice |
+| Bretagne | 5437.11 | importatrice |
+| Centre-Val de Loire | -17572.488 | esportatrice |
+| Grand Est | -16839.7125 | esportatrice |
 | _… 7 more rows_ |
 
-## 27. Qual è stata la principale fonte di produzione di ciascuna regione nel 2021?
+## 26. Régions exportatrices ou importatrices nettes en automne 2020 ?
 
-`cls_main_source_per_region_year` · it · conventions: source_names, ranking_tie_break, energy_conversion
+`cls_exchange_role_season` · fr · conventions: exchange_sign, season, result_shape
 
 ```sql
-WITH s AS (
-  SELECT region, source, SUM(mw) * 0.5 AS energie_mwh
-  FROM (
-    UNPIVOT (
-      SELECT region, thermique_mw, nucleaire_mw, eolien_mw, solaire_mw, hydraulique_mw, bioenergies_mw
-      FROM eco2mix
-      WHERE annee = 2021
-    ) ON COLUMNS(* EXCLUDE (region)) INTO NAME source VALUE mw
-  )
-  GROUP BY region, source
-)
-SELECT region, source, energie_mwh
-FROM s
-QUALIFY row_number() OVER (PARTITION BY region ORDER BY energie_mwh DESC, source) = 1
+SELECT region,
+       SUM(ech_physiques_mw) * 0.5 / 1000 AS solde_gwh,
+       CASE WHEN SUM(ech_physiques_mw) < 0 THEN 'exportatrice' ELSE 'importatrice' END AS role
+FROM eco2mix
+WHERE date BETWEEN '2020-09-22' AND '2020-12-20'
+GROUP BY region
+ORDER BY solde_gwh
 ```
 
-| region | source | energie_mwh |
+| region | solde_gwh | role |
 |---|---|---|
-| Auvergne-Rhône-Alpes | nucleaire_mw | 84267018.5 |
-| Bourgogne-Franche-Comté | eolien_mw | 1931648.5 |
-| Bretagne | eolien_mw | 1944654.5 |
-| Centre-Val de Loire | nucleaire_mw | 68629317.0 |
-| Grand Est | nucleaire_mw | 61225561.0 |
+| Auvergne-Rhône-Alpes | -11477.8915 | exportatrice |
+| Bourgogne-Franche-Comté | 4417.138 | importatrice |
+| Bretagne | 4686.7495 | importatrice |
+| Centre-Val de Loire | -12890.811 | exportatrice |
+| Grand Est | -14732.3405 | exportatrice |
 | _… 7 more rows_ |
 
-## 28. Quelle a été la principale source de production de chaque région en 2015 ?
+## 27. Source de production dominante par région en 2015 ?
 
 `cls_main_source_per_region_year` · fr · conventions: source_names, ranking_tie_break, energy_conversion
 
@@ -459,33 +429,37 @@ QUALIFY row_number() OVER (PARTITION BY region ORDER BY energie_mwh DESC, source
 | Grand Est | nucleaire_mw | 85175987.0 |
 | _… 7 more rows_ |
 
-## 29. Consumo di ciascuna regione nel 2025: sopra o sotto la media delle regioni?
+## 28. Per ogni regione, quale fonte ha prodotto di più nel 2015?
 
-`cls_region_vs_average_consumption_year` · it · conventions: average_of_regions, labels_from_question, energy_conversion
+`cls_main_source_per_region_year` · it · conventions: source_names, ranking_tie_break, energy_conversion
 
 ```sql
-WITH r AS (
-  SELECT region, SUM(consommation_mw) * 0.5 AS energie_mwh
-  FROM eco2mix
-  WHERE annee = 2025
-  GROUP BY region
+WITH s AS (
+  SELECT region, source, SUM(mw) * 0.5 AS energie_mwh
+  FROM (
+    UNPIVOT (
+      SELECT region, thermique_mw, nucleaire_mw, eolien_mw, solaire_mw, hydraulique_mw, bioenergies_mw
+      FROM eco2mix
+      WHERE annee = 2015
+    ) ON COLUMNS(* EXCLUDE (region)) INTO NAME source VALUE mw
+  )
+  GROUP BY region, source
 )
-SELECT region, energie_mwh,
-       CASE WHEN energie_mwh > AVG(energie_mwh) OVER () THEN 'sopra' ELSE 'sotto' END
-         AS position
-FROM r
+SELECT region, source, energie_mwh
+FROM s
+QUALIFY row_number() OVER (PARTITION BY region ORDER BY energie_mwh DESC, source) = 1
 ```
 
-| region | energie_mwh | position |
+| region | source | energie_mwh |
 |---|---|---|
-| Auvergne-Rhône-Alpes | 62395967.5 | sopra |
-| Bourgogne-Franche-Comté | 19533827.0 | sotto |
-| Bretagne | 21852790.5 | sotto |
-| Centre-Val de Loire | 17840002.0 | sotto |
-| Grand Est | 41988137.5 | sopra |
+| Auvergne-Rhône-Alpes | nucleaire_mw | 90816511.5 |
+| Bourgogne-Franche-Comté | hydraulique_mw | 739002.0 |
+| Bretagne | eolien_mw | 1651486.5 |
+| Centre-Val de Loire | nucleaire_mw | 79226238.0 |
+| Grand Est | nucleaire_mw | 85175987.0 |
 | _… 7 more rows_ |
 
-## 30. Consommation de chaque région en 2021 : au-dessus ou en dessous de la moyenne des régions ?
+## 29. Quelles régions ont consommé au-dessus de la moyenne régionale en 2023, et lesquelles en dessous ?
 
 `cls_region_vs_average_consumption_year` · fr · conventions: average_of_regions, labels_from_question, energy_conversion
 
@@ -493,7 +467,7 @@ FROM r
 WITH r AS (
   SELECT region, SUM(consommation_mw) * 0.5 AS energie_mwh
   FROM eco2mix
-  WHERE annee = 2021
+  WHERE annee = 2023
   GROUP BY region
 )
 SELECT region, energie_mwh,
@@ -504,9 +478,35 @@ FROM r
 
 | region | energie_mwh | position |
 |---|---|---|
-| Auvergne-Rhône-Alpes | 64587321.5 | au-dessus |
-| Bourgogne-Franche-Comté | 21270364.0 | en dessous |
-| Bretagne | 22698661.5 | en dessous |
-| Centre-Val de Loire | 18159640.5 | en dessous |
-| Grand Est | 45436093.0 | au-dessus |
+| Auvergne-Rhône-Alpes | 60731767.0 | au-dessus |
+| Bourgogne-Franche-Comté | 19547817.5 | en dessous |
+| Bretagne | 21410691.5 | en dessous |
+| Centre-Val de Loire | 17305048.0 | en dessous |
+| Grand Est | 40880229.5 | au-dessus |
+| _… 7 more rows_ |
+
+## 30. Dammi le regioni il cui consumo ha superato la media regionale nel 2021, e quelle rimaste sotto.
+
+`cls_region_vs_average_consumption_year` · it · conventions: average_of_regions, labels_from_question, energy_conversion
+
+```sql
+WITH r AS (
+  SELECT region, SUM(consommation_mw) * 0.5 AS energie_mwh
+  FROM eco2mix
+  WHERE annee = 2021
+  GROUP BY region
+)
+SELECT region, energie_mwh,
+       CASE WHEN energie_mwh > AVG(energie_mwh) OVER () THEN 'sopra' ELSE 'sotto' END
+         AS position
+FROM r
+```
+
+| region | energie_mwh | position |
+|---|---|---|
+| Auvergne-Rhône-Alpes | 64587321.5 | sopra |
+| Bourgogne-Franche-Comté | 21270364.0 | sotto |
+| Bretagne | 22698661.5 | sotto |
+| Centre-Val de Loire | 18159640.5 | sotto |
+| Grand Est | 45436093.0 | sopra |
 | _… 7 more rows_ |

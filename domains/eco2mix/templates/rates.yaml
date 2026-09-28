@@ -24,13 +24,27 @@ templates:
 
     max_instances: 60
 
+    # Words that keep the variants on this template's meaning: the whole of France, which is
+    # what makes it a ratio of sums and not the average of a regional indicator.
+    must_say:
+      fr: ["France", "national*", "français*"]
+      it: ["Francia", "nazional*", "frances*"]
+
     questions:
       fr:
         - "Quel a été le taux de couverture moyen {mesure.de} {moment.in} {mois.in} {annee} en France ?"
         - "En France, quelle part de la consommation a été couverte par l'énergie {mesure} {moment.in} {mois.in} {annee} ?"
+        - "Donne-moi le taux de couverture moyen {mesure.de} en France {moment.in} {mois.in} {annee}."
+        - "France, {mois} {annee} : quelle part de la consommation {moment.in} a été couverte par l'énergie {mesure} ?"
+        - "Au niveau national, quelle a été la couverture de la consommation par l'énergie {mesure} {moment.in} {mois.in} {annee} ?"
+        - "Couverture de la consommation française par l'énergie {mesure} {moment.in} {mois.in} {annee} ?"
       it:
         - "Qual è stato il tasso di copertura medio {mesure.de} {moment.in} {mois.in} {annee} in Francia?"
         - "In Francia, quale parte del consumo è stata coperta dall'energia {mesure} {moment.in} {mois.in} {annee}?"
+        - "Dammi il tasso di copertura medio {mesure.de} in Francia {moment.in} {mois.in} {annee}."
+        - "Francia, {mois} {annee}: quale parte del consumo {moment.in} è stata coperta dall'energia {mesure}?"
+        - "A livello nazionale, qual è stata la copertura {mesure} del consumo {moment.in} {mois.in} {annee}?"
+        - "Copertura {mesure} del consumo francese {moment.in} {mois.in} {annee}?"
 
     sql: |
       SELECT 100.0 * SUM({mesure.sql}) / SUM(consommation_mw) AS taux_couverture_pct
@@ -60,15 +74,29 @@ templates:
 
     max_instances: 20
 
+    # Words that keep the variants on this template's meaning: share in consumption, not in production, nor the average coverage rate.
+    must_say:
+      fr: ["consommation"]
+      it: ["consumo"]
+    must_not_say:
+      fr: ["taux de couverture", "production totale"]
+      it: ["tasso di copertura", "totale prodotto"]
+
     questions:
       fr:
         - "Quelle part de la consommation {region.in} a été couverte par l'énergie {mesure} en {annee}, en % ?"
         - "Part {mesure.de} dans la consommation {region.in} en {annee} ?"
         - "Quel pourcentage de la consommation électrique {region.in} l'énergie {mesure} a-t-elle couvert en {annee} ?"
+        - "Donne-moi la part {mesure.de} dans la consommation {region.in} en {annee}."
+        - "{region.in} en {annee} : combien de pour cent de la consommation l'énergie {mesure} a-t-elle couvert ?"
+        - "Sur la consommation {region.in} en {annee}, quel pourcentage l'énergie {mesure} a-t-elle représenté ?"
       it:
         - "Quale quota del consumo {region.in} è stata coperta dall'energia {mesure} nel {annee}, in %?"
         - "Quota {mesure.de} nel consumo {region.in} nel {annee}?"
         - "Che percentuale del consumo elettrico {region.in} ha coperto l'energia {mesure} nel {annee}?"
+        - "Dammi la quota {mesure.de} nel consumo {region.in} nel {annee}."
+        - "{region.in} nel {annee}: quanti per cento del consumo ha coperto l'energia {mesure}?"
+        - "Sul consumo {region.in} nel {annee}, che percentuale ha rappresentato l'energia {mesure}?"
 
     require: |
       SELECT count(DISTINCT {mesure.sql}) > 1
@@ -103,15 +131,29 @@ templates:
 
     max_instances: 20
 
+    # Words that keep the variants on this template's meaning: share in production, not in consumption.
+    must_say:
+      fr: ["production"]
+      it: ["produzione", "prodotto"]
+    must_not_say:
+      fr: ["consommation", "taux de couverture"]
+      it: ["consumo", "tasso di copertura"]
+
     questions:
       fr:
         - "Quelle a été la part {mesure.de} dans la production électrique {region.in} en {annee} ?"
         - "Part {mesure.de} dans la production {region.in} en {annee} ?"
         - "En pourcentage, quel a été le poids de la production {mesure} dans la production totale {region.in} en {annee} ?"
+        - "Donne-moi la part {mesure.de} dans la production {region.in} en {annee}."
+        - "{region.in} en {annee} : quel pourcentage de la production revient à l'énergie {mesure} ?"
+        - "Sur la production totale {region.in} en {annee}, quelle fraction est {mesure} ?"
       it:
         - "Qual è stata la quota {mesure.de} nella produzione elettrica {region.in} nel {annee}?"
         - "Quota {mesure.de} nella produzione {region.in} nel {annee}?"
         - "In percentuale, quanto ha pesato la produzione {mesure} sul totale prodotto {region.in} nel {annee}?"
+        - "Dammi la quota {mesure.de} nella produzione {region.in} nel {annee}."
+        - "{region.in} nel {annee}: che percentuale della produzione spetta all'energia {mesure}?"
+        - "Sulla produzione totale {region.in} nel {annee}, che frazione è {mesure}?"
 
     require: |
       SELECT count(DISTINCT {mesure.sql}) > 1
@@ -149,15 +191,31 @@ templates:
 
     max_instances: 20
 
+    # Words that keep the variants on this template's meaning: the published coverage rate averaged, not a share of totals.
+    must_say:
+      fr: ["taux de couverture"]
+      it: ["tasso di copertura"]
+    # "en pourcentage" / "in percentuale" stay allowed: the indicator is a percentage. What is
+    # forbidden is the share template's wording, "quel pourcentage de la consommation".
+    must_not_say:
+      fr: ["part", "pourcentage de", "pourcentage du", "charge"]
+      it: ["quota", "percentuale del", "percentuale di", "carico"]
+
     questions:
       fr:
         - "Quel a été le taux de couverture moyen {mesure.de} {region.in} en {annee} ?"
         - "Taux de couverture moyen {mesure.de} {region.in} sur l'année {annee} ?"
         - "En {annee}, quel a été en moyenne le taux de couverture {mesure.de} {region.in} ?"
+        - "Donne-moi le taux de couverture moyen {mesure.de} {region.in} en {annee}."
+        - "{region.in} en {annee} : à combien s'est établi le taux de couverture moyen {mesure.de} ?"
+        - "Moyenne annuelle du taux de couverture {mesure.de} {region.in} en {annee} ?"
       it:
         - "Qual è stato il tasso di copertura medio {mesure.de} {region.in} nel {annee}?"
         - "Tasso di copertura medio {mesure.de} {region.in} nell'anno {annee}?"
         - "Nel {annee}, qual è stato in media il tasso di copertura {mesure.de} {region.in}?"
+        - "Dammi il tasso di copertura medio {mesure.de} {region.in} nel {annee}."
+        - "{region.in} nel {annee}: a quanto si è attestato il tasso di copertura medio {mesure.de}?"
+        - "Media annuale del tasso di copertura {mesure.de} {region.in} nel {annee}?"
 
     require: |
       SELECT count(DISTINCT {mesure.sql}) > 1
@@ -192,15 +250,29 @@ templates:
 
     max_instances: 20
 
+    # Words that keep the variants on this template's meaning: load factor, not coverage.
+    must_say:
+      fr: ["charge"]
+      it: ["carico"]
+    must_not_say:
+      fr: ["couverture"]
+      it: ["copertura"]
+
     questions:
       fr:
         - "Quel a été le facteur de charge moyen {mesure.de} {region.in} en {annee} ?"
         - "Taux de charge moyen {mesure.de} {region.in} sur l'année {annee} ?"
         - "En {annee}, quel a été en moyenne le taux de charge {mesure.de} {region.in} ?"
+        - "Donne-moi le facteur de charge moyen {mesure.de} {region.in} en {annee}."
+        - "{region.in} en {annee} : à combien s'est établi le facteur de charge moyen {mesure.de} ?"
+        - "Moyenne annuelle du facteur de charge {mesure.de} {region.in} en {annee} ?"
       it:
         - "Qual è stato il fattore di carico medio {mesure.de} {region.in} nel {annee}?"
         - "Tasso di carico medio {mesure.de} {region.in} nell'anno {annee}?"
         - "Nel {annee}, qual è stato in media il fattore di carico {mesure.de} {region.in}?"
+        - "Dammi il fattore di carico medio {mesure.de} {region.in} nel {annee}."
+        - "{region.in} nel {annee}: a quanto si è attestato il fattore di carico medio {mesure.de}?"
+        - "Media annuale del fattore di carico {mesure.de} {region.in} nel {annee}?"
 
     require: |
       SELECT count(DISTINCT {mesure.tch}) > 1
@@ -237,10 +309,16 @@ templates:
         - "Quelle part de la consommation électrique française représente la région {region} en {annee} ?"
         - "Part de la région {region} dans la consommation nationale en {annee} ?"
         - "En {annee}, quel pourcentage de la consommation de la France provenait de la région {region} ?"
+        - "Donne-moi le poids de la région {region} dans la consommation nationale en {annee}."
+        - "En {annee}, combien de pour cent de la consommation française la région {region} pèse-t-elle ?"
+        - "Sur la consommation de la France en {annee}, quelle fraction revient à la région {region} ?"
       it:
         - "Quale quota del consumo elettrico francese rappresenta la regione {region} nel {annee}?"
         - "Quota della regione {region} nel consumo nazionale nel {annee}?"
         - "Nel {annee}, che percentuale del consumo della Francia è venuta dalla regione {region}?"
+        - "Dammi il peso della regione {region} nel consumo nazionale nel {annee}."
+        - "Nel {annee}, quanti per cento del consumo francese pesa la regione {region}?"
+        - "Sul consumo della Francia nel {annee}, che frazione spetta alla regione {region}?"
 
     sql: |
       SELECT 100.0 * SUM(consommation_mw) FILTER (WHERE region = {region.literal})
@@ -268,15 +346,26 @@ templates:
 
     max_instances: 20
 
+    # Words that keep the variants on this template's meaning: offshore share, not total wind.
+    must_say:
+      fr: ["offshore", "en mer"]
+      it: ["offshore", "in mare"]
+
     questions:
       fr:
         - "Quelle part de la production éolienne {region.in} était offshore en {annee} ?"
         - "Part de l'éolien en mer dans l'éolien total {region.in} en {annee} ?"
         - "En {annee}, quel pourcentage de l'électricité éolienne produite {region.in} venait de l'offshore ?"
+        - "Donne-moi la part de l'offshore dans la production éolienne {region.in} en {annee}."
+        - "{region.in} en {annee} : quelle fraction de l'éolien venait des parcs en mer ?"
+        - "Poids de l'éolien offshore dans l'éolien {region.in} en {annee} ?"
       it:
         - "Quale quota della produzione eolica {region.in} era offshore nel {annee}?"
         - "Quota dell'eolico offshore sull'eolico totale {region.in} nel {annee}?"
         - "Nel {annee}, che percentuale dell'energia eolica prodotta {region.in} veniva dall'offshore?"
+        - "Dammi la quota dell'offshore nella produzione eolica {region.in} nel {annee}."
+        - "{region.in} nel {annee}: che frazione dell'eolico veniva dai parchi offshore?"
+        - "Peso dell'eolico offshore sull'eolico {region.in} nel {annee}?"
 
     sql: |
       SELECT 100.0 * SUM(eolien_offshore_mw) / SUM(eolien_mw) AS part_offshore_pct

@@ -30,14 +30,23 @@ templates:
         - "Pendant combien d'heures l'énergie {mesure} a-t-elle couvert plus de {seuil} de la consommation {region.in} en {annee} ?"
         - "Nombre d'heures {region.in} en {annee} où la production {mesure} a dépassé {seuil} de la consommation ?"
         - "Combien d'heures, en {annee}, la part {mesure.de} a-t-elle dépassé {seuil} de la consommation {region.in} ?"
+        - "Donne-moi le nombre d'heures où la production {mesure} a couvert plus de {seuil} de la consommation {region.in} en {annee}."
+        - "{region.in} en {annee} : combien d'heures avec une part {mesure.de} supérieure à {seuil} de la consommation ?"
+        - "Nombre d'heures {region.in} en {annee} avec une couverture {mesure} de plus de {seuil} ?"
       it:
         - "Per quante ore l'energia {mesure} ha coperto più del {seuil} del consumo {region.in} nel {annee}?"
         - "Numero di ore {region.in} nel {annee} in cui la produzione {mesure} ha superato il {seuil} del consumo?"
         - "Quante ore, nel {annee}, la quota {mesure.de} ha superato il {seuil} del consumo {region.in}?"
+        - "Dammi il numero di ore in cui la produzione {mesure} ha coperto più del {seuil} del consumo {region.in} nel {annee}."
+        - "{region.in} nel {annee}: quante ore con una quota {mesure.de} superiore al {seuil} del consumo?"
+        - "Numero di ore {region.in} nel {annee} con una copertura {mesure} superiore al {seuil}?"
 
-    # A source the region does not have is 0 or NULL at every step: nothing to count.
+    # The threshold must be crossed on some steps and missed on others. A count of 0 (a marginal
+    # source against 75 %) or of every step (nuclear against 25 % in Centre-Val de Loire) is the
+    # same answer for many wrong queries, e.g. one with the wrong threshold, so it proves nothing.
     require: |
-      SELECT count(DISTINCT {mesure.sql}) > 1
+      SELECT count(*) FILTER (WHERE {mesure.sql} > {seuil.ratio} * consommation_mw)
+             BETWEEN 1 AND count(*) - 1
       FROM eco2mix
       WHERE region = {region.literal} AND annee = {annee}
 
@@ -77,10 +86,16 @@ templates:
         - "Combien de jours en {annee} la consommation nationale a-t-elle dépassé {seuil} ?"
         - "Nombre de jours de {annee} où la consommation électrique française a dépassé {seuil} ?"
         - "En {annee}, combien de journées ont connu une consommation supérieure à {seuil} en France ?"
+        - "Donne-moi le nombre de jours de {annee} où la consommation nationale a dépassé {seuil}."
+        - "{annee} : combien de jours au-dessus de {seuil} pour la consommation française ?"
+        - "Sur combien de jours de {annee} la puissance consommée en France a-t-elle dépassé {seuil} ?"
       it:
         - "Quanti giorni del {annee} il consumo nazionale ha superato {seuil.le}?"
         - "Numero di giorni del {annee} in cui il consumo elettrico francese ha superato {seuil.le}?"
         - "Nel {annee}, in quanti giorni la Francia ha avuto un consumo superiore a {seuil}?"
+        - "Dammi il numero di giorni del {annee} in cui il consumo nazionale ha superato {seuil.le}."
+        - "{annee}: quanti giorni sopra {seuil} per il consumo francese?"
+        - "In quanti giorni del {annee} la potenza consumata in Francia ha superato {seuil.le}?"
 
     sql: |
       WITH national AS (
@@ -125,10 +140,16 @@ templates:
         - "Combien de jours en {annee} la consommation nationale a-t-elle dépassé {seuil} ?"
         - "Nombre de jours de {annee} où la consommation électrique française a dépassé {seuil} sur la journée ?"
         - "En {annee}, combien de journées ont vu la France consommer plus de {seuil} ?"
+        - "Donne-moi le nombre de jours de {annee} où la France a consommé plus de {seuil}."
+        - "{annee} : combien de journées à plus de {seuil} consommés en France ?"
+        - "Sur combien de jours de {annee} le total consommé en France a-t-il dépassé {seuil} ?"
       it:
         - "Quanti giorni del {annee} il consumo nazionale ha superato {seuil.le}?"
         - "Numero di giorni del {annee} in cui il consumo elettrico francese ha superato {seuil.le} nell'arco della giornata?"
         - "Nel {annee}, in quanti giorni la Francia ha consumato più di {seuil}?"
+        - "Dammi il numero di giorni del {annee} in cui la Francia ha consumato più di {seuil}."
+        - "{annee}: quante giornate oltre {seuil.le} consumati in Francia?"
+        - "In quanti giorni del {annee} il totale consumato in Francia ha superato {seuil.le}?"
 
     sql: |
       SELECT count(*) AS jours
@@ -176,14 +197,22 @@ templates:
         - "Pendant combien d'heures la production {mesure_a} a-t-elle dépassé la production {mesure_b} {region.in} {saison.in} {annee} ?"
         - "Nombre d'heures où la production {mesure_a} a été supérieure à la production {mesure_b} {region.in} {saison.in} {annee} ?"
         - "Combien d'heures, {saison.in} {annee}, la production {mesure_a} a-t-elle surpassé la production {mesure_b} {region.in} ?"
+        - "Donne-moi le nombre d'heures où la production {mesure_a} a dépassé la production {mesure_b} {region.in} {saison.in} {annee}."
+        - "{saison.in} {annee} {region.in} : combien d'heures de production {mesure_a} supérieure à la production {mesure_b} ?"
+        - "Durée, en heures, où la production {mesure_a} est passée devant la production {mesure_b} {region.in} {saison.in} {annee} ?"
       it:
         - "Per quante ore la produzione {mesure_a} ha superato la produzione {mesure_b} {region.in} {saison.in} {annee}?"
         - "Numero di ore in cui la produzione {mesure_a} è stata maggiore della produzione {mesure_b} {region.in} {saison.in} {annee}?"
         - "Quante ore, {saison.in} {annee}, la produzione {mesure_a} ha superato quella {mesure_b} {region.in}?"
+        - "Dammi il numero di ore in cui la produzione {mesure_a} ha superato la produzione {mesure_b} {region.in} {saison.in} {annee}."
+        - "{saison.in} {annee} {region.in}: quante ore di produzione {mesure_a} superiore alla produzione {mesure_b}?"
+        - "Durata, in ore, in cui la produzione {mesure_a} è passata davanti alla produzione {mesure_b} {region.in} {saison.in} {annee}?"
 
-    # Both sources must exist in the region over that season, or the comparison is trivial.
+    # Both sources must exist, and each must lead on some steps: "thermal above bioenergy in
+    # every hour of the winter" is also the answer of a query that forgets the comparison.
     require: |
       SELECT count(DISTINCT {mesure_a.sql}) > 1 AND count(DISTINCT {mesure_b.sql}) > 1
+         AND count(*) FILTER (WHERE {mesure_a.sql} > {mesure_b.sql}) BETWEEN 1 AND count(*) - 1
       FROM eco2mix
       WHERE region = {region.literal} AND date BETWEEN '{saison.start}' AND '{saison.end}'
 
@@ -223,10 +252,27 @@ templates:
         - "Combien de jours en {annee} la région {region} a-t-elle été {role} ?"
         - "Sur l'année {annee}, pendant combien de jours la région {region} a-t-elle été {role} d'électricité ?"
         - "Nombre de journées de {annee} où la région {region} a été {role} ?"
+        - "Donne-moi le nombre de jours de {annee} où la région {region} a été {role}."
+        - "{annee} : la région {region} a été {role} pendant combien de jours ?"
+        - "Sur l'ensemble de {annee}, combien de jours la région {region} s'est-elle retrouvée {role} ?"
       it:
         - "Per quanti giorni del {annee} la regione {region} è stata {role}?"
         - "Quanti giorni nel {annee} la regione {region} è stata {role} di elettricità?"
         - "Nel {annee}, in quanti giorni la regione {region} è risultata {role}?"
+        - "Dammi il numero di giorni del {annee} in cui la regione {region} è stata {role}."
+        - "{annee}: per quante giornate la regione {region} è stata {role}?"
+        - "Su tutto il {annee}, quanti giorni la regione {region} si è trovata {role}?"
+
+    # The region must hold each role on some days: "PACA was a net importer on 365 days" is
+    # also the answer of a query that ignores the sign and counts every day.
+    require: |
+      SELECT count(*) FILTER (WHERE solde {role.op} 0) BETWEEN 1 AND count(*) - 1
+      FROM (
+        SELECT date, SUM(ech_physiques_mw) AS solde
+        FROM eco2mix
+        WHERE region = {region.literal} AND annee = {annee}
+        GROUP BY date
+      )
 
     sql: |
       SELECT count(*) AS jours

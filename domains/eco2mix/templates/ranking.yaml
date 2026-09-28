@@ -30,10 +30,16 @@ templates:
         - "Quelles sont les {n} régions qui ont produit le plus d'énergie {mesure} en {annee}{unite.suffix} ?"
         - "Les {n} premières régions pour la production {mesure} en {annee}{unite.suffix} ?"
         - "Classement des {n} régions les plus productrices d'énergie {mesure} en {annee}{unite.suffix} ?"
+        - "Donne-moi les {n} régions en tête pour la production {mesure} en {annee}{unite.suffix}."
+        - "{annee} : quelles régions occupent les {n} premières places pour {mesure.le}{unite.suffix} ?"
+        - "Top {n.id} des régions productrices d'énergie {mesure} en {annee}{unite.suffix} ?"
       it:
         - "Quali sono le {n} regioni che hanno prodotto più energia {mesure} nel {annee}{unite.suffix}?"
         - "Le prime {n} regioni per produzione {mesure} nel {annee}{unite.suffix}?"
         - "Classifica delle {n} regioni con la maggiore produzione {mesure} nel {annee}{unite.suffix}?"
+        - "Dammi le {n} regioni in testa per la produzione {mesure} nel {annee}{unite.suffix}."
+        - "{annee}: quali regioni occupano i primi {n} posti per {mesure.le}{unite.suffix}?"
+        - "Top {n.id} delle regioni produttrici di energia {mesure} nel {annee}{unite.suffix}?"
 
     sql: |
       SELECT region, SUM({mesure.sql}) {unite.expr} AS energie_{unite.id}
@@ -76,10 +82,16 @@ templates:
         - "Quels ont été les {n} mois de plus forte production {mesure} {region.in} en {annee}{unite.suffix} ?"
         - "Les {n} mois où la production {mesure} a été la plus élevée {region.in} en {annee}{unite.suffix} ?"
         - "Classement des {n} meilleurs mois pour la production {mesure} {region.in} en {annee}{unite.suffix} ?"
+        - "Donne-moi les {n} mois les plus productifs pour {mesure.le} {region.in} en {annee}{unite.suffix}."
+        - "{region.in} en {annee} : quels ont été les {n} meilleurs mois pour {mesure.le}{unite.suffix} ?"
+        - "Top {n.id} des mois de production {mesure} {region.in} en {annee}{unite.suffix} ?"
       it:
         - "Quali sono stati i {n} mesi di maggiore produzione {mesure} {region.in} nel {annee}{unite.suffix}?"
         - "I {n} mesi in cui la produzione {mesure} è stata più alta {region.in} nel {annee}{unite.suffix}?"
         - "Classifica dei {n} mesi migliori per la produzione {mesure} {region.in} nel {annee}{unite.suffix}?"
+        - "Dammi i {n} mesi più produttivi per {mesure.le} {region.in} nel {annee}{unite.suffix}."
+        - "{region.in} nel {annee}: quali sono stati i {n} mesi migliori per {mesure.le}{unite.suffix}?"
+        - "Top {n.id} dei mesi di produzione {mesure} {region.in} nel {annee}{unite.suffix}?"
 
     require: |
       SELECT count(DISTINCT {mesure.sql}) > 1
@@ -121,10 +133,16 @@ templates:
         - "Classe les sources de production {region.in} en {annee} selon l'énergie produite{unite.suffix}."
         - "Quel a été le classement des filières de production {region.in} en {annee}{unite.suffix} ?"
         - "Quelles sources ont le plus produit {region.in} en {annee} ? Donne l'énergie de chacune{unite.suffix}."
+        - "Donne-moi le classement des sources de production {region.in} en {annee} par énergie produite{unite.suffix}."
+        - "{region.in} en {annee} : de la filière la plus productive à la moins productive{unite.suffix} ?"
+        - "Filières de production {region.in} en {annee}, par ordre décroissant d'énergie{unite.suffix} ?"
       it:
         - "Classifica le fonti di produzione {region.in} nel {annee} in base all'energia prodotta{unite.suffix}."
         - "Qual è stata la classifica delle fonti di produzione {region.in} nel {annee}{unite.suffix}?"
         - "Quali fonti hanno prodotto di più {region.in} nel {annee}? Indica l'energia di ciascuna{unite.suffix}."
+        - "Dammi la classifica delle fonti di produzione {region.in} nel {annee} per energia prodotta{unite.suffix}."
+        - "{region.in} nel {annee}: dalla fonte più produttiva alla meno produttiva{unite.suffix}?"
+        - "Fonti di produzione {region.in} nel {annee}, in ordine decrescente di energia{unite.suffix}?"
 
     sql: |
       SELECT source, SUM(mw) {unite.expr} AS energie_{unite.id}
@@ -161,15 +179,26 @@ templates:
 
     max_instances: 20
 
+    # Words that keep the variants on this template's meaning: a position, not a top N.
+    must_say:
+      fr: ["place", "rang", "position"]
+      it: ["posizione", "posto"]
+
     questions:
       fr:
         - "À quelle place se classe la région {region} pour la production {mesure} en {annee} ?"
         - "Quel est le rang de la région {region} parmi les régions françaises pour la production {mesure} en {annee} ?"
         - "En {annee}, quelle position occupe la région {region} dans le classement de la production {mesure} ?"
+        - "Donne-moi la place de la région {region} au classement de la production {mesure} en {annee}."
+        - "Production {mesure} en {annee} : à quel rang figure la région {region} ?"
+        - "La région {region} se situe à quelle position pour la production {mesure} en {annee} ?"
       it:
         - "In che posizione si classifica la regione {region} per produzione {mesure} nel {annee}?"
         - "Qual è la posizione della regione {region} fra le regioni francesi per produzione {mesure} nel {annee}?"
         - "Nel {annee}, che posto occupa la regione {region} nella classifica della produzione {mesure}?"
+        - "Dammi la posizione della regione {region} nella classifica della produzione {mesure} nel {annee}."
+        - "Produzione {mesure} nel {annee}: a che posto figura la regione {region}?"
+        - "La regione {region} si colloca in che posizione per la produzione {mesure} nel {annee}?"
 
     # A region without the source would rank last on a 0, which says nothing.
     require: |
@@ -215,11 +244,17 @@ templates:
       fr:
         - "Quels ont été les {n} jours de plus forte consommation en France en {annee}{unite.suffix} ?"
         - "Les {n} journées où la France a le plus consommé d'électricité en {annee}{unite.suffix} ?"
-        - "Classement des {n} jours les plus consommateurs de {annee} en France{unite.suffix} ?"
+        - "Classement des {n} journées les plus gourmandes en électricité de {annee} en France{unite.suffix} ?"
+        - "Donne-moi les {n} jours de plus forte consommation nationale en {annee}{unite.suffix}."
+        - "{annee} : quelles ont été les {n} journées record de consommation en France{unite.suffix} ?"
+        - "Top {n.id} des jours de consommation en France en {annee}{unite.suffix} ?"
       it:
         - "Quali sono stati i {n} giorni di maggior consumo in Francia nel {annee}{unite.suffix}?"
         - "I {n} giorni in cui la Francia ha consumato più elettricità nel {annee}{unite.suffix}?"
         - "Classifica dei {n} giorni di consumo più alto del {annee} in Francia{unite.suffix}?"
+        - "Dammi i {n} giorni di consumo nazionale più alto nel {annee}{unite.suffix}."
+        - "{annee}: quali sono state le {n} giornate record di consumo in Francia{unite.suffix}?"
+        - "Top {n.id} dei giorni di consumo in Francia nel {annee}{unite.suffix}?"
 
     sql: |
       SELECT date, SUM(consommation_mw) {unite.expr} AS energie_{unite.id}

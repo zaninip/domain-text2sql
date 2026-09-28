@@ -23,13 +23,24 @@ templates:
 
     max_instances: 40
 
+    # Words that keep the variants on this template's meaning: net balance, not the gross exports of agg_exchange_gross_region_year.
+    must_say:
+      fr: ["net*", "solde", "plus qu'elles"]
+      it: ["nett*", "saldo", "più di quanto"]
+
     questions:
       fr:
-        - "Quelles régions ont été exportatrices et lesquelles importatrices {saison.in} {annee} ?"
+        - "Quelles régions ont été exportatrices nettes et lesquelles importatrices nettes {saison.in} {annee} ?"
         - "Solde des échanges de chaque région {saison.in} {annee} : exportatrice ou importatrice ?"
+        - "{saison.in} {annee}, quelles régions ont exporté plus qu'elles n'ont importé, et lesquelles l'inverse ?"
+        - "Donne-moi les régions exportatrices nettes et importatrices nettes {saison.in} {annee}."
+        - "Régions exportatrices ou importatrices nettes {saison.in} {annee} ?"
       it:
-        - "Quali regioni sono state esportatrici e quali importatrici {saison.in} {annee}?"
+        - "Quali regioni sono state esportatrici nette e quali importatrici nette {saison.in} {annee}?"
         - "Saldo degli scambi di ogni regione {saison.in} {annee}: esportatrice o importatrice?"
+        - "{saison.in} {annee}, quali regioni hanno esportato più di quanto abbiano importato, e quali il contrario?"
+        - "Dammi le regioni esportatrici nette e importatrici nette {saison.in} {annee}."
+        - "Regioni esportatrici o importatrici nette {saison.in} {annee}?"
 
     sql: |
       SELECT region,
@@ -63,10 +74,16 @@ templates:
         - "Quelle a été la principale source de production de chaque région en {annee} ?"
         - "Pour chaque région, quelle filière a le plus produit en {annee} ?"
         - "Source de production dominante par région en {annee} ?"
+        - "Donne-moi la filière qui a produit le plus d'énergie dans chaque région en {annee}."
+        - "En {annee}, quelle a été la première filière de production région par région ?"
+        - "Première source de production par région, {annee} ?"
       it:
         - "Qual è stata la principale fonte di produzione di ciascuna regione nel {annee}?"
         - "Per ogni regione, quale fonte ha prodotto di più nel {annee}?"
         - "Fonte di produzione dominante per regione nel {annee}?"
+        - "Dammi la fonte che ha prodotto più energia in ciascuna regione nel {annee}."
+        - "Nel {annee}, qual è stata la prima fonte di produzione regione per regione?"
+        - "Prima fonte di produzione per regione, {annee}?"
 
     sql: |
       WITH s AS (
@@ -111,10 +128,16 @@ templates:
         - "Quelles régions ont consommé au-dessus de la moyenne régionale en {annee}, et lesquelles en dessous ?"
         - "Consommation de chaque région en {annee} : au-dessus ou en dessous de la moyenne des régions ?"
         - "En {annee}, classe chaque région au-dessus ou en dessous de la consommation régionale moyenne."
+        - "Donne-moi les régions dont la consommation a dépassé la moyenne régionale en {annee}, et celles qui sont restées en dessous."
+        - "En {annee}, quelles régions se situent au-dessus de la moyenne de consommation des régions, et quelles régions en dessous ?"
+        - "Région par région en {annee} : consommation au-dessus ou en dessous de la moyenne régionale ?"
       it:
         - "Quali regioni hanno consumato sopra la media regionale nel {annee}, e quali sotto?"
         - "Consumo di ciascuna regione nel {annee}: sopra o sotto la media delle regioni?"
         - "Nel {annee}, indica per ogni regione se il consumo è stato sopra o sotto la media regionale."
+        - "Dammi le regioni il cui consumo ha superato la media regionale nel {annee}, e quelle rimaste sotto."
+        - "Nel {annee}, quali regioni si collocano sopra la media di consumo delle regioni, e quali sotto?"
+        - "Regione per regione nel {annee}: consumo sopra o sotto la media regionale?"
 
     sql: |
       WITH r AS (

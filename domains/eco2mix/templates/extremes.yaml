@@ -27,13 +27,27 @@ templates:
 
     max_instances: 60
 
+    # MOST DANGEROUS PAIR of the project, with ext_record_day_production_region_year: this one
+    # asks for the INSTANT of the power peak, the other for the DAY with the largest daily
+    # total. Every variant names the instant ("quand", "à quel moment / instant", "à quelle
+    # heure"). Never write "Quand la production … a-t-elle été la plus forte", which fits both.
+    must_say:
+      fr: ["quand", "heure", "moment", "instant"]
+      it: ["quando", "ora", "momento", "istante"]
+
     questions:
       fr:
         - "Quand a été atteint {extremum} {mesure.de} {region.in} en {annee} ?"
         - "À quelle date et à quelle heure {extremum} {mesure.de} a-t-il été atteint {region.in} en {annee} ?"
+        - "Donne-moi le moment où a été atteint {extremum} {mesure.de} {region.in} en {annee}."
+        - "{extremum} {mesure.de} {region.in} en {annee} : à quel moment ?"
+        - "En {annee} {region.in}, à quel instant a-t-on enregistré {extremum} {mesure.de} ?"
       it:
         - "Quando è stato raggiunto {extremum} {mesure.de} {region.in} nel {annee}?"
         - "In che giorno e a che ora è stato raggiunto {extremum} {mesure.de} {region.in} nel {annee}?"
+        - "Dammi il momento in cui è stato raggiunto {extremum} {mesure.de} {region.in} nel {annee}."
+        - "{extremum} {mesure.de} {region.in} nel {annee}: in che momento?"
+        - "Nel {annee} {region.in}, in quale istante è stato registrato {extremum} {mesure.de}?"
 
     # A source the region does not have is stored as 0 (or NULL) at every step: the question
     # "when was its minimum" then has no meaning. Require the measure to vary.
@@ -77,15 +91,26 @@ templates:
 
     max_instances: 20
 
+    # Words that keep the variants on this template's meaning: the value only: asking when would need the instant.
+    must_not_say:
+      fr: ["quand", "date", "heure"]
+      it: ["quando", "ora"]
+
     questions:
       fr:
         - "Quel a été {extremum} de la consommation nationale en {annee}{unite.suffix} ?"
         - "En {annee}, quel a été {extremum} de la consommation électrique française{unite.suffix} ?"
         - "Consommation nationale en {annee} : quel a été {extremum}{unite.suffix} ?"
+        - "Donne-moi {extremum} de la consommation nationale en {annee}{unite.suffix}."
+        - "{extremum} de consommation en France en {annee}{unite.suffix} ?"
+        - "À combien s'est élevé {extremum} de la consommation nationale en {annee}{unite.suffix} ?"
       it:
         - "Qual è stato {extremum} del consumo nazionale nel {annee}{unite.suffix}?"
         - "Nel {annee}, qual è stato {extremum} del consumo elettrico francese{unite.suffix}?"
         - "Consumo nazionale nel {annee}: qual è stato {extremum}{unite.suffix}?"
+        - "Dammi {extremum} del consumo nazionale nel {annee}{unite.suffix}."
+        - "{extremum} di consumo in Francia nel {annee}{unite.suffix}?"
+        - "A quanto è ammontato {extremum} del consumo nazionale nel {annee}{unite.suffix}?"
 
     sql: |
       SELECT {extremum.agg}(conso_mw){unite.expr} AS valeur_{unite.id}
@@ -119,15 +144,32 @@ templates:
 
     max_instances: 20
 
+    # MOST DANGEROUS PAIR of the project, with ext_peak_timestamp_region_year: this one asks for
+    # the DAY with the largest daily total, the other for the INSTANT of the power peak. Every
+    # variant says "jour / journée" ("giorno / giornata") and none refers to a time of day or
+    # an instant. Never write "Quand la production … a-t-elle été la plus forte", which fits both.
+    must_say:
+      fr: ["jour", "journée"]
+      it: ["giorno", "giornata"]
+    must_not_say:
+      fr: ["heure", "quand", "moment", "instant"]
+      it: ["ora", "quando", "momento", "istante"]
+
     questions:
       fr:
         - "Quel jour de {annee} la production {mesure} a-t-elle été la plus forte {region.in} ?"
         - "Journée record pour la production {mesure} {region.in} en {annee} ?"
         - "En {annee}, quel a été le jour de plus forte production {mesure} {region.in} ?"
+        - "Donne-moi le jour record de production {mesure} {region.in} en {annee}."
+        - "Production {mesure} {region.in} : quel a été le meilleur jour de {annee} ?"
+        - "En {annee} {region.in}, quelle journée a totalisé la plus forte production {mesure} ?"
       it:
         - "In quale giorno del {annee} la produzione {mesure} è stata più alta {region.in}?"
         - "Giorno record per la produzione {mesure} {region.in} nel {annee}?"
         - "Nel {annee}, qual è stato il giorno di massima produzione {mesure} {region.in}?"
+        - "Dammi il giorno record di produzione {mesure} {region.in} nel {annee}."
+        - "Produzione {mesure} {region.in}: qual è stata la giornata migliore del {annee}?"
+        - "Nel {annee} {region.in}, quale giornata ha totalizzato la produzione {mesure} più alta?"
 
     require: |
       SELECT count(DISTINCT {mesure.sql}) > 1
