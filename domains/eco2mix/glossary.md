@@ -17,15 +17,18 @@ read), so that a surprising answer can be understood.
 - Energy over a period: `SUM(x_mw) * 0.5` MWh. GWh = MWh / 1000, TWh = MWh / 1e6.
 - "Average consumption/production" over a period → `AVG(x_mw)`; "total consumption/production"
   or "energy" → `SUM(x_mw) * 0.5`. Never sum MW without the step factor when energy is asked.
-- A question that names only a source (or consumption), a place and a period, with no word
-  for the quantity ("Wind in Brittany in 2023?", "Eolico Bretagna 2023?"), asks for the total
-  energy of that period: `SUM(x_mw) * 0.5`, in MWh unless a unit is given.
+- A question that names only a source, consumption or pumping, a place and a period, with no
+  word for the quantity ("Wind in Brittany in 2023?", "Eolico Bretagna 2023?", "Pompage en
+  Bretagne en 2023 ?"), asks for the total energy of that period: `SUM(x_mw) * 0.5` (pumping:
+  `-SUM(pompage_mw) * 0.5`), in MWh unless a unit is given.
 - Peak / maximum / minimum power → `MAX(x_mw)` / `MIN(x_mw)` on the 30-minute values.
 - "The day (or month) with the most X" compares daily (monthly) energy totals, not the instant
   of the power peak.
 - "Average daily energy" (consumption or production per day, on average, in MWh/GWh) is the
   average of the daily totals: group by `date`, take `SUM(x_mw) * 0.5` per day, then `AVG`.
-  It is never `AVG(x_mw)`, which is a power.
+  It is never `AVG(x_mw)`, which is a power. "Per day" or "daily" attached to consumption or production
+  ("par jour", "journalier", "al giorno", "giornaliero") makes it such a daily energy even when
+  the question gives no unit; the answer is then in MWh.
 - When the question names the quantity ("energy", "énergie", "energia" or "power", "puissance",
   "potenza"), the word wins over a unit that does not match it: "energy in MW" is read as MWh,
   "power in MWh" as MW. The unit decides only when the wording is ambiguous, as below.
@@ -282,8 +285,8 @@ read), so that a surprising answer can be understood.
   time, in MWh, GWh or TWh.
 - The unit in the question decides what is compared: a threshold in GW or MW is checked at
   every half-hour, one in GWh or MWh is compared with the energy of the whole period.
-- A question that only names a source, a place and a period ("Wind in Brittany 2023?") is
-  answered with the total energy produced over that period.
+- A question that only names a source, consumption or pumping, a place and a period ("Wind
+  in Brittany 2023?") is answered with the total energy of that period.
 - When no unit is given, an energy is answered in MWh and a power in MW. When the question
   names the quantity ("energy", "power"), that word wins over a unit that does not match:
   "energy in MW" is read as energy in MWh.
@@ -300,7 +303,8 @@ read), so that a surprising answer can be understood.
 - The morning peak runs from 8:00 to 13:00, the evening peak from 18:00 to 21:00, the night
   from 22:00 to 6:00; the weekend is Saturday and Sunday, weekdays Monday to Friday. "At 7 pm"
   covers the whole hour from 19:00 to 20:00. Every time is French local time.
-- An "average daily" energy is the average of the totals of each day.
+- An "average daily" energy is the average of the totals of each day. "Consumption per day"
+  or "daily consumption" is always such an energy, even when no unit is given.
 - "Between 2015 and 2024" includes both years. A cumulative value adds up from the start of
   the year.
 - "Exported energy" counts only the half-hours when the region was exporting. Being a "net

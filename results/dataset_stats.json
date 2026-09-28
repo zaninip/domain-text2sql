@@ -7,7 +7,7 @@
   },
   "splits": {
     "train": {
-      "examples": 4164,
+      "examples": 5500,
       "templates": [
         "agg_consumption_national_month",
         "agg_energy_source_region_year",
@@ -42,8 +42,8 @@
         "ts_yearly_trend_measure_region"
       ],
       "by_family": {
-        "aggregation": 748,
-        "average": 280,
+        "aggregation": 1884,
+        "average": 480,
         "classification": 238,
         "comparison": 580,
         "extremes": 348,
@@ -53,18 +53,18 @@
         "timeseries": 632
       },
       "by_language": {
-        "fr": 2082,
-        "it": 2082
+        "fr": 2750,
+        "it": 2750
       },
       "by_template": {
-        "agg_energy_source_region_year": 228,
-        "agg_consumption_national_month": 160,
-        "agg_group_energy_region_month": 114,
-        "agg_group_energy_national_year": 120,
-        "agg_exchange_gross_region_year": 78,
-        "agg_pumping_energy_region_year": 48,
-        "avg_consumption_hour_season_region": 160,
-        "avg_daily_energy_region_month": 120,
+        "agg_energy_source_region_year": 684,
+        "agg_consumption_national_month": 480,
+        "agg_group_energy_region_month": 228,
+        "agg_group_energy_national_year": 240,
+        "agg_exchange_gross_region_year": 156,
+        "agg_pumping_energy_region_year": 96,
+        "avg_consumption_hour_season_region": 240,
+        "avg_daily_energy_region_month": 240,
         "cls_exchange_role_season": 160,
         "cls_main_source_per_region_year": 78,
         "cmp_yearly_change_pct_region": 232,
@@ -90,18 +90,18 @@
         "ts_daily_consumption_national_month": 120
       },
       "by_convention": {
-        "energy_conversion": 1994,
-        "unit_scaling": 1454,
-        "national_aggregate": 760,
-        "source_groups": 234,
-        "exchange_sign": 310,
-        "gross_exchanges": 78,
-        "pumping_sign": 48,
-        "average_power": 320,
-        "hour_of_day": 320,
-        "season": 536,
-        "average_daily_energy": 120,
-        "unit_decides_power_or_energy": 234,
+        "energy_conversion": 3250,
+        "unit_scaling": 2590,
+        "national_aggregate": 1200,
+        "source_groups": 468,
+        "exchange_sign": 388,
+        "gross_exchanges": 156,
+        "pumping_sign": 96,
+        "average_power": 400,
+        "hour_of_day": 400,
+        "season": 616,
+        "average_daily_energy": 240,
+        "unit_decides_power_or_energy": 354,
         "result_shape": 1126,
         "source_names": 198,
         "ranking_tie_break": 198,
@@ -128,7 +128,7 @@
       }
     },
     "val": {
-      "examples": 916,
+      "examples": 1548,
       "templates": [
         "agg_energy_measure_region_month",
         "avg_consumption_moment_region_month",
@@ -139,32 +139,32 @@
         "rate_offshore_share_wind_region_year"
       ],
       "by_family": {
-        "aggregation": 236,
-        "average": 320,
+        "aggregation": 708,
+        "average": 480,
         "classification": 78,
         "extremes": 120,
         "ranking": 120,
         "rate": 42
       },
       "by_language": {
-        "fr": 458,
-        "it": 458
+        "fr": 774,
+        "it": 774
       },
       "by_template": {
-        "agg_energy_measure_region_month": 236,
-        "avg_consumption_moment_region_month": 160,
-        "avg_weekday_weekend_gap_consumption_region_year": 160,
+        "agg_energy_measure_region_month": 708,
+        "avg_consumption_moment_region_month": 240,
+        "avg_weekday_weekend_gap_consumption_region_year": 240,
         "cls_region_vs_average_consumption_year": 78,
         "ext_record_day_production_region_year": 120,
         "rank_top_regions_measure_year": 120,
         "rate_offshore_share_wind_region_year": 42
       },
       "by_convention": {
-        "energy_conversion": 434,
-        "unit_scaling": 356,
-        "average_power": 320,
-        "peak_hours": 160,
-        "weekday_weekend": 160,
+        "energy_conversion": 906,
+        "unit_scaling": 828,
+        "average_power": 480,
+        "peak_hours": 240,
+        "weekday_weekend": 240,
         "average_of_regions": 78,
         "labels_from_question": 78,
         "record_day_daily_total": 120,
@@ -176,7 +176,7 @@
       }
     },
     "test": {
-      "examples": 784,
+      "examples": 864,
       "templates": [
         "avg_production_moment_region_year",
         "cmp_last_month_vs_year_before_region",
@@ -187,7 +187,7 @@
         "ts_cumulative_production_region_year"
       ],
       "by_family": {
-        "average": 160,
+        "average": 240,
         "comparison": 120,
         "multi_condition": 42,
         "ranking": 222,
@@ -195,11 +195,11 @@
         "timeseries": 120
       },
       "by_language": {
-        "fr": 392,
-        "it": 392
+        "fr": 432,
+        "it": 432
       },
       "by_template": {
-        "avg_production_moment_region_year": 160,
+        "avg_production_moment_region_year": 240,
         "cmp_last_month_vs_year_before_region": 120,
         "mc_hours_share_above_region_year": 42,
         "rank_top_months_measure_region_year": 102,
@@ -208,8 +208,8 @@
         "ts_cumulative_production_region_year": 120
       },
       "by_convention": {
-        "average_power": 160,
-        "peak_hours": 160,
+        "average_power": 240,
+        "peak_hours": 240,
         "relative_dates": 120,
         "percentage_change": 120,
         "hours_from_steps": 42,
@@ -272,17 +272,17 @@
     "rate_avg_coverage_indicator_region_year": "test"
   },
   "chat_bytes": {
-    "train": 66933097,
-    "val": 14724157,
-    "test": 12613256
+    "train": 89979089,
+    "val": 25319942,
+    "test": 14161544
   },
-  "system_prompt_tokens": 4323,
+  "system_prompt_tokens": 4405,
   "sample": 30,
-  "generated": 6316,
-  "kept": 5864,
+  "generated": 8516,
+  "kept": 7912,
   "dropped": {
-    "all_zero": 218,
-    "all_null": 64,
-    "precondition": 170
+    "all_zero": 234,
+    "all_null": 128,
+    "precondition": 242
   }
 }

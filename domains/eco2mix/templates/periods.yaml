@@ -1,22 +1,23 @@
 # Time slot catalogues: calendar months, seasons, and parts of the day/week.
 # `in` is the form used inside a question ("en février", "a febbraio"), because the preposition
-# is irregular. `start`/`end` of a season are rendered against the bound `annee`; `{annee-1}`
+# is irregular; `de` follows a noun ("le mois d'avril", "il mese di aprile"), with the French
+# elision before a vowel. `start`/`end` of a season are rendered against the bound `annee`; `{annee-1}`
 # is the offset syntax the generator supports for integer slots (winter starts the year before).
 # `where` is a SQL predicate: written here once, so no template repeats the convention.
 
 months:
-  - {id: 1, label: {fr: janvier, it: gennaio}, in: {fr: en janvier, it: a gennaio}}
-  - {id: 2, label: {fr: février, it: febbraio}, in: {fr: en février, it: a febbraio}}
-  - {id: 3, label: {fr: mars, it: marzo}, in: {fr: en mars, it: a marzo}}
-  - {id: 4, label: {fr: avril, it: aprile}, in: {fr: en avril, it: ad aprile}}
-  - {id: 5, label: {fr: mai, it: maggio}, in: {fr: en mai, it: a maggio}}
-  - {id: 6, label: {fr: juin, it: giugno}, in: {fr: en juin, it: a giugno}}
-  - {id: 7, label: {fr: juillet, it: luglio}, in: {fr: en juillet, it: a luglio}}
-  - {id: 8, label: {fr: août, it: agosto}, in: {fr: en août, it: ad agosto}}
-  - {id: 9, label: {fr: septembre, it: settembre}, in: {fr: en septembre, it: a settembre}}
-  - {id: 10, label: {fr: octobre, it: ottobre}, in: {fr: en octobre, it: a ottobre}}
-  - {id: 11, label: {fr: novembre, it: novembre}, in: {fr: en novembre, it: a novembre}}
-  - {id: 12, label: {fr: décembre, it: dicembre}, in: {fr: en décembre, it: a dicembre}}
+  - {id: 1, label: {fr: janvier, it: gennaio}, in: {fr: en janvier, it: a gennaio}, de: {fr: "de janvier", it: "di gennaio"}}
+  - {id: 2, label: {fr: février, it: febbraio}, in: {fr: en février, it: a febbraio}, de: {fr: "de février", it: "di febbraio"}}
+  - {id: 3, label: {fr: mars, it: marzo}, in: {fr: en mars, it: a marzo}, de: {fr: "de mars", it: "di marzo"}}
+  - {id: 4, label: {fr: avril, it: aprile}, in: {fr: en avril, it: ad aprile}, de: {fr: "d'avril", it: "di aprile"}}
+  - {id: 5, label: {fr: mai, it: maggio}, in: {fr: en mai, it: a maggio}, de: {fr: "de mai", it: "di maggio"}}
+  - {id: 6, label: {fr: juin, it: giugno}, in: {fr: en juin, it: a giugno}, de: {fr: "de juin", it: "di giugno"}}
+  - {id: 7, label: {fr: juillet, it: luglio}, in: {fr: en juillet, it: a luglio}, de: {fr: "de juillet", it: "di luglio"}}
+  - {id: 8, label: {fr: août, it: agosto}, in: {fr: en août, it: ad agosto}, de: {fr: "d'août", it: "di agosto"}}
+  - {id: 9, label: {fr: septembre, it: settembre}, in: {fr: en septembre, it: a settembre}, de: {fr: "de septembre", it: "di settembre"}}
+  - {id: 10, label: {fr: octobre, it: ottobre}, in: {fr: en octobre, it: a ottobre}, de: {fr: "d'octobre", it: "di ottobre"}}
+  - {id: 11, label: {fr: novembre, it: novembre}, in: {fr: en novembre, it: a novembre}, de: {fr: "de novembre", it: "di novembre"}}
+  - {id: 12, label: {fr: décembre, it: dicembre}, in: {fr: en décembre, it: a dicembre}, de: {fr: "de décembre", it: "di dicembre"}}
 
 # Astronomical seasons with the fixed boundaries of glossary §2. Winter is named after the year
 # it ends in, so it starts on 21 December of the previous year.

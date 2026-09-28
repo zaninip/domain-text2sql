@@ -28,11 +28,15 @@ templates:
         - "Consommation moyenne {region.in} {moment.in}, {mois.in} {annee}, en MW ?"
         - "Puissance moyenne consommée {moment.in} {region.in} {mois.in} {annee}, en MW ?"
         - "Quelle a été la consommation moyenne {moment.in} {region.in} {mois.in} {annee} ?"  # no unit: MW by default
+        - "Donne-moi la consommation moyenne {moment.in} {region.in} {mois.in} {annee}, en MW."
+        - "À combien s'est élevée la consommation moyenne {moment.in} {region.in} {mois.in} {annee}, en MW ?"
       it:
         - "Qual è stato il consumo medio {moment.in} {region.in} {mois.in} {annee}, in MW?"
         - "Consumo medio {region.in} {moment.in}, {mois.in} {annee}, in MW?"
         - "Potenza media consumata {moment.in} {region.in} {mois.in} {annee}, in MW?"
         - "Qual è stato il consumo medio {moment.in} {region.in} {mois.in} {annee}?"  # no unit: MW by default
+        - "Dammi il consumo medio {moment.in} {region.in} {mois.in} {annee}, in MW."
+        - "A quanto è ammontato il consumo medio {moment.in} {region.in} {mois.in} {annee}, in MW?"
 
     sql: |
       SELECT AVG(consommation_mw) AS conso_moyenne_mw
@@ -66,15 +70,19 @@ templates:
 
     questions:
       fr:
-        - "Quelle a été la production {mesure} moyenne {moment.in} {region.in} en {annee}, en MW ?"
+        - "Quelle a été la production moyenne {mesure.de} {moment.in} {region.in} en {annee}, en MW ?"
         - "Production moyenne {mesure.de} {moment.in} {region.in} en {annee}, en MW ?"
-        - "En {annee}, quelle puissance moyenne a fournie la production {mesure} {moment.in} {region.in}, en MW ?"
-        - "Quelle a été la production {mesure} moyenne {moment.in} {region.in} en {annee} ?"  # no unit: MW by default
+        - "En {annee}, quelle puissance moyenne la production {mesure} a-t-elle fournie {moment.in} {region.in}, en MW ?"
+        - "Quelle a été la production moyenne {mesure.de} {moment.in} {region.in} en {annee} ?"  # no unit: MW by default
+        - "Donne-moi la production moyenne {mesure.de} {moment.in} {region.in} en {annee}, en MW."
+        - "{mesure.le} {moment.in} {region.in} en {annee} : quelle production moyenne, en MW ?"
       it:
-        - "Qual è stata la produzione {mesure} media {moment.in} {region.in} nel {annee}, in MW?"
+        - "Qual è stata la produzione media {mesure.de} {moment.in} {region.in} nel {annee}, in MW?"
         - "Produzione media {mesure.de} {moment.in} {region.in} nel {annee}, in MW?"
         - "Nel {annee}, quale potenza media ha fornito la produzione {mesure} {moment.in} {region.in}, in MW?"
-        - "Qual è stata la produzione {mesure} media {moment.in} {region.in} nel {annee}?"  # no unit: MW by default
+        - "Qual è stata la produzione media {mesure.de} {moment.in} {region.in} nel {annee}?"  # no unit: MW by default
+        - "Dammi la produzione media {mesure.de} {moment.in} {region.in} nel {annee}, in MW."
+        - "{mesure.le} {moment.in} {region.in} nel {annee}: che produzione media, in MW?"
 
     require: |
       SELECT count(DISTINCT {mesure.sql}) > 1
@@ -111,11 +119,15 @@ templates:
         - "Écart de consommation moyenne entre la semaine et le week-end {region.in} en {annee}, en MW ?"
         - "En {annee}, quelle différence de consommation moyenne y a-t-il eu entre la semaine et le week-end {region.in}, en MW ?"
         - "De combien la consommation moyenne en semaine a-t-elle dépassé celle du week-end {region.in} en {annee} ?"  # no unit: MW by default
+        - "Donne-moi l'écart de consommation moyenne entre la semaine et le week-end {region.in} en {annee}, en MW."
+        - "Semaine contre week-end {region.in} en {annee} : quel écart de consommation moyenne, en MW ?"
       it:
         - "Di quanto il consumo medio dei giorni feriali ha superato quello del fine settimana {region.in} nel {annee}, in MW?"
         - "Differenza di consumo medio fra giorni feriali e fine settimana {region.in} nel {annee}, in MW?"
-        - "Nel {annee}, quanto è stata la differenza di consumo medio fra settimana lavorativa e weekend {region.in}, in MW?"
+        - "Nel {annee}, qual è stata la differenza di consumo medio fra settimana lavorativa e weekend {region.in}, in MW?"
         - "Di quanto il consumo medio dei giorni feriali ha superato quello del fine settimana {region.in} nel {annee}?"  # no unit: MW by default
+        - "Dammi la differenza di consumo medio fra settimana e fine settimana {region.in} nel {annee}, in MW."
+        - "Settimana contro fine settimana {region.in} nel {annee}: che differenza di consumo medio, in MW?"
 
     sql: |
       SELECT AVG(consommation_mw) FILTER (WHERE isodow(date) BETWEEN 1 AND 5)
@@ -137,6 +149,9 @@ templates:
 
     slots:
       heure_jour:
+        # The questions write "à {heure_jour}" / "alle {heure_jour}", which is right for these
+        # values only: Italian says "all'una" (1) and "a mezzanotte" (0). Adding such an hour
+        # means giving the values an `in` form ("alle 8", "all'una") and using {heure_jour.in}.
         values:
           - {id: 8, label: {fr: 8 h, it: "8"}}
           - {id: 13, label: {fr: 13 h, it: "13"}}
@@ -156,11 +171,15 @@ templates:
         - "Consommation moyenne {region.in} à {heure_jour}, {saison.in} {annee}, en MW ?"
         - "Puissance moyenne consommée à {heure_jour} {region.in} {saison.in} {annee}, en MW ?"
         - "Quelle a été la consommation moyenne à {heure_jour} {saison.in} {annee} {region.in} ?"  # no unit: MW by default
+        - "Donne-moi la consommation moyenne à {heure_jour} {region.in} {saison.in} {annee}, en MW."
+        - "À {heure_jour} {saison.in} {annee}, quelle consommation moyenne {region.in}, en MW ?"
       it:
         - "Qual è stato il consumo medio alle {heure_jour} {saison.in} {annee} {region.in}, in MW?"
         - "Consumo medio {region.in} alle {heure_jour}, {saison.in} {annee}, in MW?"
         - "Potenza media consumata alle {heure_jour} {region.in} {saison.in} {annee}, in MW?"
         - "Qual è stato il consumo medio alle {heure_jour} {saison.in} {annee} {region.in}?"  # no unit: MW by default
+        - "Dammi il consumo medio alle {heure_jour} {region.in} {saison.in} {annee}, in MW."
+        - "Alle {heure_jour} {saison.in} {annee}, che consumo medio {region.in}, in MW?"
 
     sql: |
       SELECT AVG(consommation_mw) AS conso_moyenne_mw
@@ -196,10 +215,16 @@ templates:
         - "Quelle quantité d'énergie a été consommée en moyenne par jour {region.in} {mois.in} {annee}{unite.suffix} ?"
         - "Consommation journalière moyenne {region.in} {mois.in} {annee}{unite.suffix} ?"
         - "Énergie consommée par jour en moyenne {region.in} {mois.in} {annee}{unite.suffix} ?"
+        - "Donne-moi la consommation moyenne par jour {region.in} {mois.in} {annee}{unite.suffix}."
+        - "Moyenne journalière d'énergie consommée {region.in} {mois.in} {annee}{unite.suffix} ?"
+        - "En moyenne, combien d'énergie par jour {region.in} {mois.in} {annee}{unite.suffix} ?"
       it:
         - "Quanta energia è stata consumata in media al giorno {region.in} {mois.in} {annee}{unite.suffix}?"
         - "Consumo giornaliero medio {region.in} {mois.in} {annee}{unite.suffix}?"
         - "Energia consumata in media ogni giorno {region.in} {mois.in} {annee}{unite.suffix}?"
+        - "Dammi il consumo medio al giorno {region.in} {mois.in} {annee}{unite.suffix}."
+        - "Media giornaliera di energia consumata {region.in} {mois.in} {annee}{unite.suffix}?"
+        - "In media, quanta energia al giorno {region.in} {mois.in} {annee}{unite.suffix}?"
 
     sql: |
       SELECT AVG(energie) AS energie_moyenne_{unite.id}

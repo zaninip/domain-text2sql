@@ -25,9 +25,17 @@ templates:
       fr:
         - "Quelle quantité d'énergie {mesure} a été produite {region.in} en {annee}{unite.suffix} ?"
         - "Production {mesure} {region.in} sur l'année {annee}{unite.suffix} ?"
+        - "{mesure.nom} {region.in} en {annee}{unite.suffix} ?"
+        - "Quelle production pour {mesure.le} {region.in} en {annee}{unite.suffix} ?"
+        - "Donne-moi la production {mesure} {region.in} en {annee}{unite.suffix}."
+        - "Total de l'énergie {mesure} {region.in} pour {annee}{unite.suffix} ?"
       it:
         - "Quanta energia {mesure} è stata prodotta {region.in} nel {annee}{unite.suffix}?"
         - "Produzione {mesure} {region.in} nell'anno {annee}{unite.suffix}?"
+        - "{mesure.nom} {region.in} nel {annee}{unite.suffix}?"
+        - "Che produzione per {mesure.le} {region.in} nel {annee}{unite.suffix}?"
+        - "Dammi la produzione {mesure} {region.in} nel {annee}{unite.suffix}."
+        - "Totale dell'energia {mesure} prodotta {region.in} nel {annee}{unite.suffix}?"
 
     sql: |
       SELECT SUM({mesure.sql}) {unite.expr} AS energie_{unite.id}
@@ -64,9 +72,17 @@ templates:
       fr:
         - "Quelle quantité d'énergie {mesure} a été produite {region.in} {mois.in} {annee}{unite.suffix} ?"
         - "Production {mesure} {region.in} {mois.in} {annee}{unite.suffix} ?"
+        - "{mesure.nom} {region.in} {mois.in} {annee}{unite.suffix} ?"
+        - "Quelle production {mesure} {region.in} sur le mois de {mois.de} {annee}{unite.suffix} ?"
+        - "Donne-moi la production {mesure} {region.in} {mois.in} {annee}{unite.suffix}."
+        - "Quelle énergie pour {mesure.le} {region.in} {mois.in} {annee}{unite.suffix} ?"
       it:
         - "Quanta energia {mesure} è stata prodotta {region.in} {mois.in} {annee}{unite.suffix}?"
         - "Produzione {mesure} {region.in} {mois.in} {annee}{unite.suffix}?"
+        - "{mesure.nom} {region.in} {mois.in} {annee}{unite.suffix}?"
+        - "Produzione {mesure} {region.in} nel mese di {mois} {annee}{unite.suffix}?"
+        - "Dammi la produzione {mesure} {region.in} {mois.in} {annee}{unite.suffix}."
+        - "Che energia per {mesure.le} {region.in} {mois.in} {annee}{unite.suffix}?"
 
     sql: |
       SELECT SUM({mesure.sql}) {unite.expr} AS energie_{unite.id}
@@ -99,9 +115,17 @@ templates:
       fr:
         - "Quelle a été la consommation totale d'électricité en France {mois.in} {annee}{unite.suffix} ?"
         - "Consommation électrique de la France {mois.in} {annee}{unite.suffix} ?"
+        - "Consommation France {mois.in} {annee}{unite.suffix} ?"
+        - "Combien d'électricité la France a-t-elle consommé {mois.in} {annee}{unite.suffix} ?"
+        - "Donne-moi la consommation française {mois.in} {annee}{unite.suffix}."
+        - "Quel a été le total consommé en France {mois.in} {annee}{unite.suffix} ?"
       it:
         - "Qual è stato il consumo totale di elettricità in Francia {mois.in} {annee}{unite.suffix}?"
         - "Consumo elettrico della Francia {mois.in} {annee}{unite.suffix}?"
+        - "Consumo Francia {mois.in} {annee}{unite.suffix}?"
+        - "Quanta elettricità ha consumato la Francia {mois.in} {annee}{unite.suffix}?"
+        - "Dammi il consumo francese {mois.in} {annee}{unite.suffix}."
+        - "Qual è stato il totale consumato in Francia {mois.in} {annee}{unite.suffix}?"
 
     sql: |
       SELECT SUM(consommation_mw) {unite.expr} AS energie_{unite.id}
@@ -139,10 +163,16 @@ templates:
         - "Quelle quantité d'énergie {groupe} a été produite {region.in} {mois.in} {annee}{unite.suffix} ?"
         - "Production d'énergie {groupe} {region.in} {mois.in} {annee}{unite.suffix} ?"
         - "Quelle a été la production d'énergie {groupe} {region.in} {mois.in} {annee}{unite.suffix} ?"
+        - "Énergie {groupe} {region.in} {mois.in} {annee}{unite.suffix} ?"
+        - "Donne-moi l'énergie {groupe} produite {region.in} {mois.in} {annee}{unite.suffix}."
+        - "Combien d'électricité {groupe} {region.in} {mois.in} {annee}{unite.suffix} ?"
       it:
         - "Quanta energia {groupe} è stata prodotta {region.in} {mois.in} {annee}{unite.suffix}?"
         - "Produzione di energia {groupe} {region.in} {mois.in} {annee}{unite.suffix}?"
         - "Qual è stata la produzione di energia {groupe} {region.in} {mois.in} {annee}{unite.suffix}?"
+        - "Energia {groupe} {region.in} {mois.in} {annee}{unite.suffix}?"
+        - "Dammi l'energia {groupe} prodotta {region.in} {mois.in} {annee}{unite.suffix}."
+        - "Quanta elettricità {groupe} {region.in} {mois.in} {annee}{unite.suffix}?"
 
     sql: |
       SELECT SUM({groupe.sql}) {unite.expr} AS energie_{unite.id}
@@ -175,10 +205,16 @@ templates:
         - "Quelle quantité d'énergie {groupe} la France a-t-elle produite en {annee}{unite.suffix} ?"
         - "Production nationale d'énergie {groupe} en {annee}{unite.suffix} ?"
         - "Combien d'énergie {groupe} a été produite en France en {annee}{unite.suffix} ?"
+        - "Énergie {groupe} en France en {annee}{unite.suffix} ?"
+        - "Donne-moi la production d'énergie {groupe} nationale en {annee}{unite.suffix}."
+        - "Production d'énergie {groupe} de la France en {annee}{unite.suffix} ?"
       it:
         - "Quanta energia {groupe} ha prodotto la Francia nel {annee}{unite.suffix}?"
         - "Produzione nazionale di energia {groupe} nel {annee}{unite.suffix}?"
         - "Quanta energia {groupe} è stata prodotta in Francia nel {annee}{unite.suffix}?"
+        - "Energia {groupe} in Francia nel {annee}{unite.suffix}?"
+        - "Dammi la produzione {groupe} nazionale nel {annee}{unite.suffix}."
+        - "Produzione {groupe} della Francia nel {annee}{unite.suffix}?"
 
     sql: |
       SELECT SUM({groupe.sql}) {unite.expr} AS energie_{unite.id}
@@ -199,11 +235,12 @@ templates:
 
     slots:
       sens:
-        # `label` is the past participle after "ha"/"a-t-elle"; `adj` agrees with "energia"
-        # (Italian makes it feminine, French already is).
+        # `label` is the past participle after "ha"/"a-t-elle", feminine in French because the
+        # object placed before the verb is "quantité"/"énergie"; `m` is the masculine for a
+        # masculine object ("quel volume … a-t-elle exporté"); `adj` agrees with "energia".
         values:
-          - {id: export, op: "<", sign: "-", label: {fr: exportée, it: esportato}, adj: {fr: exportée, it: esportata}}
-          - {id: import, op: ">", sign: "", label: {fr: importée, it: importato}, adj: {fr: importée, it: importata}}
+          - {id: export, op: "<", sign: "-", label: {fr: exportée, it: esportato}, adj: {fr: exportée, it: esportata}, m: {fr: exporté, it: esportato}}
+          - {id: import, op: ">", sign: "", label: {fr: importée, it: importato}, adj: {fr: importée, it: importata}, m: {fr: importé, it: importato}}
       region:
         from: regions
       annee:
@@ -218,10 +255,16 @@ templates:
         - "Quelle quantité d'énergie la région {region} a-t-elle {sens} en {annee}{unite.suffix} ?"
         - "Énergie {sens.adj} par la région {region} en {annee}{unite.suffix} ?"
         - "Combien d'électricité la région {region} a-t-elle {sens} en {annee}{unite.suffix} ?"
+        - "Quantité {sens.adj} par la région {region} en {annee}{unite.suffix} ?"
+        - "Donne-moi l'énergie {sens.adj} par la région {region} en {annee}{unite.suffix}."
+        - "Quel volume d'énergie la région {region} a-t-elle {sens.m} en {annee}{unite.suffix} ?"
       it:
         - "Quanta energia ha {sens} la regione {region} nel {annee}{unite.suffix}?"
         - "Energia {sens.adj} dalla regione {region} nel {annee}{unite.suffix}?"
         - "Quanta elettricità ha {sens} la regione {region} nel {annee}{unite.suffix}?"
+        - "Quantità {sens.adj} dalla regione {region} nel {annee}{unite.suffix}?"
+        - "Dammi l'energia {sens.adj} dalla regione {region} nel {annee}{unite.suffix}."
+        - "Che volume di energia ha {sens} la regione {region} nel {annee}{unite.suffix}?"
 
     sql: |
       SELECT {sens.sign}SUM(ech_physiques_mw) {unite.expr} AS energie_{unite.id}
@@ -254,10 +297,16 @@ templates:
         - "Quelle quantité d'énergie les stations de pompage ont-elles consommée {region.in} en {annee}{unite.suffix} ?"
         - "Consommation des STEP {region.in} en {annee}{unite.suffix} ?"
         - "Combien d'énergie le pompage a-t-il absorbé {region.in} en {annee}{unite.suffix} ?"
+        - "Pompage {region.in} en {annee}{unite.suffix} ?"
+        - "Donne-moi la consommation des STEP {region.in} en {annee}{unite.suffix}."
+        - "Quel volume d'énergie a été consommé par le pompage {region.in} en {annee}{unite.suffix} ?"
       it:
         - "Quanta energia hanno consumato le stazioni di pompaggio {region.in} nel {annee}{unite.suffix}?"
         - "Consumo degli impianti di pompaggio {region.in} nel {annee}{unite.suffix}?"
         - "Quanta energia ha assorbito il pompaggio {region.in} nel {annee}{unite.suffix}?"
+        - "Pompaggio {region.in} nel {annee}{unite.suffix}?"
+        - "Dammi il consumo degli impianti di pompaggio {region.in} nel {annee}{unite.suffix}."
+        - "Che volume di energia è stato consumato dal pompaggio {region.in} nel {annee}{unite.suffix}?"
 
     require: |
       SELECT count(DISTINCT pompage_mw) > 1
