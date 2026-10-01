@@ -1,5 +1,6 @@
 """Safety rules of t2sql.db (CLAUDE.md §9): validation, read-only execution, timeout, row cap."""
 
+import time
 from pathlib import Path
 
 import duckdb
@@ -91,6 +92,25 @@ def test_run_query_times_out(db):
     with pytest.raises(QueryTimeoutError):
         run_query(db, endless, list_tables(db), timeout_s=0.5)
     assert run_query(db, "SELECT 1", list_tables(db)).rows == [(1,)]  # connection still usable
+
+
+def test_run_query_gives_up_on_a_query_that_ignores_the_interruption(monkeypatch):
+    class Stuck:  # a cursor whose query never stops, whatever interrupt() does
+        def execute(self, sql: str) -> None:
+            time.sleep(30)
+
+        def interrupt(self) -> None:
+            pass
+
+    class Connection:
+        def cursor(self) -> Stuck:
+            return Stuck()
+
+    monkeypatch.setattr("t2sql.db.INTERRUPT_GRACE_S", 0.2)
+    began = time.perf_counter()
+    with pytest.raises(QueryTimeoutError):
+        run_query(Connection(), "SELECT 1", set(), timeout_s=0.2)
+    assert time.perf_counter() - began < 2  # bounded: timeout + grace, not the query's 30 s
 
 
 def test_run_query_propagates_binder_errors(db):

@@ -16,6 +16,7 @@ import sqlglot
 from sqlglot import exp
 
 DIALECT = "duckdb"
+INTERRUPT_GRACE_S = 5.0  # how long a timed-out query is given to stop after being interrupted
 
 # Functions that read from the filesystem or the network. DuckDB also blocks them once
 # `enable_external_access` is off; rejecting them here gives a clear error before execution.
@@ -131,7 +132,10 @@ def run_query(
     worker.join(timeout_s)
     if worker.is_alive():
         cur.interrupt()
-        worker.join()
+        # Wait for the interruption, but never without limit: a query that ignores it would
+        # otherwise freeze the caller for good. A worker still alive after the grace period is
+        # abandoned (daemon thread) and the query reported as timed out all the same.
+        worker.join(INTERRUPT_GRACE_S)
         raise QueryTimeoutError(f"query interrupted after {timeout_s} s")
     result = outcome[0]
     if isinstance(result, BaseException):
