@@ -9,6 +9,7 @@ Every configuration -- base zero-shot, base few-shot, fine-tuned -- must call th
 or the comparison would measure the prompt instead of the model.
 """
 
+from collections.abc import Sequence
 from pathlib import Path
 
 INSTRUCTIONS = """
@@ -101,16 +102,24 @@ def system_prompt(domain_dir: Path) -> str:
     return build_system_prompt(schema, glossary)
 
 
-def chat_messages(system: str, question: str, sql: str | None = None) -> list[dict[str, str]]:
+def chat_messages(
+    system: str,
+    question: str,
+    sql: str | None = None,
+    examples: Sequence[tuple[str, str]] = (),
+) -> list[dict[str, str]]:
     """The chat form used everywhere: system, user question, and the SQL when it is known.
 
     Training passes ``sql`` (the assistant turn is the target); inference leaves it out and
     lets the model produce that turn. Both go through here so the two never drift apart.
+    ``examples`` (few-shot only) are (question, SQL) pairs, written as earlier turns of the
+    conversation between the system prompt and the question.
     """
-    messages = [
-        {"role": "system", "content": system},
-        {"role": "user", "content": question},
-    ]
+    messages = [{"role": "system", "content": system}]
+    for example_question, example_sql in examples:
+        messages.append({"role": "user", "content": example_question})
+        messages.append({"role": "assistant", "content": example_sql})
+    messages.append({"role": "user", "content": question})
     if sql is not None:
         messages.append({"role": "assistant", "content": sql})
     return messages

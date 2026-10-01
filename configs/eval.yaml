@@ -6,6 +6,9 @@ split: val                       # val for the model pilot; test only for the fi
 mode: zero_shot                  # zero_shot | few_shot
 limit: null                      # evaluate the first N examples only (local smoke tests)
 
+few_shot:                        # used in few_shot mode only
+  seed: 0                        # one train example per family (9), languages alternating
+
 generation:
   max_new_tokens: 256            # greedy; the same budget for every configuration
   batch_size: 8

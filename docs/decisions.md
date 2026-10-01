@@ -579,3 +579,30 @@ Format: date, decision, reason, alternatives considered.
 - **Alternatives:** counting with the real tokenizer in the test (exact, but ties tests and CI
   to `transformers` and a Hugging Face download); keeping 4500 and trimming the prompt now
   (the TCO/TCH rows), postponed until the prompt actually needs to grow.
+
+## 2026-10-01 — Few-shot mode: nine fixed train examples as earlier chat turns
+
+- **Decision:** in `few_shot` mode every question is preceded by the same nine examples
+  (`src/t2sql/eval/few_shot.py`): one train example per family, families in alphabetical
+  order, languages alternating fr, it, fr…; template and example drawn with a seeded
+  generator (`few_shot.seed: 0` in `configs/eval.yaml`). They are written as earlier turns of
+  the conversation (user question, assistant SQL) between the system prompt and the question,
+  through the same `chat_messages` used by training and the demo. Their ids are saved in the
+  run metadata, and a resumed run with other examples is refused.
+- **Reason:** train templates only, so validation and test templates are never shown (CLAUDE.md
+  §7). One per family covers every kind of question without choosing with the evaluation
+  questions in mind; a seeded draw rather than a hand pick, for the same reason. Chat turns are
+  the form chat models are trained on, and they show the shape of the answer (bare SQL) as well
+  as its content. Cost measured with the Qwen3 tokenizer: 1,182 tokens more per prompt (4,573
+  -> 5,755), about +25 % generation time on GPU.
+- **Rule fixed before running it:** the base few-shot configuration is also run with
+  Qwen2.5-Coder-1.5B on validation, because Coder's zero-shot failures (LIKE on dates, column
+  names translated from Italian) are the kind examples may fix. The base model changes to
+  Coder only if Coder few-shot beats Qwen3 few-shot with McNemar p < 0.05 and not in one
+  language only; otherwise Qwen3-1.7B stays. The numbers are added to the pilot entry either
+  way.
+- **Alternatives:** examples appended to the system prompt (simpler, but described rather than
+  shown as answers); 3-5 examples (shorter, but which families to leave out is itself a
+  choice); hand-picked examples of the hardest conventions (more help to the base model, but
+  open to the suspicion of being chosen for the evaluation set); dropping long examples to
+  save tokens (they are the most instructive ones: UNPIVOT, ties at the peak).

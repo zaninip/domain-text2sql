@@ -21,13 +21,15 @@ import duckdb
 import yaml
 
 from t2sql.db import connect, list_tables
+from t2sql.eval.few_shot import pick_examples
 from t2sql.eval.metrics import score
 from t2sql.prompts import chat_messages, system_prompt
 
 ROOT = Path(__file__).resolve().parents[3]
 CONFIG_PATH = ROOT / "configs" / "eval.yaml"
 # What makes outputs comparable: a resumed run must match on all of these.
-GENERATION_KEYS = ("model", "split", "mode", "generation", "dtype_used")
+GENERATION_KEYS = ("model", "split", "mode", "few_shot_ids", "generation", "dtype_used")
+MODES = ("zero_shot", "few_shot")
 SCORE_LOG_EVERY = 50
 
 
@@ -43,15 +45,25 @@ def load_records(path: Path, limit: int | None = None) -> list[dict[str, Any]]:
     return records[:limit] if limit else records
 
 
-def format_prompt(tokenizer: Any, system: str, question: str) -> str:
+def few_shot_examples(config: dict[str, Any], splits_dir: Path) -> list[dict[str, Any]]:
+    """The fixed examples of a few-shot run, drawn from the train split; none in zero-shot."""
+    if config["mode"] == "zero_shot":
+        return []
+    return pick_examples(load_records(splits_dir / "train.jsonl"), config["few_shot"]["seed"])
+
+
+def format_prompt(
+    tokenizer: Any, system: str, question: str, examples: list[dict[str, Any]] = ()
+) -> str:
     """The exact text the model reads, up to the point where it starts its answer.
 
     The model's own chat template turns the shared messages into text. ``enable_thinking``
     is a Qwen3 switch: False makes the template open and close an empty thinking block, so the
     model answers directly. Templates that do not know the flag ignore it.
     """
+    pairs = [(example["question"], example["sql"]) for example in examples]
     return tokenizer.apply_chat_template(
-        chat_messages(system, question),
+        chat_messages(system, question, examples=pairs),
         tokenize=False,
         add_generation_prompt=True,
         enable_thinking=False,
@@ -248,12 +260,16 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
 def generate_missing(
     config: dict[str, Any],
     records: list[dict[str, Any]],
+    examples: list[dict[str, Any]],
     paths: dict[str, Path],
     outputs_path: Path,
     meta_path: Path,
     allow_cpu: bool,
 ) -> None:
-    """Generate the examples not yet in ``outputs_path``, appending each batch as it ends."""
+    """Generate the examples not yet in ``outputs_path``, appending each batch as it ends.
+
+    ``examples`` are the few-shot turns put before every question (empty in zero-shot).
+    """
     done = {row["id"] for row in read_jsonl(outputs_path)}
     pending = [record for record in records if record["id"] not in done]
     log(f"{config['model']} on {config['split']}: {len(done)} done, {len(pending)} to generate")
@@ -263,6 +279,8 @@ def generate_missing(
     tokenizer = load_tokenizer(config["model"])
     model = load_model(config["model"], settings["dtype"], allow_cpu)
     meta = {key: config[key] for key in ("model", "split", "mode")}
+    if examples:  # absent in zero-shot, so that zero-shot metadata keeps its earlier shape
+        meta["few_shot_ids"] = [example["id"] for example in examples]
     meta |= {"generation": settings, **environment(model)}
     log(f"model loaded on {meta['device']} ({meta['dtype_used']})")
     if done:
@@ -274,7 +292,7 @@ def generate_missing(
         meta_path.write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
 
     system = system_prompt(paths["domain"])
-    prompts = [format_prompt(tokenizer, system, record["question"]) for record in pending]
+    prompts = [format_prompt(tokenizer, system, record["question"], examples) for record in pending]
     ids = [record["id"] for record in pending]
     batches = -(-len(prompts) // settings["batch_size"])  # ceiling division
     began, generated = time.perf_counter(), 0
@@ -306,21 +324,23 @@ def main() -> None:
     if args.limit:
         config["limit"] = args.limit
     config |= {key: getattr(args, key) for key in ("model", "split", "mode") if getattr(args, key)}
-    if config["mode"] != "zero_shot":
-        raise SystemExit(f"mode {config['mode']!r} is not implemented yet")
+    if config["mode"] not in MODES:
+        raise SystemExit(f"mode {config['mode']!r} is not one of {MODES}")
     paths = {name: ROOT / value for name, value in config["paths"].items()}
     records = load_records(paths["splits"] / f"{config['split']}.jsonl", config["limit"])
+    examples = few_shot_examples(config, paths["splits"])
     files = run_files(paths["predictions"], run_name(config))
     outputs_path, meta_path = files["outputs"], files["meta"]
 
     if args.show_prompt:
         tokenizer = load_tokenizer(config["model"])
-        prompt = format_prompt(tokenizer, system_prompt(paths["domain"]), records[0]["question"])
-        print(prompt[:300], "\n[...]\n", prompt[-400:], sep="")
-        print(f"\n{len(tokenizer(prompt)['input_ids'])} tokens")
+        system = system_prompt(paths["domain"])
+        prompt = format_prompt(tokenizer, system, records[0]["question"], examples)
+        print(prompt.replace(system, f"[system prompt, {len(system)} characters]"))
+        print(f"{len(tokenizer(prompt)['input_ids'])} tokens")
         return
     if not args.rescore:
-        generate_missing(config, records, paths, outputs_path, meta_path, args.allow_cpu)
+        generate_missing(config, records, examples, paths, outputs_path, meta_path, args.allow_cpu)
 
     outputs = {row["id"]: row for row in read_jsonl(outputs_path)}
     records = [record for record in records if record["id"] in outputs]

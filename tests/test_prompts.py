@@ -104,6 +104,17 @@ def test_chat_messages_carry_the_answer_only_when_it_is_known():
     assert [m["role"] for m in inference] == ["system", "user"]
 
 
+def test_few_shot_examples_are_earlier_turns_before_the_question():
+    examples = [("q1 ?", "SELECT 1"), ("q2 ?", "SELECT 2")]
+    messages = chat_messages("SYS", "question ?", examples=examples)
+    assert [m["role"] for m in messages] == [
+        "system", "user", "assistant", "user", "assistant", "user",
+    ]  # fmt: skip
+    assert [m["content"] for m in messages[1:]] == [
+        "q1 ?", "SELECT 1", "q2 ?", "SELECT 2", "question ?",
+    ]  # fmt: skip
+
+
 def test_caveats_are_extracted_for_the_demo_users():
     text = (
         GLOSSARY

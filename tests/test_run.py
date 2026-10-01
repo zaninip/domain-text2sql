@@ -103,6 +103,13 @@ def test_a_resumed_run_must_generate_like_the_first():
     assert mismatches(first, changed) == ["generation"]
 
 
+def test_a_few_shot_run_resumes_only_with_the_same_examples():
+    few_shot = {"model": "m", "split": "val", "mode": "few_shot", "few_shot_ids": ["a", "b"]}
+    assert mismatches(few_shot, few_shot) == []
+    other = few_shot | {"few_shot_ids": ["a", "c"]}
+    assert mismatches(few_shot, other) == ["few_shot_ids"]
+
+
 def test_no_gpu_means_no_run_unless_allowed(monkeypatch):
     torch = pytest.importorskip("torch")  # the optional `model` extra, absent in CI
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
