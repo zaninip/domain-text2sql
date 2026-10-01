@@ -118,9 +118,17 @@ def score(
         return Score(sql, "no_sql")
     try:
         result = run_query(con, sql, tables, timeout_s=TIMEOUT_S, max_rows=MAX_GOLD_ROWS)
+        gold = record["gold"]["rows"]
+        matches = not result.truncated and same_result(gold, result.rows, record["order_matters"])
     except (UnsafeSQLError, QueryTimeoutError, duckdb.Error) as error:
-        return Score(sql, failure_kind(error), str(error).splitlines()[0])
-    gold = record["gold"]["rows"]
-    if not result.truncated and same_result(gold, result.rows, record["order_matters"]):
-        return Score(sql, "correct")
-    return Score(sql, "wrong_result")
+        return Score(sql, failure_kind(error), first_line(error))
+    except Exception as error:
+        # One untrusted output must never stop a whole run. Unexpected failures get their own
+        # outcome, so that they show in every summary instead of passing as wrong answers.
+        return Score(sql, "scoring_error", f"{type(error).__name__}: {first_line(error)}")
+    return Score(sql, "correct" if matches else "wrong_result")
+
+
+def first_line(error: Exception) -> str:
+    lines = str(error).splitlines()
+    return lines[0] if lines else type(error).__name__

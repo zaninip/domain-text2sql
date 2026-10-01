@@ -49,6 +49,7 @@ def test_accepts_read_only_queries(sql):
         ("SELECT read_text('/etc/passwd')", "forbidden function"),
         ("SELECT * FROM eco2mix WHERE x IN (SELECT y FROM secrets)", "unknown table"),
         ("SELECT FROM WHERE", "cannot parse"),
+        ("SELECT * FROM eco2mix WHERE date = '2016-01-0", "cannot parse"),  # unclosed string
     ],
 )
 def test_rejects_unsafe_sql(sql, reason):

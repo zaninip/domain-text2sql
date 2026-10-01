@@ -75,6 +75,18 @@ def db(tmp_path: Path):
 RECORD = {"gold": {"columns": ["s"], "rows": [[10]]}, "order_matters": False}
 
 
+def test_an_unexpected_failure_is_an_outcome_not_a_crash(db, monkeypatch):
+    con, tables = db
+
+    def broken(*args, **kwargs):
+        raise RuntimeError("something nobody foresaw")
+
+    monkeypatch.setattr("t2sql.eval.metrics.same_result", broken)
+    result = score("SELECT sum(x) FROM t", RECORD, con, tables)
+    assert result.outcome == "scoring_error"
+    assert result.error == "RuntimeError: something nobody foresaw"
+
+
 @pytest.mark.parametrize(
     ("output", "outcome"),
     [
@@ -86,6 +98,7 @@ RECORD = {"gold": {"columns": ["s"], "rows": [[10]]}, "order_matters": False}
         ("SELECT sum(x) FROM u", "unknown_table"),
         ("SELECT somme(x) FROM t", "unknown_function"),
         ("DROP TABLE t", "unsafe"),
+        ("SELECT sum(x) FROM t WHERE 'abc = x", "syntax_error"),  # cut by max_new_tokens
     ],
 )
 def test_score_names_the_outcome(db, output, outcome):

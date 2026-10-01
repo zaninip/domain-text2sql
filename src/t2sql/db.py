@@ -47,7 +47,7 @@ def validate_select(sql: str, allowed_tables: set[str]) -> str:
     """
     try:
         statements = sqlglot.parse(sql, read=DIALECT)
-    except sqlglot.errors.ParseError as e:
+    except sqlglot.errors.SqlglotError as e:  # ParseError, and TokenError (unclosed string…)
         raise UnsafeSQLError(f"cannot parse SQL: {e}") from e
     if len(statements) != 1:
         raise UnsafeSQLError(f"expected exactly one statement, got {len(statements)}")
