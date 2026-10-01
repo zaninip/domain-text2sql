@@ -105,6 +105,8 @@ def failure_kind(error: Exception) -> str:
     if isinstance(error, duckdb.CatalogException):  # one class for tables and functions
         return "unknown_function" if "Function" in message else "unknown_table"
     if isinstance(error, duckdb.BinderException):
+        if "GROUP BY clause" in message:  # "column x must appear in the GROUP BY clause ..."
+            return "group_by_error"
         return "unknown_column" if "column" in message.lower() else "runtime_error"
     return "runtime_error"
 

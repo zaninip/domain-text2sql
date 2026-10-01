@@ -20,8 +20,9 @@
   "outcomes": {
     "wrong_result": 318,
     "correct": 39,
-    "unknown_column": 22,
     "runtime_error": 18,
+    "group_by_error": 17,
+    "unknown_column": 5,
     "syntax_error": 5
   }
 }

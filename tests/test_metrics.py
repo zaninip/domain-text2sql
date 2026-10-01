@@ -95,6 +95,7 @@ def test_an_unexpected_failure_is_an_outcome_not_a_crash(db, monkeypatch):
         ("Je ne sais pas.", "no_sql"),
         ("SELECT sum(x FROM t", "syntax_error"),
         ("SELECT sum(y) FROM t", "unknown_column"),
+        ("SELECT x, sum(x) FROM t", "group_by_error"),  # a column that exists, not grouped
         ("SELECT sum(x) FROM u", "unknown_table"),
         ("SELECT somme(x) FROM t", "unknown_function"),
         ("DROP TABLE t", "unsafe"),
