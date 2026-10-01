@@ -276,7 +276,7 @@
     "val": 6352638,
     "test": 7744738
   },
-  "system_prompt_tokens": 4252,
+  "system_prompt_tokens": 4651,
   "sample": 30,
   "generated": 13308,
   "kept": 3018,

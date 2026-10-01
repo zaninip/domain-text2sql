@@ -22,14 +22,14 @@ Rules:
 - Questions come in French or Italian; the SQL is the same either way.
 """.strip()
 
-# Rough bound on the prompt size: it only catches a schema or glossary that has grown out of
-# hand. The estimate is char-based, so it can be off by a third; the real count is measured in
-# phase 3 with the tokenizer of the chosen model, together with the training sequence length
-# and the CPU latency it costs. The limit is provisional until then: 4500 is the ceiling for
-# the whole of phase 2 (raised from 3500 when the multi-condition rules were added); going
-# past it means trimming, starting with the TCO/TCH rows of the schema that repeat glossary §5.
-CHARS_PER_TOKEN = 3.5
-MAX_PROMPT_TOKENS = 4500
+# Bound on the prompt size: it catches a schema or glossary that has grown out of hand. The
+# estimate is char-based, calibrated on the Qwen3 tokenizer (3.29 characters per token measured
+# on the system prompt, 2026-10-01) and rounded down so that it errs on the high side. The
+# ceiling leaves ~350 tokens over today's prompt and keeps a whole training example (prompt,
+# question, answer of at most ~150 tokens) near 5k tokens; going past it means trimming,
+# starting with the TCO/TCH rows of the schema that repeat glossary §5.
+CHARS_PER_TOKEN = 3.2
+MAX_PROMPT_TOKENS = 5000
 
 
 class PromptTooLongError(ValueError):

@@ -566,3 +566,16 @@ Format: date, decision, reason, alternatives considered.
   (3.29 characters per token, not the 3.5 assumed in `prompts.py`, whose estimate says 4,252);
   the full chat prompt is 4,561-4,587 tokens on validation. The estimate is to be recalibrated
   separately.
+
+## 2026-10-01 — Prompt size estimate recalibrated on the Qwen3 tokenizer; ceiling 5000
+
+- **Decision:** in `prompts.py`, `CHARS_PER_TOKEN` 3.5 -> 3.2 and `MAX_PROMPT_TOKENS`
+  4500 -> 5000. The estimate of today's system prompt goes from 4,252 to 4,651 (real: 4,528).
+- **Reason:** the measured ratio is 3.29 characters per token; with 3.5 the estimate was 6 %
+  low and the 4500 ceiling of phase 2 was already exceeded without the check noticing. 3.2
+  rounds down, so the estimate errs on the high side, which is the safe side for a ceiling.
+  5000 leaves ~350 tokens of growth and keeps a whole training example (prompt, question,
+  answer of at most ~150 tokens) near 5k tokens, the sequence length phase 4 will plan for.
+- **Alternatives:** counting with the real tokenizer in the test (exact, but ties tests and CI
+  to `transformers` and a Hugging Face download); keeping 4500 and trimming the prompt now
+  (the TCO/TCH rows), postponed until the prompt actually needs to grow.
