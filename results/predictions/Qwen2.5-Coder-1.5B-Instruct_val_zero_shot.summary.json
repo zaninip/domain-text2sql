@@ -1,0 +1,28 @@
+{
+  "model": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+  "split": "val",
+  "mode": "zero_shot",
+  "generation": {
+    "max_new_tokens": 256,
+    "batch_size": 8,
+    "dtype": "float16"
+  },
+  "device": "Tesla T4",
+  "dtype_used": "float16",
+  "torch": "2.10.0+cu128",
+  "transformers": "5.0.0",
+  "examples": 402,
+  "execution_accuracy": 0.08208955223880597,
+  "valid_sql_rate": 0.6218905472636815,
+  "generation_minutes": 20.0,
+  "mean_latency_s": 2.9808059701492535,
+  "mean_output_tokens": 77.78855721393035,
+  "outcomes": {
+    "wrong_result": 217,
+    "runtime_error": 62,
+    "group_by_error": 40,
+    "unknown_column": 38,
+    "correct": 33,
+    "syntax_error": 12
+  }
+}

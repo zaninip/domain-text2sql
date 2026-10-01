@@ -531,3 +531,38 @@ Format: date, decision, reason, alternatives considered.
   Evening it out would move variant choice into validation; not worth the coupling now.
 - **Alternatives:** lowering `max_instances` only (too few combinations per template);
   two variants per language with `max_instances` 20 (fewer combinations, test above target).
+
+## 2026-10-01 — Base model: Qwen3-1.7B, chosen by a zero-shot pilot on validation
+
+- **Decision:** fine-tune `Qwen/Qwen3-1.7B` (Apache 2.0), with thinking mode disabled
+  everywhere (`enable_thinking=False` in training, evaluation and demo).
+- **Pilot:** two candidates, zero-shot on the validation split (402 examples, 7 templates),
+  same prompt, greedy, `max_new_tokens` 256, fp16 on a Kaggle T4, transformers 5.0.0.
+  Predictions in `results/predictions/`. The test split was not used.
+
+  | | Qwen3-1.7B | Qwen2.5-Coder-1.5B-Instruct |
+  |---|---|---|
+  | Execution accuracy | 9.7 % (39) | 8.2 % (33) |
+  | Valid SQL rate | 88.8 % | 62.2 % |
+  | Correct, French / Italian | 16 / 23 of 201 | 25 / 8 of 201 |
+  | Generation time (402 examples) | 30.7 min | 20.0 min |
+
+- **Reason:** the accuracy gap is not evidence (10 examples correct for both, 29 only for
+  Qwen3, 23 only for Coder; McNemar p ≈ 0.4; seven templates, so examples are not
+  independent). The valid SQL rate is: Coder's failures are systematic. It writes
+  `date LIKE '2019-02-%'` on a DATE column 59 times, and it invents column names translated
+  from Italian questions (`solare_mw`, `idroelettrica_mw`, `consomma_mw`), which is why it falls
+  to 8/201 in Italian. Qwen3 reads the schema (5 invented columns in all), maps the Italian
+  region aliases and is balanced across the two languages of the project. Its cost is speed:
+  ~50 % slower on GPU, which matters for the CPU demo but keeps it in the same size class.
+  Both models get 0 right on the extremes and classification families: that is the room
+  fine-tuning has to show.
+- **Excluded before the pilot:** Qwen3.5 0.8B / 2B / 4B (Unsloth discourages QLoRA 4-bit on
+  them, they need bf16 which the T4 lacks, multimodal); Gemma 4 E2B (5B parameters in total,
+  fp16 overflow on T4, multimodal); Qwen2.5-Coder-3B and Qwen2.5-3B (`qwen-research` licence,
+  non-commercial, unlike their 1.5B siblings); Llama 3.2 3B (Llama licence); SmolLM3-3B (kept
+  as an alternative: French native, but 3B halves the CPU demo speed and it is weak at code).
+- **Prompt length, measured:** with the Qwen tokenizer the system prompt is 4,528 tokens
+  (3.29 characters per token, not the 3.5 assumed in `prompts.py`, whose estimate says 4,252);
+  the full chat prompt is 4,561-4,587 tokens on validation. The estimate is to be recalibrated
+  separately.
