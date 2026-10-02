@@ -319,11 +319,14 @@ def main() -> None:
     parser.add_argument("--allow-cpu", action="store_true", help="run without a GPU (smoke tests)")
     for key in ("model", "split", "mode"):
         parser.add_argument(f"--{key}", help=f"overrides `{key}` of the config")
+    parser.add_argument("--out", help="overrides `paths.predictions` (smoke tests write apart)")
     args = parser.parse_args()
     config = yaml.safe_load(args.config.read_text(encoding="utf-8"))
     if args.limit:
         config["limit"] = args.limit
     config |= {key: getattr(args, key) for key in ("model", "split", "mode") if getattr(args, key)}
+    if args.out:
+        config["paths"]["predictions"] = args.out
     if config["mode"] not in MODES:
         raise SystemExit(f"mode {config['mode']!r} is not one of {MODES}")
     paths = {name: ROOT / value for name, value in config["paths"].items()}
