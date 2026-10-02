@@ -2,7 +2,7 @@
 
 import pytest
 
-from t2sql.train.sft import IGNORE, check_examples, prepare_example
+from t2sql.train.sft import IGNORE, check_examples, hub_repo, last_checkpoint, prepare_example
 
 
 class FakeTokenizer:
@@ -66,3 +66,20 @@ def test_examples_longer_than_the_limit_are_refused():
 def test_a_dataset_built_with_another_system_prompt_is_refused():
     with pytest.raises(ValueError, match="stale system prompt"):
         check_examples(FakeTokenizer(), [RECORD], "NEW SYS", 100)
+
+
+def test_each_run_has_its_own_private_hub_repo():
+    config = {"hub": {"owner": "zaninip", "prefix": "eco2mix-sql"}}
+    assert hub_repo(config, "Qwen3-1.7B-r16-lr0.0002-s0") == (
+        "zaninip/eco2mix-sql-Qwen3-1.7B-r16-lr0.0002-s0"
+    )
+
+
+def test_resume_needs_a_complete_checkpoint_on_the_hub(tmp_path, monkeypatch):
+    hub = pytest.importorskip("huggingface_hub")
+    downloaded = tmp_path / "last-checkpoint"
+    downloaded.mkdir(parents=True)
+    monkeypatch.setattr(hub, "snapshot_download", lambda *args, **kwargs: tmp_path)
+    assert last_checkpoint("owner/run", tmp_path) is None  # folder without trainer state
+    (downloaded / "trainer_state.json").write_text("{}")
+    assert last_checkpoint("owner/run", tmp_path) == str(downloaded)

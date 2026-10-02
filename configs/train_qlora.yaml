@@ -12,7 +12,8 @@ lora:
   target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
 
 training:
-  epochs: 2                      # a checkpoint at the end of each, both evaluated on val
+  epochs: 1                      # 133 updates, ~3 h on a T4 (docs/decisions.md, training plan)
+  save_steps: 33                 # checkpoint + validation loss every ~1/4 epoch: learning curve
   learning_rate: 2.0e-4
   lr_scheduler: cosine
   warmup_ratio: 0.05             # first ~5 % of the steps ramp the learning rate up from 0
@@ -24,6 +25,10 @@ training:
 
 tracking:
   report_to: wandb               # needs WANDB_API_KEY; the project name comes from WANDB_PROJECT
+
+hub:                             # one private repo per run: <owner>/<prefix>-<run name>
+  owner: zaninip                 # needs HF_TOKEN with write access
+  prefix: eco2mix-sql
 
 paths:
   domain: domains/eco2mix

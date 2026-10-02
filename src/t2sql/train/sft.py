@@ -67,6 +67,8 @@ def load_model(config: dict[str, Any]) -> Any:
         load_in_4bit=True,
         dtype=None,  # float16 on a T4, which has no bfloat16
     )
+    # Unsloth may swap the name for its own pre-quantized copy of the same weights
+    log(f"base weights loaded from {model.config._name_or_path}")
     return model
 
 
@@ -99,6 +101,31 @@ def run_name(config: dict[str, Any], smoke: bool = False) -> str:
     return f"{name}-s{config['seed']}" + ("-smoke" if smoke else "")
 
 
+def hub_repo(config: dict[str, Any], name: str) -> str:
+    """The private Hub repo of one run: one per run, so that runs never overwrite each other."""
+    return f"{config['hub']['owner']}/{config['hub']['prefix']}-{name}"
+
+
+def last_checkpoint(repo_id: str, download_dir: Path) -> str | None:
+    """Download the ``last-checkpoint`` folder of a run from the Hub, if there is one.
+
+    It holds everything a resumed run needs: adapter, optimizer state, schedule position and
+    random generators, so that training continues from the exact update it stopped at.
+    ``download_dir`` must lie outside the run's output folder, which is pushed to the Hub.
+    """
+    from huggingface_hub import snapshot_download
+    from huggingface_hub.errors import RepositoryNotFoundError
+
+    try:
+        folder = snapshot_download(
+            repo_id, allow_patterns="last-checkpoint/*", local_dir=download_dir
+        )
+    except RepositoryNotFoundError:
+        return None
+    checkpoint = Path(folder) / "last-checkpoint"
+    return str(checkpoint) if (checkpoint / "trainer_state.json").exists() else None
+
+
 def train(
     model: Any,
     tokenizer: Any,
@@ -107,17 +134,21 @@ def train(
     val_examples: list[dict[str, list[int]]],
     output_dir: Path,
     max_steps: int | None = None,
+    evaluate: bool = True,
+    resume_from: str | None = None,
 ) -> Any:
     """Fine-tune with TRL's SFTTrainer on examples already tokenized and masked.
 
     ``skip_prepare_dataset`` stops TRL from tokenizing or truncating again, and its collator
-    keeps our ``labels``. The validation loss is computed and a checkpoint saved at the end of
-    each epoch. ``max_steps`` cuts the run short (the smoke test).
+    keeps our ``labels``. Every ``save_steps`` updates a checkpoint is saved, pushed to the
+    run's private Hub repo, and (unless ``evaluate`` is False) the validation loss computed.
+    ``max_steps`` cuts the run short (smoke tests); ``resume_from`` continues a stopped run.
     """
     from datasets import Dataset
     from trl import SFTConfig, SFTTrainer
 
     settings = config["training"]
+    every = settings["save_steps"]
     args = SFTConfig(
         output_dir=str(output_dir),
         run_name=output_dir.name,
@@ -135,8 +166,14 @@ def train(
         bf16=False,
         logging_steps=settings["logging_steps"],
         disable_tqdm=True,  # one printed line per log instead of a bar a remote log cannot show
-        eval_strategy="epoch",
-        save_strategy="epoch",
+        eval_strategy="steps" if evaluate else "no",
+        eval_steps=every,
+        save_strategy="steps",
+        save_steps=every,
+        push_to_hub=True,
+        hub_model_id=hub_repo(config, output_dir.name),
+        hub_private_repo=True,
+        hub_strategy="checkpoint",  # each save pushed, the latest also as `last-checkpoint`
         seed=config["seed"],
         report_to=config["tracking"]["report_to"],
         packing=False,  # packing would mix examples and lose the loss mask
@@ -152,7 +189,11 @@ def train(
     batch = next(iter(trainer.get_train_dataloader()))
     trained = int((batch["labels"] != IGNORE).sum())
     log(f"first batch: {trained} of {batch['input_ids'].numel()} tokens carry the loss")
-    trainer.train()
+    log(f"checkpoints every {every} updates, pushed to {args.hub_model_id} (private)")
+    if resume_from:
+        log(f"resuming from {resume_from}")
+    trainer.train(resume_from_checkpoint=resume_from)
+    trainer.push_to_hub(commit_message="end of training")  # waits for the pending pushes too
     return trainer
 
 
@@ -161,8 +202,13 @@ def main() -> None:
     parser.add_argument("--config", type=Path, default=CONFIG_PATH)
     parser.add_argument("--check", action="store_true", help="prepare and verify, no training")
     parser.add_argument("--max-steps", type=int, help="stop after N updates (smoke test)")
+    parser.add_argument("--save-steps", type=int, help="overrides `training.save_steps`")
+    parser.add_argument("--no-eval", action="store_true", help="skip the validation loss")
+    parser.add_argument("--resume", action="store_true", help="continue from the Hub checkpoint")
     args = parser.parse_args()
     config = yaml.safe_load(args.config.read_text(encoding="utf-8"))
+    if args.save_steps:
+        config["training"]["save_steps"] = args.save_steps
     paths = {name: ROOT / value for name, value in config["paths"].items()}
     # Unsloth must be imported before transformers, which `load_tokenizer` imports
     model = None if args.check else load_model(config)
@@ -193,7 +239,16 @@ def main() -> None:
     model = add_adapter(model, config)
     log(f"trainable parameters: {trainable_parameters(model):,}")
     output_dir = paths["output"] / run_name(config, smoke=bool(args.max_steps))
-    trainer = train(model, tokenizer, config, examples, val_examples, output_dir, args.max_steps)
+    resume_from = None
+    if args.resume:
+        download_dir = output_dir.parent / f"{output_dir.name}-from-hub"
+        resume_from = last_checkpoint(hub_repo(config, output_dir.name), download_dir)
+        if resume_from is None:
+            raise SystemExit(f"--resume: no checkpoint of {output_dir.name} on the Hub")
+    trainer = train(
+        model, tokenizer, config, examples, val_examples, output_dir,
+        args.max_steps, not args.no_eval, resume_from,
+    )  # fmt: skip
     runtime = trainer.state.log_history[-1].get("train_runtime", 0.0)
     log(f"{trainer.state.global_step} updates in {runtime / 60:.1f} min")
     log(f"peak GPU memory: {torch.cuda.max_memory_allocated() / 2**30:.1f} GiB")
