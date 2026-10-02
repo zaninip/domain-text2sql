@@ -13,7 +13,7 @@ from typing import Any
 
 import yaml
 
-from t2sql.eval.run import ROOT, format_prompt, load_records, load_tokenizer
+from t2sql.eval.run import ROOT, format_prompt, load_records, load_tokenizer, log
 from t2sql.prompts import system_prompt
 
 CONFIG_PATH = ROOT / "configs" / "train_qlora.yaml"
@@ -52,13 +52,119 @@ def check_examples(
     return examples
 
 
+def load_model(config: dict[str, Any]) -> Any:
+    """The base model with its weights quantized to 4 bits and frozen (the Q of QLoRA).
+
+    Unsloth must be imported before transformers: it replaces some of its classes with faster
+    versions when imported. Only Unsloth's model is used: the examples are tokenized by the
+    evaluation tokenizer (`load_tokenizer`), so that training and evaluation read the same ids.
+    """
+    from unsloth import FastLanguageModel  # GPU only: installed by the Kaggle notebook
+
+    model, _ = FastLanguageModel.from_pretrained(
+        model_name=config["model"],
+        max_seq_length=config["max_length"],
+        load_in_4bit=True,
+        dtype=None,  # float16 on a T4, which has no bfloat16
+    )
+    return model
+
+
+def add_adapter(model: Any, config: dict[str, Any]) -> Any:
+    """Add the trainable LoRA matrices to every target layer; the base weights stay frozen."""
+    from unsloth import FastLanguageModel
+
+    lora = config["lora"]
+    return FastLanguageModel.get_peft_model(
+        model,
+        r=lora["r"],
+        lora_alpha=lora["alpha"],
+        lora_dropout=lora["dropout"],
+        target_modules=lora["target_modules"],
+        bias="none",
+        use_gradient_checkpointing="unsloth",  # activations offloaded to CPU RAM: long inputs
+        random_state=config["seed"],  # the random start of the A matrices
+    )
+
+
+def trainable_parameters(model: Any) -> int:
+    """How many weights the training changes: the LoRA matrices only (17.4 M expected)."""
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
+def run_name(config: dict[str, Any], smoke: bool = False) -> str:
+    """Name of a training run, for its folder and W&B: the settings the sensitivity plan varies."""
+    lora, training = config["lora"], config["training"]
+    name = f"{config['model'].split('/')[-1]}-r{lora['r']}-lr{training['learning_rate']:g}"
+    return f"{name}-s{config['seed']}" + ("-smoke" if smoke else "")
+
+
+def train(
+    model: Any,
+    tokenizer: Any,
+    config: dict[str, Any],
+    train_examples: list[dict[str, list[int]]],
+    val_examples: list[dict[str, list[int]]],
+    output_dir: Path,
+    max_steps: int | None = None,
+) -> Any:
+    """Fine-tune with TRL's SFTTrainer on examples already tokenized and masked.
+
+    ``skip_prepare_dataset`` stops TRL from tokenizing or truncating again, and its collator
+    keeps our ``labels``. The validation loss is computed and a checkpoint saved at the end of
+    each epoch. ``max_steps`` cuts the run short (the smoke test).
+    """
+    from datasets import Dataset
+    from trl import SFTConfig, SFTTrainer
+
+    settings = config["training"]
+    args = SFTConfig(
+        output_dir=str(output_dir),
+        run_name=output_dir.name,
+        num_train_epochs=settings["epochs"],
+        max_steps=max_steps or -1,
+        learning_rate=settings["learning_rate"],
+        lr_scheduler_type=settings["lr_scheduler"],
+        warmup_ratio=settings["warmup_ratio"],
+        per_device_train_batch_size=settings["batch_size"],
+        per_device_eval_batch_size=settings["batch_size"],
+        gradient_accumulation_steps=settings["gradient_accumulation"],
+        optim=settings["optimizer"],
+        weight_decay=settings["weight_decay"],
+        fp16=True,  # a T4 has no bfloat16
+        bf16=False,
+        logging_steps=settings["logging_steps"],
+        eval_strategy="epoch",
+        save_strategy="epoch",
+        seed=config["seed"],
+        report_to=config["tracking"]["report_to"],
+        packing=False,  # packing would mix examples and lose the loss mask
+        dataset_kwargs={"skip_prepare_dataset": True},
+    )
+    trainer = SFTTrainer(
+        model=model,
+        processing_class=tokenizer,
+        args=args,
+        train_dataset=Dataset.from_list(train_examples),
+        eval_dataset=Dataset.from_list(val_examples),
+    )
+    batch = next(iter(trainer.get_train_dataloader()))
+    trained = int((batch["labels"] != IGNORE).sum())
+    log(f"first batch: {trained} of {batch['input_ids'].numel()} tokens carry the loss")
+    trainer.train()
+    return trainer
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--config", type=Path, default=CONFIG_PATH)
     parser.add_argument("--check", action="store_true", help="prepare and verify, no training")
+    parser.add_argument("--max-steps", type=int, help="stop after N updates (smoke test)")
     args = parser.parse_args()
     config = yaml.safe_load(args.config.read_text(encoding="utf-8"))
     paths = {name: ROOT / value for name, value in config["paths"].items()}
+    # Unsloth must be imported before transformers, which `load_tokenizer` imports
+    model = None if args.check else load_model(config)
     tokenizer = load_tokenizer(config["model"])
     records = load_records(paths["splits"] / "train_chat.jsonl")
     system = system_prompt(paths["domain"])
@@ -76,8 +182,20 @@ def main() -> None:
     print(f"\n{len(examples)} examples checked")
     print(f"length: min {lengths[0]}, max {lengths[-1]} (limit {config['max_length']})")
     print(f"with loss: min {counts[0]}, mean {sum(counts) / len(counts):.0f}, max {counts[-1]}")
-    if not args.check:
-        raise SystemExit("training is not implemented yet: run with --check")
+    if args.check:
+        return
+
+    import torch
+
+    val_records = load_records(paths["splits"] / "val_chat.jsonl")
+    val_examples = check_examples(tokenizer, val_records, system, config["max_length"])
+    model = add_adapter(model, config)
+    log(f"trainable parameters: {trainable_parameters(model):,}")
+    output_dir = paths["output"] / run_name(config, smoke=bool(args.max_steps))
+    trainer = train(model, tokenizer, config, examples, val_examples, output_dir, args.max_steps)
+    runtime = trainer.state.log_history[-1].get("train_runtime", 0.0)
+    log(f"{trainer.state.global_step} updates in {runtime / 60:.1f} min")
+    log(f"peak GPU memory: {torch.cuda.max_memory_allocated() / 2**30:.1f} GiB")
 
 
 if __name__ == "__main__":

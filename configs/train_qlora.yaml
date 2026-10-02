@@ -18,8 +18,14 @@ training:
   warmup_ratio: 0.05             # first ~5 % of the steps ramp the learning rate up from 0
   batch_size: 1                  # one 4.7k-token sequence per forward pass on a T4
   gradient_accumulation: 16      # effective batch of 16 examples per update
+  optimizer: adamw_8bit          # AdamW with its state in 8 bits (bitsandbytes): less memory
+  weight_decay: 0.001            # as in Unsloth's reference notebook; negligible at this size
+  logging_steps: 5               # loss and learning rate sent to W&B every 5 updates
+
+tracking:
+  report_to: wandb               # needs WANDB_API_KEY; the project name comes from WANDB_PROJECT
 
 paths:
   domain: domains/eco2mix
   splits: data/dataset
-  output: results/training
+  output: data/training          # checkpoints: hundreds of MB, never committed
