@@ -1,0 +1,25 @@
+# QLoRA training (phase 4), centre point of the sensitivity plan in docs/decisions.md.
+# Paths are relative to the repository root.
+
+model: Qwen/Qwen3-1.7B
+seed: 0
+max_length: 4800                 # longest train example is 4724 tokens: nothing is ever cut
+
+lora:
+  r: 16
+  alpha: 32                      # alpha / r = 2; varies with the learning rate, not tuned apart
+  dropout: 0.0
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+
+training:
+  epochs: 2                      # a checkpoint at the end of each, both evaluated on val
+  learning_rate: 2.0e-4
+  lr_scheduler: cosine
+  warmup_ratio: 0.05             # first ~5 % of the steps ramp the learning rate up from 0
+  batch_size: 1                  # one 4.7k-token sequence per forward pass on a T4
+  gradient_accumulation: 16      # effective batch of 16 examples per update
+
+paths:
+  domain: domains/eco2mix
+  splits: data/dataset
+  output: results/training
