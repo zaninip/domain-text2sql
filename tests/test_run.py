@@ -8,6 +8,7 @@ import pytest
 from t2sql.db import connect, list_tables
 from t2sql.eval.run import (
     append_jsonl,
+    few_shot_examples,
     generated_length,
     load_model,
     mismatches,
@@ -22,6 +23,42 @@ from t2sql.eval.run import (
 def test_run_name_drops_the_organisation():
     config = {"model": "Qwen/Qwen3-1.7B", "split": "val", "mode": "zero_shot"}
     assert run_name(config) == "Qwen3-1.7B_val_zero_shot"
+
+
+def test_each_adapter_gets_its_own_run_name():
+    config = {"model": "Qwen/Qwen3-1.7B", "split": "val", "mode": "fine_tuned", "tag": "smoke20"}
+    assert run_name(config) == "Qwen3-1.7B_val_fine_tuned_smoke20"
+
+
+def test_an_adapter_is_merged_into_the_base_weights(tmp_path):
+    """A tiny random Qwen3 on the CPU: the merged model is a plain model, and the adapter
+    changes its outputs (its B matrices are set to non-zero values, as after training)."""
+    torch = pytest.importorskip("torch")
+    peft = pytest.importorskip("peft")
+    from transformers import Qwen3Config, Qwen3ForCausalLM
+
+    config = Qwen3Config(
+        vocab_size=64, hidden_size=16, intermediate_size=32, num_hidden_layers=1,
+        num_attention_heads=2, num_key_value_heads=1, head_dim=8,
+    )  # fmt: skip
+    torch.manual_seed(0)
+    Qwen3ForCausalLM(config).save_pretrained(tmp_path / "base")
+    lora = peft.get_peft_model(
+        Qwen3ForCausalLM.from_pretrained(tmp_path / "base"),
+        peft.LoraConfig(r=2, target_modules=["q_proj", "v_proj"]),
+    )
+    for name, weight in lora.named_parameters():
+        if "lora_B" in name:
+            torch.nn.init.normal_(weight)
+    lora.save_pretrained(tmp_path / "adapter")
+
+    ids = torch.tensor([[1, 2, 3]])
+    base = load_model(str(tmp_path / "base"), "float16", allow_cpu=True)
+    merged = load_model(
+        str(tmp_path / "base"), "float16", allow_cpu=True, adapter=str(tmp_path / "adapter")
+    )
+    assert type(merged) is type(base)  # merged: no PEFT wrapper left
+    assert not torch.allclose(base(ids).logits, merged(ids).logits)
 
 
 def test_generated_length_stops_at_the_end_token():
@@ -108,6 +145,16 @@ def test_a_few_shot_run_resumes_only_with_the_same_examples():
     assert mismatches(few_shot, few_shot) == []
     other = few_shot | {"few_shot_ids": ["a", "c"]}
     assert mismatches(few_shot, other) == ["few_shot_ids"]
+
+
+def test_a_fine_tuned_run_resumes_only_with_the_same_adapter():
+    fine_tuned = {"model": "m", "split": "val", "mode": "fine_tuned", "adapter": "ckpt-20"}
+    assert mismatches(fine_tuned, fine_tuned | {"adapter": "ckpt-40"}) == ["adapter"]
+
+
+def test_a_fine_tuned_run_gets_no_few_shot_examples(tmp_path):
+    # no train split in tmp_path: reading it would fail
+    assert few_shot_examples({"mode": "fine_tuned"}, tmp_path) == []
 
 
 def test_no_gpu_means_no_run_unless_allowed(monkeypatch):

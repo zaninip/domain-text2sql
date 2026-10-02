@@ -16,6 +16,7 @@ dependencies = [
 [project.optional-dependencies]
 model = [
     "accelerate>=1.10",
+    "peft>=0.17",
     "transformers>=4.56",
 ]
 

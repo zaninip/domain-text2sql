@@ -28,8 +28,10 @@ from t2sql.prompts import chat_messages, system_prompt
 ROOT = Path(__file__).resolve().parents[3]
 CONFIG_PATH = ROOT / "configs" / "eval.yaml"
 # What makes outputs comparable: a resumed run must match on all of these.
-GENERATION_KEYS = ("model", "split", "mode", "few_shot_ids", "generation", "dtype_used")
-MODES = ("zero_shot", "few_shot")
+GENERATION_KEYS = ("model", "split", "mode", "few_shot_ids", "adapter", "generation", "dtype_used")
+# The three configurations of CLAUDE.md §2.3: fine_tuned is the base model plus a LoRA adapter,
+# prompted like zero_shot (no examples)
+MODES = ("zero_shot", "few_shot", "fine_tuned")
 SCORE_LOG_EVERY = 50
 
 
@@ -46,8 +48,8 @@ def load_records(path: Path, limit: int | None = None) -> list[dict[str, Any]]:
 
 
 def few_shot_examples(config: dict[str, Any], splits_dir: Path) -> list[dict[str, Any]]:
-    """The fixed examples of a few-shot run, drawn from the train split; none in zero-shot."""
-    if config["mode"] == "zero_shot":
+    """The fixed examples of a few-shot run, drawn from the train split; none otherwise."""
+    if config["mode"] != "few_shot":
         return []
     return pick_examples(load_records(splits_dir / "train.jsonl"), config["few_shot"]["seed"])
 
@@ -80,12 +82,16 @@ def load_tokenizer(name: str) -> Any:
     return tokenizer
 
 
-def load_model(name: str, dtype: str, allow_cpu: bool = False) -> Any:
+def load_model(name: str, dtype: str, allow_cpu: bool = False, adapter: str | None = None) -> Any:
     """The model on the GPU; on a CPU only when explicitly allowed.
 
     A full evaluation on a CPU takes days, so a missing GPU stops the run at once instead of
     letting it crawl until a time limit kills it. ``dtype`` (float16 on a T4) applies on the
     GPU only: half precision is slow or unsupported on a CPU, which runs float32.
+
+    ``adapter`` (a checkpoint folder or a Hub repo) is a LoRA adapter put on the same base
+    weights, at the same precision as the baselines, then merged into them: the merged model
+    has the base model's shape and speed.
     """
     import torch
     from transformers import AutoModelForCausalLM
@@ -94,7 +100,12 @@ def load_model(name: str, dtype: str, allow_cpu: bool = False) -> Any:
         raise SystemExit("no GPU visible to torch: refusing to run (use --allow-cpu locally)")
     device = "cuda" if torch.cuda.is_available() else "cpu"
     torch_dtype = getattr(torch, dtype) if device == "cuda" else torch.float32
-    return AutoModelForCausalLM.from_pretrained(name, dtype=torch_dtype).to(device).eval()
+    model = AutoModelForCausalLM.from_pretrained(name, dtype=torch_dtype).to(device)
+    if adapter:
+        from peft import PeftModel
+
+        model = PeftModel.from_pretrained(model, adapter).merge_and_unload()
+    return model.eval()
 
 
 def environment(model: Any) -> dict[str, str]:
@@ -167,8 +178,13 @@ def generate(
 
 
 def run_name(config: dict[str, Any]) -> str:
-    """File name of one run: model (without its organisation), split and mode."""
-    return f"{config['model'].split('/')[-1]}_{config['split']}_{config['mode']}"
+    """File name of one run: model (without its organisation), split, mode and adapter tag.
+
+    The tag tells adapters apart (smoke test, checkpoints, sensitivity runs), so that their
+    outputs never overwrite each other.
+    """
+    name = f"{config['model'].split('/')[-1]}_{config['split']}_{config['mode']}"
+    return f"{name}_{config['tag']}" if config.get("tag") else name
 
 
 def run_files(directory: Path, name: str) -> dict[str, Path]:
@@ -277,10 +293,13 @@ def generate_missing(
         return
     settings = config["generation"]
     tokenizer = load_tokenizer(config["model"])
-    model = load_model(config["model"], settings["dtype"], allow_cpu)
+    model = load_model(config["model"], settings["dtype"], allow_cpu, config.get("adapter"))
     meta = {key: config[key] for key in ("model", "split", "mode")}
-    if examples:  # absent in zero-shot, so that zero-shot metadata keeps its earlier shape
+    # Keys added only when used, so that the metadata of earlier runs keeps its shape
+    if examples:
         meta["few_shot_ids"] = [example["id"] for example in examples]
+    if config.get("adapter"):
+        meta |= {"adapter": config["adapter"], "tag": config["tag"]}
     meta |= {"generation": settings, **environment(model)}
     log(f"model loaded on {meta['device']} ({meta['dtype_used']})")
     if done:
@@ -320,15 +339,20 @@ def main() -> None:
     for key in ("model", "split", "mode"):
         parser.add_argument(f"--{key}", help=f"overrides `{key}` of the config")
     parser.add_argument("--out", help="overrides `paths.predictions` (smoke tests write apart)")
+    parser.add_argument("--adapter", help="LoRA checkpoint folder or Hub repo (fine_tuned mode)")
+    parser.add_argument("--tag", help="short name of the adapter, part of the file names")
     args = parser.parse_args()
     config = yaml.safe_load(args.config.read_text(encoding="utf-8"))
     if args.limit:
         config["limit"] = args.limit
-    config |= {key: getattr(args, key) for key in ("model", "split", "mode") if getattr(args, key)}
+    keys = ("model", "split", "mode", "adapter", "tag")
+    config |= {key: getattr(args, key) for key in keys if getattr(args, key)}
     if args.out:
         config["paths"]["predictions"] = args.out
     if config["mode"] not in MODES:
         raise SystemExit(f"mode {config['mode']!r} is not one of {MODES}")
+    if (config["mode"] == "fine_tuned") != bool(config.get("adapter") and config.get("tag")):
+        raise SystemExit("--adapter and --tag go together, with --mode fine_tuned only")
     paths = {name: ROOT / value for name, value in config["paths"].items()}
     records = load_records(paths["splits"] / f"{config['split']}.jsonl", config["limit"])
     examples = few_shot_examples(config, paths["splits"])

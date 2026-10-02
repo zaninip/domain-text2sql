@@ -25,19 +25,21 @@ LATENCY_NOTE = (
 def load_runs(directory: Path, split: str) -> list[dict[str, Any]]:
     """Every scored run of ``split``: its settings (from the summary) and its rows.
 
-    Ordered by model, then zero-shot before few-shot, whatever the file names.
+    Ordered by model, then zero-shot, few-shot, fine-tuned (by adapter tag), whatever the
+    file names.
     """
     runs = []
     for summary_path in directory.glob(f"*_{split}_*.summary.json"):
         settings = json.loads(summary_path.read_text(encoding="utf-8"))
         rows = read_jsonl(run_files(directory, run_name(settings))["predictions"])
-        runs.append({"model": settings["model"], "mode": settings["mode"], "rows": rows})
-    return sorted(runs, key=lambda run: (run["model"], MODES.index(run["mode"])))
+        runs.append({**{key: settings.get(key) for key in ("model", "mode", "tag")}, "rows": rows})
+    return sorted(runs, key=lambda run: (run["model"], MODES.index(run["mode"]), run["tag"] or ""))
 
 
 def label(run: dict[str, Any]) -> str:
-    """Short name of a configuration: model without its organisation, and mode."""
-    return f"{run['model'].split('/')[-1]} {run['mode']}"
+    """Short name of a configuration: model without its organisation, mode, adapter tag."""
+    name = f"{run['model'].split('/')[-1]} {run['mode']}"
+    return f"{name} {run['tag']}" if run["tag"] else name
 
 
 def percent(value: float) -> str:
