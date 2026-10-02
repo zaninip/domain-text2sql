@@ -623,3 +623,40 @@ Format: date, decision, reason, alternatives considered.
   choice); hand-picked examples of the hardest conventions (more help to the base model, but
   open to the suspicion of being chosen for the evaluation set); dropping long examples to
   save tokens (they are the most instructive ones: UNPIVOT, ties at the peak).
+
+## 2026-10-02 — Baselines on the test split: phase 3 closed, decision gate passed
+
+- **Result:** Qwen3-1.7B on the test split (490 examples, 7 templates never used before),
+  same harness and prompt as the pilot. Tables in `results/report_test.md`.
+
+  | | Zero-shot | Few-shot |
+  |---|---|---|
+  | Execution accuracy | 14.3 % (70) | 16.5 % (81) |
+  | Valid SQL rate | 86.9 % | 82.0 % |
+  | Correct, French / Italian | 36 / 34 of 245 | 45 / 36 of 245 |
+
+- **Decision gate (CLAUDE.md §7):** zero-shot is far below ~85 %; we go on to fine-tuning
+  with the same model, templates and prompt.
+- **Reading the numbers:**
+  - Few-shot barely helps on test: 33 examples correct only in zero-shot, 44 only in
+    few-shot, exact McNemar p = 0.25, against +15 points on validation. Several of the nine
+    examples happen to be close to validation templates (`avg_consumption_hour_season_region`
+    vs `avg_consumption_moment_region_month`, `rank_position_region_measure_year` vs
+    `rank_top_regions_measure_year`); test has no such neighbours. The test numbers are the
+    ones to report.
+  - One template carries the zero-shot score: `rate_avg_coverage_indicator_region_year` gives
+    50 of the 70 correct answers (the coverage rate is a column, an `AVG` suffices). Without
+    it zero-shot is 20/420 (4.8 %). Comparison (last month vs a year before) and timeseries
+    (running sum) are 0/70 in both modes.
+  - Truncations at 256 tokens (4 zero-shot, 12 few-shot) are not a budget problem: the gold
+    queries of those templates are at most 130 tokens; the model writes convoluted ones.
+- **Manual error sample:** 21 wrong results of zero-shot, 3 per template, classified in
+  `results/error_sample_test.md`: aggregation 9, filter 6, time handling 5, unit 1 (+3 as a
+  secondary cause). The recurring causes are domain conventions present in the prompt but not
+  applied (daily or national granularity, running sums, peak hours and relative dates, unit
+  conversion, region aliases) plus invented filters. The same ids will be classified for the
+  fine-tuned model.
+- **Validity:** these baselines hold for the current prompt and dataset. If phase 4 changes
+  either (e.g. trimming the prompt for sequence length), they are rerun; the model pilot is
+  not, since the choice of Qwen3 rests on failures of Qwen2.5-Coder that do not depend on the
+  prompt text.

@@ -1,0 +1,28 @@
+{
+  "model": "Qwen/Qwen3-1.7B",
+  "split": "test",
+  "mode": "zero_shot",
+  "generation": {
+    "max_new_tokens": 256,
+    "batch_size": 8,
+    "dtype": "float16"
+  },
+  "device": "Tesla T4",
+  "dtype_used": "float16",
+  "torch": "2.10.0+cu128",
+  "transformers": "5.0.0",
+  "examples": 490,
+  "execution_accuracy": 0.14285714285714285,
+  "valid_sql_rate": 0.8693877551020408,
+  "generation_minutes": 36.5,
+  "mean_latency_s": 4.47490612244898,
+  "mean_output_tokens": 83.31836734693877,
+  "outcomes": {
+    "wrong_result": 356,
+    "correct": 70,
+    "runtime_error": 26,
+    "unknown_column": 20,
+    "syntax_error": 9,
+    "group_by_error": 9
+  }
+}
