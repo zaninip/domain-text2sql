@@ -1,0 +1,39 @@
+{
+  "model": "Qwen/Qwen3-1.7B",
+  "split": "val",
+  "mode": "few_shot",
+  "few_shot_ids": [
+    "agg_group_energy_national_year#0026#fr#1",
+    "avg_consumption_hour_season_region#0016#it#4",
+    "cls_main_source_per_region_year#0006#fr#4",
+    "cmp_winter_summer_consumption_ratio_region#0030#it#5",
+    "ext_peak_timestamp_region_year#0014#fr#4",
+    "mc_days_national_energy_above#0019#it#4",
+    "rank_position_region_measure_year#0007#fr#5",
+    "rate_share_source_production_region_year#0016#it#3",
+    "ts_hourly_profile_consumption_region_month#0019#fr#4"
+  ],
+  "generation": {
+    "max_new_tokens": 256,
+    "batch_size": 8,
+    "dtype": "float16"
+  },
+  "device": "Tesla T4",
+  "dtype_used": "float16",
+  "torch": "2.10.0+cu128",
+  "transformers": "5.0.0",
+  "examples": 402,
+  "execution_accuracy": 0.2462686567164179,
+  "valid_sql_rate": 0.9054726368159204,
+  "generation_minutes": 35.5,
+  "mean_latency_s": 5.2940746268656715,
+  "mean_output_tokens": 78.55721393034825,
+  "outcomes": {
+    "wrong_result": 265,
+    "correct": 99,
+    "group_by_error": 14,
+    "unknown_column": 14,
+    "syntax_error": 5,
+    "runtime_error": 5
+  }
+}

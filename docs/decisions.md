@@ -557,6 +557,23 @@ Format: date, decision, reason, alternatives considered.
   ~50 % slower on GPU, which matters for the CPU demo but keeps it in the same size class.
   Both models get 0 right on the extremes and classification families: that is the room
   fine-tuning has to show.
+- **Few-shot check (2026-10-02):** both models rerun on validation with the nine few-shot
+  examples (see the few-shot entry below), under the rule fixed before the run.
+
+  | | Qwen3-1.7B | Qwen2.5-Coder-1.5B-Instruct |
+  |---|---|---|
+  | Execution accuracy | 24.6 % (99) | 23.4 % (94) |
+  | Valid SQL rate | 90.5 % | 77.4 % |
+  | Correct, French / Italian | 56 / 43 of 201 | 55 / 39 of 201 |
+  | Generation time (402 examples) | 35.5 min | 22.9 min |
+
+  55 examples correct only for Qwen3, 50 only for Coder: exact McNemar p = 0.70, no
+  difference in either language, so **Qwen3-1.7B stays**. Examples help both a lot (zero-shot
+  -> few-shot p < 1e-10), so few-shot is the baseline fine-tuning must beat. They close
+  Coder's Italian gap, but Coder copies their surface: in the average family it scores 0/140
+  and adds the `GROUP BY heure` of the last example (the hourly profile) in 44 answers, against
+  5 for Qwen3. All four configurations score 0 on extremes, classification and the
+  weekday/weekend gap.
 - **Excluded before the pilot:** Qwen3.5 0.8B / 2B / 4B (Unsloth discourages QLoRA 4-bit on
   them, they need bf16 which the T4 lacks, multimodal); Gemma 4 E2B (5B parameters in total,
   fp16 overflow on T4, multimodal); Qwen2.5-Coder-3B and Qwen2.5-3B (`qwen-research` licence,
