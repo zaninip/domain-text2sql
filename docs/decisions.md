@@ -660,3 +660,85 @@ Format: date, decision, reason, alternatives considered.
   either (e.g. trimming the prompt for sequence length), they are rerun; the model pilot is
   not, since the choice of Qwen3 rests on failures of Qwen2.5-Coder that do not depend on the
   prompt text.
+
+## 2026-10-02 — Training stack: Unsloth on a Kaggle T4, W&B for tracking
+
+- **Decision:** QLoRA with Unsloth (`FastLanguageModel`, 4-bit base, LoRA through PEFT,
+  `use_gradient_checkpointing="unsloth"`) and TRL's `SFTTrainer`, in
+  `src/t2sql/train/sft.py`, driven by `configs/train_qlora.yaml` and run by
+  `notebooks/train_kaggle.ipynb` on one T4 (`CUDA_VISIBLE_DEVICES=0`: with two visible GPUs the
+  trainer would use DataParallel, which Unsloth does not support). Tracking with Weights &
+  Biases (project `domain-text2sql`).
+- **Versions:** Unsloth pins its neighbours, so they are installed by the training notebook
+  with the recipe of Unsloth's own Kaggle notebooks, not declared in `pyproject.toml` (uv
+  resolves all extras together and would refuse `transformers==4.56.2` next to the
+  evaluation's 5.x). Verified on Kaggle: unsloth 2026.9.14, torch 2.10.0+cu128, transformers
+  4.56.2, trl 0.22.2, peft 0.19.1, bitsandbytes 0.50.2, xformers 0.0.35. Evaluation stays on
+  Kaggle's transformers 5.0.0 for every configuration; the adapter is a plain PEFT file.
+- **Loss mask built by us:** each example is the evaluation prompt (`format_prompt`, the same
+  function) followed by the SQL and `<|im_end|>`; labels are -100 on the prompt, so the loss
+  falls on the answer only (74 tokens on average out of ~4,650). The prompt tokens must be an
+  exact prefix of the full example, checked on every example (`sft.py --check`, no GPU), and
+  no example may exceed `max_length` 4,800 (longest: 4,723). TRL is told not to re-tokenize
+  (`skip_prepare_dataset`); its collator keeps our labels, and the trainer logs the tokens
+  with loss in the first batch (smoke test: 55 of 4,636). The examples are tokenized with the
+  evaluation tokenizer, not Unsloth's.
+- **Reason:** Unsloth's kernels and activation offloading make 4.7k-token sequences fit and
+  run about twice as fast on a T4 (peak memory in the smoke test: 5.5 GiB of 14.5). W&B shows
+  the curves live while Kaggle trains in the background and gives a public link for the
+  README.
+- **Known detail:** Unsloth warns that Qwen3 does not accept `num_items_in_batch`, so with
+  gradient accumulation each example weighs the same instead of each answer token; answers
+  range from 35 to 153 tokens. Accepted: one question, one vote.
+- **Alternatives:** plain transformers + PEFT + bitsandbytes (kept as plan B; about twice as
+  slow); TRL's `assistant_only_loss` (fails silently on sequences longer than `max_length`,
+  and is a template patch we cannot see); MLflow (no live view from a Kaggle session without
+  a reachable server).
+
+## 2026-10-02 — Adapters are evaluated merged into the float16 base
+
+- **Decision:** `run.py --mode fine_tuned --adapter <checkpoint> --tag <name>` loads the base
+  model in float16, exactly as for the baselines, applies the LoRA adapter with PEFT and merges
+  it (`merge_and_unload`). Same prompt (no examples), same greedy decoding, same scoring. The
+  tag keeps the outputs of each adapter apart; the adapter path is in the run metadata.
+- **Reason:** CLAUDE.md §2.2 asks for the same precision across configurations. The adapter
+  was trained on 4-bit weights and is applied to the float16 originals: the standard QLoRA
+  practice, with a small mismatch that favours no configuration. Merging gives the base
+  model's shape and speed, and is what phase 5 does before GGUF.
+- **Kaggle detail:** the image ships torchao 0.10, which PEFT rejects as soon as it loads an
+  adapter; the evaluation notebook uninstalls it (nothing here uses it).
+
+## 2026-10-02 — Training plan: one epoch per run, checkpoints as a learning curve
+
+- **Smoke test (20 updates of 16 examples, cosine schedule fitted to 20 steps):** 84 s per
+  update, so one epoch (133 updates) takes ~3h05, plus ~8 min for the validation loss.
+  Training loss 0.72 -> 0.12, validation loss 0.21. Evaluated as an adapter (`smoke20`): **38.6 %**
+  execution accuracy on validation against 24.6 % few-shot and 9.7 % zero-shot (81 examples
+  right only with the adapter, 25 only few-shot; McNemar p < 1e-7). Still 0 on extremes
+  (ties reported with `ex_aequo`), classification (`AVG(...) OVER ()`) and the weekday/weekend
+  gap; night hours still written as `heure IN (0, 22)`.
+- **Decision:** the centre run is **one epoch**, not two (two would take ~6.5 h, beyond the
+  3 h per run of CLAUDE.md and a quarter of the weekly quota). A checkpoint every 33 updates
+  (~1/4 epoch) is pushed to the private Hub repo `zaninip/qwen3-1.7b-eco2mix-sql`, both to
+  resume a killed session and to measure a learning curve: validation accuracy at 1/4, 1/2
+  and 1 epoch, without extra training. Centre settings: r 16, alpha 32, dropout 0, all linear
+  layers, lr 2e-4 cosine with 5 % warmup, effective batch 16, AdamW 8-bit, weight decay 0.001,
+  seed 0.
+- **Sensitivity plan (fixed before any full run):** one factor at a time around the centre,
+  one epoch each: learning rate 1e-4 and 4e-4, and the centre again with seed 1 to measure
+  the noise of training alone. Alpha is not varied (with Adam, alpha/r and the learning rate
+  act on the output in the same way); rank only if quota is left. About 13 h of training and
+  3 h of evaluation over one or two weeks.
+- **Decision rules (fixed now):** configurations are compared on validation accuracy, paired
+  (exact McNemar on the same 402 examples), with the validation loss as a smoother second
+  signal. The validation set has only 7 templates, so examples are correlated and a difference
+  of a few points is not evidence. The configuration kept is the best one on validation; if
+  it does not beat the centre with p < 0.05, the centre is kept (the simpler choice), and the
+  earliest checkpoint not significantly worse than the best is preferred (less training,
+  less memorised template shape). **Instability flags**, either of which stops the plan for a
+  discussion before going on: (a) the two seeds differ with p < 0.05; (b) halving or doubling
+  the learning rate loses more than half of the centre's correct answers, with p < 0.05. The
+  test split is used once, with the configuration kept.
+- **Alternatives:** two epochs at the centre (cost above); a grid over lr x r x epochs
+  (impossible within the quota); trimming the prompt to shorten training (it would change the
+  baselines; kept as a lever if needed).
