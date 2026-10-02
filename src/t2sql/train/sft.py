@@ -134,6 +134,7 @@ def train(
         fp16=True,  # a T4 has no bfloat16
         bf16=False,
         logging_steps=settings["logging_steps"],
+        disable_tqdm=True,  # one printed line per log instead of a bar a remote log cannot show
         eval_strategy="epoch",
         save_strategy="epoch",
         seed=config["seed"],
