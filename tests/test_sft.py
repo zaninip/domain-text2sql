@@ -2,7 +2,14 @@
 
 import pytest
 
-from t2sql.train.sft import IGNORE, check_examples, hub_repo, last_checkpoint, prepare_example
+from t2sql.train.sft import (
+    IGNORE,
+    check_examples,
+    hub_repo,
+    last_checkpoint,
+    prepare_example,
+    run_name,
+)
 
 
 class FakeTokenizer:
@@ -83,3 +90,10 @@ def test_resume_needs_a_complete_checkpoint_on_the_hub(tmp_path, monkeypatch):
     assert last_checkpoint("owner/run", tmp_path) is None  # folder without trainer state
     (downloaded / "trainer_state.json").write_text("{}")
     assert last_checkpoint("owner/run", tmp_path) == str(downloaded)
+
+
+def test_the_data_version_keeps_runs_on_different_train_splits_apart():
+    config = {"model": "Qwen/Qwen3-1.7B", "seed": 0, "lora": {"r": 16}}
+    config["training"] = {"learning_rate": 2e-4}
+    assert run_name(config) == "Qwen3-1.7B-r16-lr0.0002-s0"  # the first centre run
+    assert run_name(config | {"data": "d2"}) == "Qwen3-1.7B-d2-r16-lr0.0002-s0"

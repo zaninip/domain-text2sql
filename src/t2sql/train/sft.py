@@ -95,9 +95,11 @@ def trainable_parameters(model: Any) -> int:
 
 
 def run_name(config: dict[str, Any], smoke: bool = False) -> str:
-    """Name of a training run, for its folder and W&B: the settings the sensitivity plan varies."""
+    """Name of a training run, for its folder, its Hub repo and W&B: the version of the train
+    data (when set) and the settings the sensitivity plan varies."""
     lora, training = config["lora"], config["training"]
-    name = f"{config['model'].split('/')[-1]}-r{lora['r']}-lr{training['learning_rate']:g}"
+    data = f"-{config['data']}" if config.get("data") else ""  # unset: the first train split
+    name = f"{config['model'].split('/')[-1]}{data}-r{lora['r']}-lr{training['learning_rate']:g}"
     return f"{name}-s{config['seed']}" + ("-smoke" if smoke else "")
 
 
