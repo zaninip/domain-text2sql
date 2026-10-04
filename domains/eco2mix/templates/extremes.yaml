@@ -34,6 +34,10 @@ templates:
     must_say:
       fr: ["quand", "heure", "moment", "instant"]
       it: ["quando", "ora", "momento", "istante"]
+    # ...and never the N half-hours of rank_top_instants_consumption_region_year.
+    must_not_say:
+      fr: ["demi-heure*"]
+      it: ["mezz'or*"]
 
     questions:
       fr:

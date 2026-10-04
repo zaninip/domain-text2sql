@@ -7,9 +7,10 @@
   },
   "splits": {
     "train": {
-      "examples": 2126,
+      "examples": 2336,
       "templates": [
         "agg_consumption_national_month",
+        "agg_energy_measure_region_relative_period",
         "agg_energy_source_region_year",
         "agg_exchange_gross_region_year",
         "agg_group_energy_national_year",
@@ -31,6 +32,8 @@
         "mc_hours_source_beats_source_season",
         "rank_position_region_measure_year",
         "rank_sources_region_year",
+        "rank_top_instants_consumption_region_year",
+        "rank_top_sources_national_year",
         "rate_avg_load_factor_region_year",
         "rate_coverage_national_month_moment",
         "rate_region_share_national_consumption_year",
@@ -42,19 +45,19 @@
         "ts_yearly_trend_measure_region"
       ],
       "by_family": {
-        "aggregation": 420,
+        "aggregation": 490,
         "average": 140,
         "classification": 96,
         "comparison": 280,
         "extremes": 140,
         "multi_condition": 280,
-        "ranking": 140,
+        "ranking": 280,
         "rate": 350,
         "timeseries": 280
       },
       "by_language": {
-        "fr": 1063,
-        "it": 1063
+        "fr": 1168,
+        "it": 1168
       },
       "by_template": {
         "agg_energy_source_region_year": 70,
@@ -63,6 +66,7 @@
         "agg_group_energy_national_year": 70,
         "agg_exchange_gross_region_year": 70,
         "agg_pumping_energy_region_year": 70,
+        "agg_energy_measure_region_relative_period": 70,
         "avg_consumption_hour_season_region": 70,
         "avg_daily_energy_region_month": 70,
         "cls_exchange_role_season": 70,
@@ -79,6 +83,8 @@
         "mc_days_net_role_region_year": 70,
         "rank_sources_region_year": 70,
         "rank_position_region_measure_year": 70,
+        "rank_top_sources_national_year": 70,
+        "rank_top_instants_consumption_region_year": 70,
         "rate_coverage_national_month_moment": 70,
         "rate_share_source_consumption_region_year": 70,
         "rate_share_source_production_region_year": 70,
@@ -90,28 +96,29 @@
         "ts_daily_consumption_national_month": 70
       },
       "by_convention": {
-        "energy_conversion": 1076,
-        "unit_scaling": 770,
-        "national_aggregate": 350,
+        "energy_conversion": 1216,
+        "unit_scaling": 910,
+        "national_aggregate": 420,
         "source_groups": 140,
         "exchange_sign": 210,
         "gross_exchanges": 70,
         "pumping_sign": 70,
+        "relative_dates": 70,
         "average_power": 140,
         "hour_of_day": 140,
         "season": 280,
         "average_daily_energy": 70,
         "unit_decides_power_or_energy": 140,
         "result_shape": 420,
-        "source_names": 96,
-        "ranking_tie_break": 96,
+        "source_names": 166,
+        "ranking_tie_break": 236,
         "percentage_change": 70,
         "ratio_of_sums": 70,
         "extremum_with_timestamp": 70,
         "tie_break": 70,
         "national_per_instant": 140,
         "extremum_value": 70,
-        "power_units": 70,
+        "power_units": 140,
         "days_count": 210,
         "daily_total": 210,
         "hours_from_steps": 70,
@@ -269,20 +276,23 @@
     "agg_exchange_gross_region_year": "train",
     "rate_offshore_share_wind_region_year": "val",
     "agg_group_energy_region_month": "train",
-    "rate_avg_coverage_indicator_region_year": "test"
+    "rate_avg_coverage_indicator_region_year": "test",
+    "agg_energy_measure_region_relative_period": "train",
+    "rank_top_instants_consumption_region_year": "train",
+    "rank_top_sources_national_year": "train"
   },
   "chat_bytes": {
-    "train": 33570433,
+    "train": 36895131,
     "val": 6352638,
     "test": 7744738
   },
   "system_prompt_tokens": 4651,
   "sample": 30,
-  "generated": 13308,
-  "kept": 3018,
+  "generated": 14320,
+  "kept": 3228,
   "dropped": {
-    "all_zero": 54,
-    "oversampled": 9536,
+    "all_zero": 58,
+    "oversampled": 10334,
     "all_null": 42,
     "precondition": 658
   }

@@ -742,3 +742,45 @@ Format: date, decision, reason, alternatives considered.
 - **Alternatives:** two epochs at the centre (cost above); a grid over lr x r x epochs
   (impossible within the quota); trimming the prompt to shorten training (it would change the
   baselines; kept as a lever if needed).
+
+## 2026-10-04 — Three train-only templates fill SQL constructs that only validation and test used
+
+- **Finding:** the centre run (one epoch) scored no better than the 20-update smoke adapter on
+  validation (c66 36.3 %, c133 35.1 %, smoke20 38.6 %). The cause is in the data: no train
+  example contains `LIMIT`, because every "first N" template landed in validation or test by
+  the template split. The longer the training, the more the model learns that rankings never
+  end with `LIMIT` and unlearns what the base model knew: answers with `LIMIT` on validation
+  fall from 124 (smoke20) to 15 (c133), and `rank_top_regions_measure_year` from 47 to 15
+  right. An audit with sqlglot of every construct of validation and test absent from train
+  found `LIMIT` (validation 70 examples, test 140) and, in one test template
+  (`cmp_last_month_vs_year_before_region`, 70), relative dates computed from `max(date)`
+  (`year()`, `month()`, a join with the reference date): 43 % of the test examples.
+- **Decision:** three templates marked `train_only: true`, kept out of the template split and
+  added to train afterwards:
+  - `rank_top_sources_national_year`: the first N sources in France over a year (`LIMIT`);
+  - `rank_top_instants_consumption_region_year`: the N half-hours of highest consumption in a
+    region (`LIMIT`, powers, no conversion);
+  - `agg_energy_measure_region_relative_period`: a source's energy in a region "last month" or
+    "last year", from `max(date)` (glossary §2).
+  Mirror guards added to their close neighbours (`rank_sources_region_year`,
+  `ext_peak_timestamp_region_year`) without changing any of their variants.
+- **Guarantees, checked:** validation and test files byte-identical (checksums); the 2,126
+  earlier train examples byte-identical and in the same order (generation draws per template,
+  the split ignores train-only templates); the nine few-shot examples frozen by id in
+  `configs/eval.yaml`, so every baseline (zero-shot, few-shot, pilot) stays valid; build
+  reproducible (two runs, same files). Train: 2,336 examples, 34 templates; one epoch is 146
+  updates.
+- **Disclosure:** the gap was found on validation, and the templates were written to fill it.
+  They cover generic constructs, not the evaluation questions: other objects (sources,
+  half-hours, a plain total) and no percentage change between two periods. Their closest
+  variants are still near the evaluation templates by their "first N" wording (`make
+  similar`: 0.81 between "Les {n} demi-heures où la consommation a été la plus élevée" and the
+  test's "Les {n} mois où la production … a été la plus élevée"); the relative-date template
+  shares its convention with the test template on purpose, since it is a glossary rule the
+  model must learn.
+- **Consequence:** the centre run is trained again on the new train split; the results of the
+  first centre run stay in `results/` as the record of the gap.
+- **Alternatives:** keeping the data and reporting the gap (the headline would measure a hole
+  in the data, not what fine-tuning teaches); changing the split rule to cover constructs and
+  rebuilding everything (validation and test would change, so the pilot and every baseline
+  would have to be run again).

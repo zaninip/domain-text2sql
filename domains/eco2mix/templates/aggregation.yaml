@@ -332,3 +332,58 @@ templates:
     result:
       columns: [energie]
       order_matters: false
+
+  - template_id: agg_energy_measure_region_relative_period
+    family: aggregation
+    conventions: [relative_dates, energy_conversion, unit_scaling]
+    description: >
+      Energy produced by one source in one region "last month" or "last year", both counted
+      from the last date of the data (glossary §2: last month = June 2026, last year = 2025),
+      computed from `max(date)` so that the query stays right when the data grows. Train only:
+      no other train template resolved a relative date, which test asks for.
+    train_only: true
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: production}
+      region:
+        from: regions
+      periode:
+        values:
+          - id: last_month
+            label: {fr: le mois dernier, it: il mese scorso}
+            sql: annee = year(d) AND mois = month(d)
+          - id: last_year
+            label: {fr: l'an dernier, it: l'anno scorso}
+            sql: annee = year(d) - 1
+      unite:
+        from: energy_units
+
+    max_instances: 35
+
+    questions:
+      fr:
+        - "Quelle quantité d'énergie {mesure} a été produite {region.in} {periode}{unite.suffix} ?"
+        - "Production {mesure} {region.in} {periode}{unite.suffix} ?"
+        - "{mesure.nom} {region.in} {periode}{unite.suffix} ?"
+        - "Quelle production pour {mesure.le} {region.in} {periode}{unite.suffix} ?"
+        - "Donne-moi la production {mesure} {region.in} {periode}{unite.suffix}."
+        - "{periode} : combien d'énergie {mesure} a-t-on produite {region.in}{unite.suffix} ?"
+      it:
+        - "Quanta energia {mesure} è stata prodotta {region.in} {periode}{unite.suffix}?"
+        - "Produzione {mesure} {region.in} {periode}{unite.suffix}?"
+        - "{mesure.nom} {region.in} {periode}{unite.suffix}?"
+        - "Che produzione per {mesure.le} {region.in} {periode}{unite.suffix}?"
+        - "Dammi la produzione {mesure} {region.in} {periode}{unite.suffix}."
+        - "{periode}: quanta energia {mesure} è stata prodotta {region.in}{unite.suffix}?"
+
+    sql: |
+      WITH fin AS (SELECT max(date) AS d FROM eco2mix)
+      SELECT SUM({mesure.sql}) {unite.expr} AS energie_{unite.id}
+      FROM eco2mix, fin
+      WHERE region = {region.literal} AND {periode.sql}
+
+    result:
+      columns: [energie]
+      order_matters: false

@@ -128,6 +128,12 @@ templates:
 
     max_instances: 35
 
+    # Words that keep the variants on this template's meaning: the whole ranking, not the
+    # first N sources of rank_top_sources_national_year.
+    must_not_say:
+      fr: ["premi*", "principal*", "top", "tête"]
+      it: ["prim*", "principal*", "top", "testa"]
+
     questions:
       fr:
         - "Classe les sources de production {region.in} en {annee} selon l'énergie produite{unite.suffix}."
@@ -266,4 +272,123 @@ templates:
 
     result:
       columns: [date, energie]
+      order_matters: true
+
+  - template_id: rank_top_sources_national_year
+    family: ranking
+    conventions: [ranking_tie_break, source_names, national_aggregate, energy_conversion, unit_scaling]
+    description: >
+      The N sources that produced the most energy in France over a year, with the energy of
+      each: the national version of rank_sources_region_year, cut to the first N with LIMIT.
+      Train only: no other train template used LIMIT, which validation and test ask for.
+    train_only: true
+
+    slots:
+      annee:
+        range: [2013, 2025]
+      n:
+        values:
+          - {id: 2, label: {fr: deux, it: due}}
+          - {id: 3, label: {fr: trois, it: tre}}
+          - {id: 4, label: {fr: quatre, it: quattro}}
+      unite:
+        from: energy_units
+
+    max_instances: 35
+
+    # Words that keep the variants on this template's meaning: the first N, not the whole
+    # ranking of rank_sources_region_year.
+    must_say:
+      fr: ["premi*", "principal*", "top", "tête"]
+      it: ["prim*", "principal*", "top", "testa"]
+
+    questions:
+      fr:
+        - "Quelles ont été les {n} premières filières de production en France en {annee}{unite.suffix} ?"
+        - "Les {n} principales sources de production d'électricité en France en {annee}{unite.suffix} ?"
+        - "Donne-moi les {n} filières en tête de la production nationale en {annee}{unite.suffix}."
+        - "Top {n.id} des sources de production en France en {annee}{unite.suffix} ?"
+        - "{annee} : quelles sont les {n} premières sources de production au niveau national{unite.suffix} ?"
+        - "Classement des {n} premières filières de la production française en {annee}{unite.suffix} ?"
+      it:
+        - "Quali sono state le prime {n} fonti di produzione in Francia nel {annee}{unite.suffix}?"
+        - "Le {n} principali fonti di produzione elettrica in Francia nel {annee}{unite.suffix}?"
+        - "Dammi le {n} fonti in testa alla produzione nazionale nel {annee}{unite.suffix}."
+        - "Top {n.id} delle fonti di produzione in Francia nel {annee}{unite.suffix}?"
+        - "{annee}: quali sono le prime {n} fonti di produzione a livello nazionale{unite.suffix}?"
+        - "Classifica delle prime {n} fonti della produzione francese nel {annee}{unite.suffix}?"
+
+    sql: |
+      SELECT source, SUM(mw) {unite.expr} AS energie_{unite.id}
+      FROM (
+        UNPIVOT (
+          SELECT thermique_mw, nucleaire_mw, eolien_mw, solaire_mw, hydraulique_mw, bioenergies_mw
+          FROM eco2mix
+          WHERE annee = {annee}
+        ) ON COLUMNS(*) INTO NAME source VALUE mw
+      )
+      GROUP BY source
+      ORDER BY energie_{unite.id} DESC, source
+      LIMIT {n.id}
+
+    result:
+      columns: [source, energie]
+      order_matters: true
+
+  - template_id: rank_top_instants_consumption_region_year
+    family: ranking
+    conventions: [ranking_tie_break, power_units]
+    description: >
+      The N half-hours of a year with the highest consumption in a region, with the power of
+      each. Values are powers per time step: no conversion to energy, only to the asked power
+      unit. Ties broken on the timestamp. Train only: no other train template used LIMIT,
+      which validation and test ask for.
+    train_only: true
+
+    slots:
+      region:
+        from: regions
+      annee:
+        range: [2013, 2025]
+      n:
+        values:
+          - {id: 3, label: {fr: trois, it: tre}}
+          - {id: 5, label: {fr: cinq, it: cinque}}
+          - {id: 10, label: {fr: dix, it: dieci}}
+      unite:
+        from: power_units
+
+    max_instances: 35
+
+    # Words that keep the variants on this template's meaning: N half-hours, not the single
+    # instant of the peak (ext_peak_timestamp_region_year).
+    must_say:
+      fr: ["demi-heure*"]
+      it: ["mezz'or*"]
+
+    questions:
+      fr:
+        - "Quelles ont été les {n} demi-heures de plus forte consommation {region.in} en {annee}{unite.suffix} ?"
+        - "Les {n} demi-heures où la consommation a été la plus élevée {region.in} en {annee}{unite.suffix} ?"
+        - "Donne-moi les {n} demi-heures les plus chargées en consommation {region.in} en {annee}{unite.suffix}."
+        - "Top {n.id} des demi-heures de consommation {region.in} en {annee}{unite.suffix} ?"
+        - "{region.in} en {annee} : quelles {n} demi-heures ont connu la consommation la plus forte{unite.suffix} ?"
+        - "Classement des {n} demi-heures de consommation maximale {region.in} en {annee}{unite.suffix} ?"
+      it:
+        - "Quali sono state le {n} mezz'ore di consumo più alto {region.in} nel {annee}{unite.suffix}?"
+        - "Le {n} mezz'ore in cui il consumo è stato più elevato {region.in} nel {annee}{unite.suffix}?"
+        - "Dammi le {n} mezz'ore con il consumo più forte {region.in} nel {annee}{unite.suffix}."
+        - "Top {n.id} delle mezz'ore di consumo {region.in} nel {annee}{unite.suffix}?"
+        - "{region.in} nel {annee}: quali {n} mezz'ore hanno avuto il consumo più alto{unite.suffix}?"
+        - "Classifica delle {n} mezz'ore di consumo massimo {region.in} nel {annee}{unite.suffix}?"
+
+    sql: |
+      SELECT date_heure, consommation_mw{unite.expr} AS consommation_{unite.id}
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+      ORDER BY consommation_{unite.id} DESC, date_heure
+      LIMIT {n.id}
+
+    result:
+      columns: [date_heure, consommation]
       order_matters: true
