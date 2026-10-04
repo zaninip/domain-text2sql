@@ -1,0 +1,30 @@
+{
+  "model": "Qwen/Qwen3-1.7B",
+  "split": "val",
+  "mode": "fine_tuned",
+  "adapter": "/kaggle/input/notebooks/paolo7/train-kaggle/repo/data/training/Qwen3-1.7B-r16-lr0.0002-s0/checkpoint-33",
+  "tag": "c33",
+  "generation": {
+    "max_new_tokens": 256,
+    "batch_size": 8,
+    "dtype": "float16"
+  },
+  "device": "Tesla T4",
+  "dtype_used": "float16",
+  "torch": "2.10.0+cu128",
+  "transformers": "5.0.0",
+  "examples": 402,
+  "execution_accuracy": 0.30597014925373134,
+  "valid_sql_rate": 0.9378109452736318,
+  "generation_minutes": 26.2,
+  "mean_latency_s": 3.91528855721393,
+  "mean_output_tokens": 69.3407960199005,
+  "outcomes": {
+    "wrong_result": 254,
+    "correct": 123,
+    "unknown_column": 13,
+    "syntax_error": 7,
+    "runtime_error": 4,
+    "group_by_error": 1
+  }
+}
