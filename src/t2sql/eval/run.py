@@ -48,10 +48,21 @@ def load_records(path: Path, limit: int | None = None) -> list[dict[str, Any]]:
 
 
 def few_shot_examples(config: dict[str, Any], splits_dir: Path) -> list[dict[str, Any]]:
-    """The fixed examples of a few-shot run, drawn from the train split; none otherwise."""
+    """The fixed examples of a few-shot run, from the train split; none otherwise.
+
+    ``few_shot.ids`` lists them explicitly (the seeded draw of `pick_examples`, frozen when
+    templates were later added to train, so that the few-shot baselines stay comparable);
+    without it they are drawn with ``few_shot.seed``.
+    """
     if config["mode"] != "few_shot":
         return []
-    return pick_examples(load_records(splits_dir / "train.jsonl"), config["few_shot"]["seed"])
+    train = load_records(splits_dir / "train.jsonl")
+    if ids := config["few_shot"].get("ids"):
+        by_id = {record["id"]: record for record in train}
+        if missing := [example_id for example_id in ids if example_id not in by_id]:
+            raise SystemExit(f"few-shot examples not in the train split: {missing}")
+        return [by_id[example_id] for example_id in ids]
+    return pick_examples(train, config["few_shot"]["seed"])
 
 
 def format_prompt(

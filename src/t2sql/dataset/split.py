@@ -72,10 +72,16 @@ def describe(records: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def split_dataset(clean_path: Path, out_dir: Path, seed: int) -> dict[str, Any]:
-    """Write train/val/test JSONL files and return the statistics report."""
+    """Write train/val/test JSONL files and return the statistics report.
+
+    Templates marked ``train_only`` are kept out of `assign_splits` and added to train
+    afterwards: they fill a gap of the training data (a SQL construct that only validation or
+    test templates used) without moving any other template to another split.
+    """
     records = [json.loads(line) for line in clean_path.open(encoding="utf-8")]
-    families = {r["template_id"]: r["family"] for r in records}
-    assignment = assign_splits(families, seed)
+    pinned = {r["template_id"] for r in records if r.get("train_only")}
+    families = {r["template_id"]: r["family"] for r in records if r["template_id"] not in pinned}
+    assignment = assign_splits(families, seed) | {template_id: "train" for template_id in pinned}
 
     out_dir.mkdir(parents=True, exist_ok=True)
     report: dict[str, Any] = {"seed": seed, "proportions": PROPORTIONS, "splits": {}}

@@ -84,3 +84,19 @@ def test_every_family_keeps_a_template_in_train():
 def test_a_single_template_family_never_leaves_train():
     families = {f"t{i:02d}": f"family{i % 5}" for i in range(20)} | {"lonely": "alone"}
     assert assign_splits(families, seed=1)["lonely"] == "train"
+
+
+def test_train_only_templates_go_to_train_and_move_no_other_template(tmp_path: Path):
+    rows = [r for i, t in enumerate(FAMILIES) for r in records(t, FAMILIES[t], 4 + i)]
+    extra = [r | {"train_only": True} for r in records("extra", "family0", 6)]
+    for name, content in (("before", rows), ("after", rows + extra)):
+        (tmp_path / name).mkdir()
+        clean = tmp_path / name / "clean.jsonl"
+        clean.write_text("".join(json.dumps(r) + "\n" for r in content), encoding="utf-8")
+        split_dataset(clean, tmp_path / name, seed=1)
+
+    for split in ("val", "test"):  # byte for byte: no example moved or changed
+        before = (tmp_path / "before" / f"{split}.jsonl").read_bytes()
+        assert (tmp_path / "after" / f"{split}.jsonl").read_bytes() == before
+    train = (tmp_path / "after" / "train.jsonl").read_text(encoding="utf-8").splitlines()
+    assert sum(json.loads(line)["template_id"] == "extra" for line in train) == 6

@@ -17,6 +17,7 @@ from t2sql.eval.run import (
     run_name,
     score_outputs,
     summarize,
+    write_jsonl,
 )
 
 
@@ -162,3 +163,12 @@ def test_no_gpu_means_no_run_unless_allowed(monkeypatch):
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
     with pytest.raises(SystemExit, match="no GPU"):
         load_model("any/model", "float16")
+
+
+def test_frozen_few_shot_ids_are_used_in_their_order(tmp_path):
+    train = [{"id": i, "question": "q", "sql": "SELECT 1"} for i in ("a", "b", "c")]
+    write_jsonl(train, tmp_path / "train.jsonl")
+    config = {"mode": "few_shot", "few_shot": {"seed": 0, "ids": ["c", "a"]}}
+    assert [e["id"] for e in few_shot_examples(config, tmp_path)] == ["c", "a"]
+    with pytest.raises(SystemExit, match="not in the train split"):
+        few_shot_examples(config | {"few_shot": {"seed": 0, "ids": ["z"]}}, tmp_path)

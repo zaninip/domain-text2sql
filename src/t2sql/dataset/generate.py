@@ -301,6 +301,8 @@ def instances(
                     # Validation keeps the first `max_instances` valid combinations by `instance`.
                     "instance": index,
                     "max_instances": template.get("max_instances"),
+                    # Set only when true, so that the records of other templates do not change.
+                    **({"train_only": True} if template.get("train_only") else {}),
                 }
 
 

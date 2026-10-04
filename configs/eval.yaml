@@ -8,6 +8,16 @@ limit: null                      # evaluate the first N examples only (local smo
 
 few_shot:                        # used in few_shot mode only
   seed: 0                        # one train example per family (9), languages alternating
+  ids:                           # the draw of seed 0, frozen before train-only templates came
+    - agg_group_energy_national_year#0026#fr#1
+    - avg_consumption_hour_season_region#0016#it#4
+    - cls_main_source_per_region_year#0006#fr#4
+    - cmp_winter_summer_consumption_ratio_region#0030#it#5
+    - ext_peak_timestamp_region_year#0014#fr#4
+    - mc_days_national_energy_above#0019#it#4
+    - rank_position_region_measure_year#0007#fr#5
+    - rate_share_source_production_region_year#0016#it#3
+    - ts_hourly_profile_consumption_region_month#0019#fr#4
 
 generation:
   max_new_tokens: 256            # greedy; the same budget for every configuration
