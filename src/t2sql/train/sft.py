@@ -199,18 +199,37 @@ def train(
     return trainer
 
 
+def with_overrides(
+    config: dict[str, Any],
+    learning_rate: float | None = None,
+    seed: int | None = None,
+    save_steps: int | None = None,
+) -> dict[str, Any]:
+    """The config with the settings a sensitivity run changes. Learning rate and seed are part
+    of `run_name`, so each variant gets its own folder, Hub repo and W&B run."""
+    config = {**config, "training": dict(config["training"])}
+    if learning_rate is not None:
+        config["training"]["learning_rate"] = learning_rate
+    if seed is not None:
+        config["seed"] = seed
+    if save_steps is not None:
+        config["training"]["save_steps"] = save_steps
+    return config
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--config", type=Path, default=CONFIG_PATH)
     parser.add_argument("--check", action="store_true", help="prepare and verify, no training")
     parser.add_argument("--max-steps", type=int, help="stop after N updates (smoke test)")
     parser.add_argument("--save-steps", type=int, help="overrides `training.save_steps`")
+    parser.add_argument("--learning-rate", type=float, help="overrides `training.learning_rate`")
+    parser.add_argument("--seed", type=int, help="overrides `seed` (LoRA init and data order)")
     parser.add_argument("--no-eval", action="store_true", help="skip the validation loss")
     parser.add_argument("--resume", action="store_true", help="continue from the Hub checkpoint")
     args = parser.parse_args()
     config = yaml.safe_load(args.config.read_text(encoding="utf-8"))
-    if args.save_steps:
-        config["training"]["save_steps"] = args.save_steps
+    config = with_overrides(config, args.learning_rate, args.seed, args.save_steps)
     paths = {name: ROOT / value for name, value in config["paths"].items()}
     # Unsloth must be imported before transformers, which `load_tokenizer` imports
     model = None if args.check else load_model(config)

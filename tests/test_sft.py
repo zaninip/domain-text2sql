@@ -9,6 +9,7 @@ from t2sql.train.sft import (
     last_checkpoint,
     prepare_example,
     run_name,
+    with_overrides,
 )
 
 
@@ -97,3 +98,13 @@ def test_the_data_version_keeps_runs_on_different_train_splits_apart():
     config["training"] = {"learning_rate": 2e-4}
     assert run_name(config) == "Qwen3-1.7B-r16-lr0.0002-s0"  # the first centre run
     assert run_name(config | {"data": "d2"}) == "Qwen3-1.7B-d2-r16-lr0.0002-s0"
+
+
+def test_sensitivity_overrides_change_the_run_name_and_leave_the_config_alone():
+    config = {"model": "Qwen/Qwen3-1.7B", "data": "d2", "seed": 0, "lora": {"r": 16}}
+    config["training"] = {"learning_rate": 2e-4, "save_steps": 33}
+    assert run_name(with_overrides(config, learning_rate=1e-4)) == "Qwen3-1.7B-d2-r16-lr0.0001-s0"
+    assert run_name(with_overrides(config, seed=1)) == "Qwen3-1.7B-d2-r16-lr0.0002-s1"
+    assert with_overrides(config, save_steps=2)["training"]["save_steps"] == 2
+    assert config["training"] == {"learning_rate": 2e-4, "save_steps": 33}  # not mutated
+    assert with_overrides(config) == config
