@@ -712,6 +712,8 @@ Format: date, decision, reason, alternatives considered.
 
 - **Smoke test (20 updates of 16 examples, cosine schedule fitted to 20 steps):** 84 s per
   update, so one epoch (133 updates) takes ~3h05, plus ~8 min for the validation loss.
+  *Corrected 2026-10-05:* the 84 s included the final validation loss; the full runs measured
+  71-73 s per update, i.e. ~2h45 of training per epoch plus ~10 min per validation loss.
   Training loss 0.72 -> 0.12, validation loss 0.21. Evaluated as an adapter (`smoke20`): **38.6 %**
   execution accuracy on validation against 24.6 % few-shot and 9.7 % zero-shot (81 examples
   right only with the adapter, 25 only few-shot; McNemar p < 1e-7). Still 0 on extremes
@@ -784,3 +786,32 @@ Format: date, decision, reason, alternatives considered.
   in the data, not what fine-tuning teaches); changing the split rule to cover constructs and
   rebuilding everything (validation and test would change, so the pilot and every baseline
   would have to be run again).
+
+## 2026-10-05 — Centre run on the d2 train split: checkpoint-66 kept (51.2 % on validation)
+
+- **Runs:** the centre settings trained twice for one epoch, on the first train split (133
+  updates, 3h24 with the four validation losses) and on d2, which adds the three train-only
+  templates (146 updates, 3h31). Both have their lowest validation loss at half an epoch
+  (0.159 first, **0.147 d2**), then 0.165-0.167 while the training loss goes to ~0.002.
+- **Validation accuracy (402 examples):**
+
+  | Checkpoint | first split | d2 |
+  |---|---|---|
+  | 1/4 epoch (33) | 30.6 % | 39.8 % |
+  | 1/2 epoch (66) | 36.3 % | **51.2 %** |
+  | 1 epoch (133 / 146) | 35.1 % | 49.5 % |
+
+  Base model on the same examples: zero-shot 9.7 %, few-shot 24.6 %; smoke20 38.6 %. d2c66
+  against c66: 64 examples right only with d2, 4 only with c66 (McNemar p < 1e-14); against
+  few-shot: 121 vs 14 (p < 1e-21). French 102/201, Italian 104/201.
+- **Rule applied (fixed beforehand):** d2c66 is the best; d2c146 is not significantly worse
+  (16 vs 9, p = 0.23) but trains twice as long; d2c33 is (p < 1e-10). **checkpoint-66 of the
+  d2 run is kept** as the centre of the sensitivity plan.
+- **What d2 fixed:** `rank_top_regions_measure_year` 27 -> 66 of 70 (answers with `LIMIT`
+  on validation: 29 -> 117), and the weekday/weekend gap 0 -> 21 of 70. Still 0 on
+  `ext_record_day_production_region_year` (the model now tries the `ex_aequo` shape of the
+  peak template and writes an invalid GROUP BY, 37 of 70) and on
+  `cls_region_vs_average_consumption_year`. The valid SQL rate drops from 96.0 % to 87.3 %,
+  almost entirely on those two templates, where nothing was right anyway.
+- **For the sensitivity runs:** one epoch each as planned, evaluated at checkpoint-66 and at
+  the end, compared with d2c66.
