@@ -93,16 +93,41 @@ def load_tokenizer(name: str) -> Any:
     return tokenizer
 
 
-def load_model(name: str, dtype: str, allow_cpu: bool = False, adapter: str | None = None) -> Any:
+def resolve_adapter(spec: str) -> tuple[str, str | None]:
+    """Where an adapter is: a local folder as is, or ``<hub repo>@step<N>``.
+
+    The trainer pushes every checkpoint of a run to the run's Hub repo as a commit titled
+    "Training in progress, step N". The newest commit with that title is returned, by its id,
+    so that the run metadata names the exact weights even if the repo moves on.
+    """
+    if "@step" not in spec:
+        return spec, None
+    repo, step = spec.rsplit("@step", 1)
+    from huggingface_hub import HfApi  # installed with transformers
+
+    wanted = f"Training in progress, step {int(step)}"
+    for commit in HfApi().list_repo_commits(repo):  # newest first
+        if commit.title == wanted:
+            return repo, commit.commit_id
+    raise SystemExit(f"{repo}: no commit titled {wanted!r}")
+
+
+def load_model(
+    name: str,
+    dtype: str,
+    allow_cpu: bool = False,
+    adapter: str | None = None,
+    revision: str | None = None,
+) -> Any:
     """The model on the GPU; on a CPU only when explicitly allowed.
 
     A full evaluation on a CPU takes days, so a missing GPU stops the run at once instead of
     letting it crawl until a time limit kills it. ``dtype`` (float16 on a T4) applies on the
     GPU only: half precision is slow or unsupported on a CPU, which runs float32.
 
-    ``adapter`` (a checkpoint folder or a Hub repo) is a LoRA adapter put on the same base
-    weights, at the same precision as the baselines, then merged into them: the merged model
-    has the base model's shape and speed.
+    ``adapter`` (a checkpoint folder, or a Hub repo at ``revision``) is a LoRA adapter put on
+    the same base weights, at the same precision as the baselines, then merged into them: the
+    merged model has the base model's shape and speed.
     """
     import torch
     from transformers import AutoModelForCausalLM
@@ -115,7 +140,7 @@ def load_model(name: str, dtype: str, allow_cpu: bool = False, adapter: str | No
     if adapter:
         from peft import PeftModel
 
-        model = PeftModel.from_pretrained(model, adapter).merge_and_unload()
+        model = PeftModel.from_pretrained(model, adapter, revision=revision).merge_and_unload()
     return model.eval()
 
 
@@ -304,13 +329,18 @@ def generate_missing(
         return
     settings = config["generation"]
     tokenizer = load_tokenizer(config["model"])
-    model = load_model(config["model"], settings["dtype"], allow_cpu, config.get("adapter"))
+    adapter, revision = (
+        resolve_adapter(config["adapter"]) if config.get("adapter") else (None, None)
+    )
+    model = load_model(config["model"], settings["dtype"], allow_cpu, adapter, revision)
     meta = {key: config[key] for key in ("model", "split", "mode")}
     # Keys added only when used, so that the metadata of earlier runs keeps its shape
     if examples:
         meta["few_shot_ids"] = [example["id"] for example in examples]
     if config.get("adapter"):
         meta |= {"adapter": config["adapter"], "tag": config["tag"]}
+    if revision:
+        meta["adapter_revision"] = revision
     meta |= {"generation": settings, **environment(model)}
     log(f"model loaded on {meta['device']} ({meta['dtype_used']})")
     if done:

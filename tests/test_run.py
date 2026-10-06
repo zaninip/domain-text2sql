@@ -13,6 +13,7 @@ from t2sql.eval.run import (
     load_model,
     mismatches,
     read_jsonl,
+    resolve_adapter,
     run_files,
     run_name,
     score_outputs,
@@ -172,3 +173,26 @@ def test_frozen_few_shot_ids_are_used_in_their_order(tmp_path):
     assert [e["id"] for e in few_shot_examples(config, tmp_path)] == ["c", "a"]
     with pytest.raises(SystemExit, match="not in the train split"):
         few_shot_examples(config | {"few_shot": {"seed": 0, "ids": ["z"]}}, tmp_path)
+
+
+def test_a_hub_adapter_is_found_by_the_step_of_its_checkpoint(monkeypatch):
+    hub = pytest.importorskip("huggingface_hub")
+
+    class Commit:
+        def __init__(self, title: str, commit_id: str):
+            self.title, self.commit_id = title, commit_id
+
+    history = [  # newest first, as the Hub lists them
+        Commit("Training in progress, step 66", "new66"),
+        Commit("Training in progress, step 33", "c33"),
+        Commit("Training in progress, step 66", "old66"),  # an earlier, resumed push
+    ]
+    monkeypatch.setattr(hub.HfApi, "list_repo_commits", lambda self, repo: history)
+    assert resolve_adapter("owner/run@step66") == ("owner/run", "new66")
+    assert resolve_adapter("owner/run@step33") == ("owner/run", "c33")
+    assert resolve_adapter("/kaggle/input/x/checkpoint-66") == (
+        "/kaggle/input/x/checkpoint-66",
+        None,
+    )
+    with pytest.raises(SystemExit, match="step 99"):
+        resolve_adapter("owner/run@step99")
