@@ -1,0 +1,31 @@
+{
+  "model": "Qwen/Qwen3-1.7B",
+  "split": "val",
+  "mode": "fine_tuned",
+  "adapter": "zaninip/eco2mix-sql-Qwen3-1.7B-d2-r16-lr0.0004-s0@step33",
+  "tag": "lr4e4c33",
+  "adapter_revision": "c33f4874344aee3c2690bd960e0df589ffb21423",
+  "generation": {
+    "max_new_tokens": 256,
+    "batch_size": 8,
+    "dtype": "float16"
+  },
+  "device": "Tesla T4",
+  "dtype_used": "float16",
+  "torch": "2.10.0+cu128",
+  "transformers": "5.0.0",
+  "examples": 402,
+  "execution_accuracy": 0.4502487562189055,
+  "valid_sql_rate": 0.9104477611940298,
+  "generation_minutes": 28.8,
+  "mean_latency_s": 4.292074626865672,
+  "mean_output_tokens": 77.33084577114428,
+  "outcomes": {
+    "wrong_result": 185,
+    "correct": 181,
+    "runtime_error": 13,
+    "syntax_error": 10,
+    "unknown_column": 9,
+    "group_by_error": 4
+  }
+}
