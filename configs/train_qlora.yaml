@@ -2,9 +2,9 @@
 # Paths are relative to the repository root.
 
 model: Qwen/Qwen3-1.7B
-data: d2                         # train split version: d2 adds the train-only templates (decisions.md)
+data: d3                         # train split version: d2 adds LIMIT/relative dates, d3 the coverage rule
 seed: 0
-max_length: 4800                 # longest train example is 4724 tokens: nothing is ever cut
+max_length: 4800                 # longest train example is 4732 tokens (d3): nothing is ever cut
 
 lora:
   r: 16
