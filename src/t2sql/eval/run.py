@@ -309,6 +309,21 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def planned_settings(config: dict[str, Any], examples: list[dict[str, Any]]) -> dict[str, Any]:
+    """The settings a run is asked to generate with, known before any model is loaded.
+
+    Keys are added only when used, so that the metadata of earlier runs keeps its shape.
+    """
+    planned = {key: config[key] for key in ("model", "split", "mode")}
+    if examples:
+        planned["few_shot_ids"] = [example["id"] for example in examples]
+    if config.get("adapter"):
+        planned["adapter"] = config["adapter"]
+    if config.get("tag"):
+        planned["tag"] = config["tag"]
+    return planned | {"generation": config["generation"]}
+
+
 def generate_missing(
     config: dict[str, Any],
     records: list[dict[str, Any]],
@@ -325,6 +340,12 @@ def generate_missing(
     done = {row["id"] for row in read_jsonl(outputs_path)}
     pending = [record for record in records if record["id"] not in done]
     log(f"{config['model']} on {config['split']}: {len(done)} done, {len(pending)} to generate")
+    saved = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {}
+    planned = planned_settings(config, examples)
+    # Checked before the early return: outputs already complete but generated with other
+    # settings (other few-shot examples, another adapter) must not be scored as this run.
+    if done and (different := [k for k in mismatches(saved, planned) if k != "dtype_used"]):
+        raise SystemExit(f"{outputs_path} was generated with other {different}: delete it")
     if not pending:
         return
     settings = config["generation"]
@@ -333,18 +354,9 @@ def generate_missing(
         resolve_adapter(config["adapter"]) if config.get("adapter") else (None, None)
     )
     model = load_model(config["model"], settings["dtype"], allow_cpu, adapter, revision)
-    meta = {key: config[key] for key in ("model", "split", "mode")}
-    # Keys added only when used, so that the metadata of earlier runs keeps its shape
-    if examples:
-        meta["few_shot_ids"] = [example["id"] for example in examples]
-    if config.get("adapter"):
-        meta |= {"adapter": config["adapter"], "tag": config["tag"]}
-    if revision:
-        meta["adapter_revision"] = revision
-    meta |= {"generation": settings, **environment(model)}
+    meta = planned | ({"adapter_revision": revision} if revision else {}) | environment(model)
     log(f"model loaded on {meta['device']} ({meta['dtype_used']})")
     if done:
-        saved = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {}
         if different := mismatches(saved, meta):
             raise SystemExit(f"{outputs_path} was generated with other {different}: delete it")
     else:
@@ -381,7 +393,7 @@ def main() -> None:
         parser.add_argument(f"--{key}", help=f"overrides `{key}` of the config")
     parser.add_argument("--out", help="overrides `paths.predictions` (smoke tests write apart)")
     parser.add_argument("--adapter", help="LoRA checkpoint folder or Hub repo (fine_tuned mode)")
-    parser.add_argument("--tag", help="short name of the adapter, part of the file names")
+    parser.add_argument("--tag", help="short name in the file names: the adapter, or a variant")
     args = parser.parse_args()
     config = yaml.safe_load(args.config.read_text(encoding="utf-8"))
     if args.limit:
@@ -392,8 +404,12 @@ def main() -> None:
         config["paths"]["predictions"] = args.out
     if config["mode"] not in MODES:
         raise SystemExit(f"mode {config['mode']!r} is not one of {MODES}")
-    if (config["mode"] == "fine_tuned") != bool(config.get("adapter") and config.get("tag")):
-        raise SystemExit("--adapter and --tag go together, with --mode fine_tuned only")
+    # fine_tuned needs an adapter and a tag; a tag alone versions any other run (few-shot
+    # examples drawn on another train split, for instance) so that it never reuses old outputs
+    if (config["mode"] == "fine_tuned") != bool(config.get("adapter")):
+        raise SystemExit("--adapter goes with --mode fine_tuned, and fine_tuned needs one")
+    if config.get("adapter") and not config.get("tag"):
+        raise SystemExit("--adapter needs a --tag, part of the file names")
     paths = {name: ROOT / value for name, value in config["paths"].items()}
     records = load_records(paths["splits"] / f"{config['split']}.jsonl", config["limit"])
     examples = few_shot_examples(config, paths["splits"])

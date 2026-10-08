@@ -1,5 +1,6 @@
 """Scoring and summary of an evaluation run (t2sql.eval.run), without any model."""
 
+import json
 from pathlib import Path
 
 import duckdb
@@ -9,6 +10,7 @@ from t2sql.db import connect, list_tables
 from t2sql.eval.run import (
     append_jsonl,
     few_shot_examples,
+    generate_missing,
     generated_length,
     load_model,
     mismatches,
@@ -196,3 +198,18 @@ def test_a_hub_adapter_is_found_by_the_step_of_its_checkpoint(monkeypatch):
     )
     with pytest.raises(SystemExit, match="step 99"):
         resolve_adapter("owner/run@step99")
+
+
+def test_complete_outputs_with_other_few_shot_examples_are_refused_before_any_model(tmp_path):
+    """Nothing left to generate must not mean "score the old outputs": the settings are
+    checked first, without loading a model (no torch needed)."""
+    records = [{"id": "a", "question": "q"}]
+    outputs, meta = tmp_path / "run.outputs.jsonl", tmp_path / "run.outputs.meta.json"
+    write_jsonl([{"id": "a", "output": "SELECT 1"}], outputs)
+    config = {"model": "m", "split": "val", "mode": "few_shot", "generation": {"batch_size": 8}}
+    old = {**config, "few_shot_ids": ["old"], "dtype_used": "float16"}
+    meta.write_text(json.dumps(old), encoding="utf-8")
+    with pytest.raises(SystemExit, match="few_shot_ids"):
+        generate_missing(config, records, [{"id": "new"}], {}, outputs, meta, allow_cpu=True)
+    # the same examples: nothing to do, and no model is loaded either
+    generate_missing(config, records, [{"id": "old"}], {}, outputs, meta, allow_cpu=True)
