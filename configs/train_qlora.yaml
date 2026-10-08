@@ -14,7 +14,7 @@ lora:
 
 training:
   epochs: 1                      # 133 updates, ~3 h on a T4 (docs/decisions.md, training plan)
-  save_steps: 33                 # checkpoint + validation loss every ~1/4 epoch: learning curve
+  save_steps: 50                 # checkpoint + validation loss every ~1/4 epoch (d3: 202 updates)
   learning_rate: 2.0e-4
   lr_scheduler: cosine
   warmup_ratio: 0.05             # first ~5 % of the steps ramp the learning rate up from 0
