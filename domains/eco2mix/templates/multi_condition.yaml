@@ -287,3 +287,138 @@ templates:
     result:
       columns: [jours]
       order_matters: false
+
+  - template_id: mc_hours_share_of_production_above_region_year
+    family: multi_condition
+    conventions: [hours_from_steps, share_at_each_step, total_production]
+    description: >
+      Hours in a year during which one source made more than a given share of a region's total
+      production: the share is tested at each step against the sum of the six sources, and
+      each step counts half an hour. Train only: coverage rule, decisions.md 2026-10-08.
+    train_only: true
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: production}
+      seuil:
+        values:
+          - {id: 25, ratio: 0.25, label: {fr: 25 %, it: 25%}}
+          - {id: 50, ratio: 0.5, label: {fr: 50 %, it: 50%}}
+          - {id: 75, ratio: 0.75, label: {fr: 75 %, it: 75%}}
+      region:
+        from: regions
+      annee:
+        range: [2013, 2025]
+
+    max_instances: 35
+
+    # A share of the total production, not of the consumption (mc_hours_share_above_region_year).
+    must_say:
+      fr: ["production totale"]
+      it: ["produzione totale"]
+    must_not_say:
+      fr: ["consomm*", "couv*"]
+      it: ["consum*", "copert*"]
+
+    questions:
+      fr:
+        - "{region.in} en {annee}, pendant combien de temps, en heures, l'énergie {mesure} a-t-elle fourni plus de {seuil} de la production totale ?"
+        - "Total d'heures en {annee} où l'énergie {mesure} dépassait {seuil} de la production totale {region.in} ?"
+        - "Durée en heures, {region.in} sur {annee}, pendant laquelle la part {mesure.de} dépassait {seuil} de la production totale ?"
+        - "Compte les heures de {annee} pendant lesquelles l'énergie {mesure} a représenté plus de {seuil} de la production totale {region.in}."
+        - "Production totale {region.in} en {annee} : sur combien d'heures la part {mesure.de} y a-t-elle dépassé {seuil} ?"
+        - "En heures, combien de temps en {annee} l'énergie {mesure} a-t-elle compté pour plus de {seuil} de la production totale {region.in} ?"
+      it:
+        - "{region.in} nel {annee}, per quanto tempo, in ore, l'energia {mesure} ha fornito più del {seuil} della produzione totale?"
+        - "Totale di ore nel {annee} con l'energia {mesure} oltre il {seuil} della produzione totale {region.in}?"
+        - "Durata in ore, {region.in} nel {annee}, in cui la quota {mesure.de} superava il {seuil} della produzione totale?"
+        - "Conta le ore del {annee} durante le quali l'energia {mesure} ha rappresentato più del {seuil} della produzione totale {region.in}."
+        - "Produzione totale {region.in} nel {annee}: per quante ore la quota {mesure.de} ha superato il {seuil}?"
+        - "In ore, per quanto tempo nel {annee} l'energia {mesure} ha contato per più del {seuil} della produzione totale {region.in}?"
+
+    require: |
+      SELECT count(*) FILTER (WHERE {mesure.sql} > {seuil.ratio} * (
+               COALESCE(thermique_mw, 0) + COALESCE(nucleaire_mw, 0) + COALESCE(eolien_mw, 0)
+               + COALESCE(solaire_mw, 0) + COALESCE(hydraulique_mw, 0) + COALESCE(bioenergies_mw, 0)))
+             BETWEEN 1 AND count(*) - 1
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+
+    sql: |
+      SELECT count(*) * 0.5 AS heures
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+        AND {mesure.sql} > {seuil.ratio} * (
+              COALESCE(thermique_mw, 0) + COALESCE(nucleaire_mw, 0) + COALESCE(eolien_mw, 0)
+              + COALESCE(solaire_mw, 0) + COALESCE(hydraulique_mw, 0) + COALESCE(bioenergies_mw, 0))
+
+    result:
+      columns: [heures]
+      order_matters: false
+
+  - template_id: mc_time_share_source_above_consumption_region_year
+    family: multi_condition
+    conventions: [share_at_each_step]
+    description: >
+      Share of the time, in percent, during which one source covered more than a given share
+      of a region's consumption over a year: the condition is tested at each step and the
+      steps that meet it are counted against all steps. Train only: coverage rule,
+      decisions.md 2026-10-08.
+    train_only: true
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: production}
+      seuil:
+        values:
+          - {id: 25, ratio: 0.25, label: {fr: 25 %, it: 25%}}
+          - {id: 50, ratio: 0.5, label: {fr: 50 %, it: 50%}}
+          - {id: 75, ratio: 0.75, label: {fr: 75 %, it: 75%}}
+      region:
+        from: regions
+      annee:
+        range: [2013, 2025]
+
+    max_instances: 35
+
+    # A share of the time, not a number of hours (mc_hours_share_above_region_year).
+    must_say:
+      fr: ["temps"]
+      it: ["tempo"]
+    must_not_say:
+      fr: ["heure*", "nombre"]
+      it: ["ore", "numero"]
+
+    questions:
+      fr:
+        - "Sur l'année {annee}, quelle fraction du temps a vu l'énergie {mesure} couvrir plus de {seuil} de la consommation {region.in} ?"
+        - "Pourcentage du temps de {annee} où la production {mesure} excédait {seuil} de la consommation {region.in} ?"
+        - "{region.in} en {annee} : pendant quel pourcentage du temps la production {mesure} a-t-elle couvert plus de {seuil} de la consommation ?"
+        - "Donne-moi la part du temps où la production {mesure} a dépassé {seuil} de la consommation {region.in} en {annee}."
+        - "Proportion du temps {region.in} en {annee} où la couverture {mesure} passait au-dessus de {seuil} de la consommation ?"
+        - "En {annee} {region.in}, combien de temps, en pourcentage, la production {mesure} a-t-elle couvert plus de {seuil} de la consommation ?"
+      it:
+        - "Nell'anno {annee}, quale frazione del tempo ha visto l'energia {mesure} coprire più del {seuil} del consumo {region.in}?"
+        - "Che percentuale del tempo, nel {annee}, la produzione {mesure} ha superato il {seuil} del consumo {region.in}?"
+        - "{region.in} nel {annee}: per quale percentuale del tempo la produzione {mesure} ha coperto più del {seuil} del consumo?"
+        - "Dammi la quota di tempo in cui la produzione {mesure} ha superato il {seuil} del consumo {region.in} nel {annee}."
+        - "Proporzione del tempo {region.in} nel {annee} in cui la copertura {mesure} superava il {seuil} del consumo?"
+        - "Nel {annee} {region.in}, per quanto tempo, in percentuale, la produzione {mesure} ha coperto più del {seuil} del consumo?"
+
+    require: |
+      SELECT count(*) FILTER (WHERE {mesure.sql} > {seuil.ratio} * consommation_mw)
+             BETWEEN 1 AND count(*) - 1
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+
+    sql: |
+      SELECT 100.0 * count(*) FILTER (WHERE {mesure.sql} > {seuil.ratio} * consommation_mw)
+             / count(*) AS part_du_temps_pct
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+
+    result:
+      columns: [part_du_temps_pct]
+      order_matters: false

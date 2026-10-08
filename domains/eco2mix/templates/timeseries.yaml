@@ -274,3 +274,110 @@ templates:
     result:
       columns: [mois, energie_cumulee]
       order_matters: true
+
+  - template_id: ts_cumulative_consumption_national_year
+    family: timeseries
+    conventions: [cumulative_total, national_aggregate, energy_conversion, unit_scaling]
+    description: >
+      National consumption cumulated month after month from January: a window SUM over the
+      monthly SUM of the twelve regions. Train only: coverage rule, decisions.md 2026-10-08.
+    train_only: true
+
+    slots:
+      annee:
+        range: [2013, 2025]
+      unite:
+        from: energy_units
+
+    max_instances: 35
+
+    must_say:
+      fr: ["cumul*"]
+      it: ["cumul*"]
+
+    questions:
+      fr:
+        - "Mois après mois, comment s'est accumulée la consommation de la France en {annee} : quel cumul{unite.suffix} ?"
+        - "Consommation nationale cumulée depuis janvier, mois par mois, en {annee}{unite.suffix} ?"
+        - "Donne pour chaque mois de {annee} la consommation de la France cumulée depuis le début de l'année{unite.suffix}."
+        - "Pour chaque mois de {annee}, total cumulé depuis janvier de ce que la France a consommé{unite.suffix} ?"
+        - "Consommation cumulée de la France, mois par mois, en {annee}{unite.suffix} ?"
+        - "En {annee}, quelle consommation cumulée la France avait-elle atteinte à la fin de chaque mois{unite.suffix} ?"
+      it:
+        - "Qual è stato il consumo francese cumulato mese dopo mese nel {annee}{unite.suffix}?"
+        - "Consumo nazionale cumulato da gennaio, mese per mese, nel {annee}{unite.suffix}?"
+        - "Indica per ogni mese del {annee} il consumo della Francia cumulato da inizio anno{unite.suffix}."
+        - "Francia, {annee}: che consumo cumulato alla fine di ogni mese{unite.suffix}?"
+        - "Consumo cumulato della Francia, mese per mese, nel {annee}{unite.suffix}?"
+        - "Nel {annee}, quale consumo cumulato aveva raggiunto la Francia alla fine di ogni mese{unite.suffix}?"
+
+    sql: |
+      SELECT mois, SUM(SUM(consommation_mw) {unite.expr}) OVER (ORDER BY mois) AS energie_cumulee_{unite.id}
+      FROM eco2mix
+      WHERE annee = {annee}
+      GROUP BY mois
+      ORDER BY mois
+
+    result:
+      columns: [mois, energie_cumulee]
+      order_matters: true
+
+  - template_id: ts_cumulative_daily_source_region_month
+    family: timeseries
+    conventions: [cumulative_total, energy_conversion, unit_scaling]
+    description: >
+      Production of one source in a region cumulated day after day within one month: the
+      window SUM runs over daily totals instead of monthly ones. Train only: coverage rule,
+      decisions.md 2026-10-08.
+    train_only: true
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: production}
+      region:
+        from: regions
+      mois:
+        from: months
+      annee:
+        range: [2013, 2025]
+      unite:
+        from: energy_units
+
+    max_instances: 35
+
+    must_say:
+      fr: ["cumul*"]
+      it: ["cumul*"]
+
+    questions:
+      fr:
+        - "Jour par jour, comment s'est accumulée la production {mesure} {region.in} {mois.in} {annee} : quel cumul{unite.suffix} ?"
+        - "Production {mesure} cumulée depuis le début du mois, jour par jour, {region.in} {mois.in} {annee}{unite.suffix} ?"
+        - "Pour chaque date {mois.de} {annee}, le total cumulé depuis le 1er de la production {mesure} {region.in}{unite.suffix}."
+        - "{region.in}, {mois} {annee} : à combien s'élevait le cumul de production {mesure} au terme de chaque journée{unite.suffix} ?"
+        - "Somme cumulée, jour après jour, de l'énergie {mesure} produite {region.in} {mois.in} {annee}{unite.suffix} ?"
+        - "{mois.in} {annee} {region.in} : production {mesure} cumulée au fil des jours{unite.suffix} ?"
+      it:
+        - "Giorno per giorno, come si è accumulata la produzione {mesure} {region.in} {mois.in} {annee}: che cumulato{unite.suffix}?"
+        - "Per ogni data {mois.de} {annee}, il totale cumulato dal primo del mese della produzione {mesure} {region.in}{unite.suffix}."
+        - "Indica per ogni giorno {mois.de} {annee} la produzione {mesure} cumulata dal primo del mese {region.in}{unite.suffix}."
+        - "{region.in}, {mois} {annee}: a quanto ammontava il cumulato di produzione {mesure} al termine di ogni giornata{unite.suffix}?"
+        - "Somma cumulata, giorno dopo giorno, dell'energia {mesure} prodotta {region.in} {mois.in} {annee}{unite.suffix}?"
+        - "{mois.in} {annee} {region.in}: produzione {mesure} cumulata giorno per giorno{unite.suffix}?"
+
+    require: |
+      SELECT count(DISTINCT {mesure.sql}) > 1
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee} AND mois = {mois.id}
+
+    sql: |
+      SELECT date, SUM(SUM({mesure.sql}) {unite.expr}) OVER (ORDER BY date) AS energie_cumulee_{unite.id}
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee} AND mois = {mois.id}
+      GROUP BY date
+      ORDER BY date
+
+    result:
+      columns: [date, energie_cumulee]
+      order_matters: true

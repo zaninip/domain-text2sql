@@ -195,3 +195,135 @@ templates:
     result:
       columns: [date, energie_mwh, ex_aequo]
       order_matters: false
+
+  - template_id: ext_record_day_consumption_national_year
+    family: extremes
+    conventions: [record_day_daily_total, extremum_with_timestamp, tie_break, national_aggregate, energy_conversion]
+    description: >
+      The day of a year with the highest (or lowest) national consumption: daily energy totals
+      over the twelve regions, the earliest such day and the number of days that reach the
+      value (glossary §8). Train only: coverage rule, decisions.md 2026-10-08.
+    train_only: true
+
+    slots:
+      extremum:
+        values:
+          - {id: max, label: {fr: la plus forte, it: più alto}, agg: max, weight: 1.0}
+          - {id: min, label: {fr: la plus faible, it: più basso}, agg: min, weight: 0.3}
+      annee:
+        range: [2013, 2025]
+
+    max_instances: 35
+
+    # Same guards as ext_record_day_production_region_year: a DAY, never an instant.
+    must_say:
+      fr: ["jour", "journée"]
+      it: ["giorno", "giornata"]
+    must_not_say:
+      fr: ["heure", "quand", "moment", "instant"]
+      it: ["ora", "quando", "momento", "istante"]
+
+    questions:
+      fr:
+        - "Quel jour de {annee} la consommation française a-t-elle été {extremum} ?"
+        - "En {annee}, quelle journée a connu la consommation nationale {extremum} ?"
+        - "Donne-moi le jour de {annee} où la consommation de la France a été {extremum}."
+        - "France, {annee} : quel jour la consommation totale a-t-elle été {extremum} ?"
+        - "Sur l'ensemble de la France en {annee}, quelle a été la journée de consommation {extremum} ?"
+        - "Consommation nationale en {annee} : quel a été le jour où elle a été {extremum} ?"
+      it:
+        - "In quale giorno del {annee} il consumo in Francia è stato {extremum}?"
+        - "Nel {annee}, quale giornata ha avuto il consumo nazionale {extremum}?"
+        - "Dammi il giorno del {annee} in cui il consumo della Francia è stato {extremum}."
+        - "Francia, {annee}: in che giorno il consumo totale è stato {extremum}?"
+        - "Su tutta la Francia nel {annee}, qual è stata la giornata di consumo {extremum}?"
+        - "Consumo nazionale nel {annee}: qual è stato il giorno in cui è stato {extremum}?"
+
+    sql: |
+      WITH v AS (
+        SELECT date, SUM(consommation_mw) * 0.5 AS energie_mwh
+        FROM eco2mix
+        WHERE annee = {annee}
+        GROUP BY date
+      )
+      SELECT min(date) AS date, energie_mwh, count(*) AS ex_aequo
+      FROM v
+      WHERE energie_mwh = (SELECT {extremum.agg}(energie_mwh) FROM v)
+      GROUP BY energie_mwh
+
+    result:
+      columns: [date, energie_mwh, ex_aequo]
+      order_matters: false
+
+  - template_id: ext_record_day_source_region_relative_year
+    family: extremes
+    conventions: [record_day_daily_total, extremum_with_timestamp, tie_break, relative_dates, energy_conversion]
+    description: >
+      The best day of production of one source in a region "last year" or "this year", both
+      counted from the last date of the data (glossary §2): daily totals, the earliest best
+      day and the number of days that reach it. Train only: coverage rule, decisions.md
+      2026-10-08.
+    train_only: true
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: production}
+      region:
+        from: regions
+      periode:
+        values:
+          - id: last_year
+            label: {fr: "l'an dernier", it: "l'anno scorso"}
+            sql: annee = year(d) - 1
+          - id: this_year
+            label: {fr: cette année, it: "quest'anno"}
+            sql: annee = year(d)
+
+    max_instances: 35
+
+    must_say:
+      fr: ["jour", "journée"]
+      it: ["giorno", "giornata"]
+    must_not_say:
+      fr: ["heure", "quand", "moment", "instant"]
+      it: ["ora", "quando", "momento", "istante"]
+
+    questions:
+      fr:
+        - "{periode}, sur quelle journée la production {mesure} {region.in} a-t-elle culminé ?"
+        - "Je cherche, pour {periode}, le jour qui a totalisé le plus d'énergie {mesure} {region.in}."
+        - "Énergie {mesure} {region.in} : quel jour en a fourni le plus {periode} ?"
+        - "Donne-moi la date du jour le plus productif pour {mesure.le} {region.in} {periode}."
+        - "{region.in}, {periode} : le jour le plus fort pour la production {mesure}, c'est lequel ?"
+        - "Entre toutes, quelle journée {periode} a vu la production {mesure} la plus élevée {region.in} ?"
+      it:
+        - "{periode}, in quale giornata la produzione {mesure} {region.in} ha toccato il massimo?"
+        - "Cerco, per {periode}, il giorno che ha totalizzato più energia {mesure} {region.in}."
+        - "Energia {mesure} {region.in}: quale giorno ne ha fornita di più {periode}?"
+        - "Dammi la data del giorno più produttivo per {mesure.le} {region.in} {periode}."
+        - "{region.in}, {periode}: il giorno più forte per la produzione {mesure}, qual è?"
+        - "Fra tutte, quale giornata {periode} ha visto la produzione {mesure} più alta {region.in}?"
+
+    require: |
+      WITH fin AS (SELECT max(date) AS d FROM eco2mix)
+      SELECT count(DISTINCT {mesure.sql}) > 1
+      FROM eco2mix, fin
+      WHERE region = {region.literal} AND {periode.sql}
+
+    sql: |
+      WITH fin AS (SELECT max(date) AS d FROM eco2mix),
+      v AS (
+        SELECT date, SUM({mesure.sql}) * 0.5 AS energie_mwh
+        FROM eco2mix, fin
+        WHERE region = {region.literal} AND {periode.sql}
+        GROUP BY date
+      )
+      SELECT min(date) AS date, energie_mwh, count(*) AS ex_aequo
+      FROM v
+      WHERE energie_mwh = (SELECT max(energie_mwh) FROM v)
+      GROUP BY energie_mwh
+
+    result:
+      columns: [date, energie_mwh, ex_aequo]
+      order_matters: false

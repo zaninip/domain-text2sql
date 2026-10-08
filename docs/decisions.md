@@ -815,3 +815,62 @@ Format: date, decision, reason, alternatives considered.
   almost entirely on those two templates, where nothing was right anyway.
 - **For the sensitivity runs:** one epoch each as planned, evaluated at checkpoint-66 and at
   the end, compared with d2c66.
+
+## 2026-10-08 — Coverage rule: every evaluated convention is trained by at least 2 templates
+
+- **Finding:** the seed replicate of the centre (seed 1) agrees with seed 0 at checkpoint-66
+  (51.7 % vs 51.2 %, p = 0.88) but not at the end of the epoch (53.0 % vs 49.5 %, p = 0.024,
+  instability flag (a)). All the variation sits in two validation templates,
+  `avg_consumption_moment_region_month` (22 to 46 right across seeds, checkpoints and learning
+  rates) and `avg_weekday_weekend_gap_consumption_region_year` (11 to 21); the other five give
+  158-166 of 262 in every run. Their conventions (time-of-day bands, weekday/weekend) appear in
+  a single train template each: the model learns them half-way, and a seed decides. The same
+  holds more widely: 14 conventions used by validation or test templates have fewer than 2
+  train templates, 7 of them none (17 under 3).
+- **Decision:** a design rule, fixed before any new result: every convention that a validation
+  or test template uses appears in at least `min_train_templates_per_convention` (2, in
+  `configs/dataset.yaml`) train templates. `tests/test_coverage.py` checks it on the template
+  files, with the split the build makes (same function and seed; checked identical to the
+  build's assignment); it failed on the current templates before any was added, listing the
+  gaps. The gaps are filled with `train_only` templates, as for `LIMIT`, so validation and
+  test stay byte-identical.
+- **Reason:** the claim of the project is that fine-tuning teaches the domain conventions; a
+  convention the training barely contains measures the prompt, not the fine-tuning. With the
+  rule, the test measures conventions learnt in training applied to question shapes never
+  seen, which is how fine-tuning is used. Two templates give each convention two different
+  contexts, so that it is not tied to one question shape.
+- **Costs and disclosure:** some conventions coincide with one kind of question
+  (`offshore_share`, `record_day_daily_total`): covering them twice makes the matching
+  validation template more familiar and the validation number more optimistic. The rule is
+  applied to every gap alike, decided before the results it will produce, and the test split
+  is still used once. Validation and the learning-rate comparison are run again on the new
+  train split; the earlier runs stay in `results/` as the record.
+- **Wording ceiling (added while writing the templates):** the first drafts of the new
+  templates copied the phrasing of the evaluation questions with a slot added (e.g. the test's
+  "En {annee}, quel a été en moyenne le taux de couverture {mesure.de} {region.in} ?" plus
+  "{moment.in}"): their closest validation/test variant had a median word-sequence similarity
+  of 0.73, against 0.50 for the original train templates (90th percentile 0.91 vs 0.74). That
+  teaches the surface of the test questions, not the convention. A second rule caps it: every
+  train-only variant stays under `max_train_only_similarity` (0.75, about the 90th percentile of
+  the original train), checked by `tests/test_coverage.py`; 93 variants were rewritten. Two
+  templates also gained a precondition: the "above/below the regional average" questions keep
+  only years where every region has a value, since a NULL ("not available", glossary §7) would
+  be labelled by how SQL treats NULL in a CASE, not by the data.
+- **Result (train split d3):** 13 new train-only templates (16 in all with the three of d2),
+  train 3,218 examples in 47 templates; validation and test byte-identical, the 2,126 original
+  train examples byte-identical, build reproducible; every evaluated convention now has at
+  least 2 train templates. One epoch is 202 updates (~4 h of training at ~71 s per update).
+- **Baselines:** zero-shot and the model pilot do not depend on the train split and stay
+  valid. Few-shot is a recipe (one train example per family, seed 0): it is drawn again from
+  the new train split and run again on validation and test, so that both few-shot and
+  fine-tuning use the same training data; the ids frozen on 2026-10-04 are replaced and the
+  earlier few-shot results kept as the record. The new draw changes all nine examples (one random
+  generator runs through the families in order, so one more template in a family moves the
+  draws after it); four come from train-only templates; 997 tokens instead of 1,092.
+- **Alternatives:** keeping the data and reporting the gaps as a limitation (the headline would
+  be weighed down by conventions the training did not teach); editing the two validation
+  templates (moving the yardstick); a threshold of 3 (about 23 templates instead of 13, an
+  epoch of ~4h45 instead of ~3h55 per run: robustness bought at almost twice the review and
+  GPU cost); 2 for conventions that are a filter, a column or a ratio and 3 for those needing
+  a window or nested queries (saves only 3 templates on 3, since most gaps are of the second
+  kind, and adds a classification that is harder to defend than one threshold).

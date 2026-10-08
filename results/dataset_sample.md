@@ -59,7 +59,7 @@ WHERE region = 'Auvergne-Rhône-Alpes' AND annee = 2024 AND mois = 12
 |---|
 | 105254.5 |
 
-## 5. Donne-moi la production solaire en IDF le mois dernier, en MWh.
+## 5. J'aimerais connaître l'énergie solaire produite en IDF le mois dernier, en MWh.
 
 `agg_energy_measure_region_relative_period` · fr · conventions: relative_dates, energy_conversion, unit_scaling
 
@@ -74,7 +74,7 @@ WHERE region = 'Île-de-France' AND annee = year(d) AND mois = month(d)
 |---|
 | 77793.0 |
 
-## 6. Il mese scorso: quanta energia da bioenergie è stata prodotta nell'Alta Francia, in GWh?
+## 6. Il mese scorso, che quantità di energia da bioenergie hanno generato gli impianti nell'Alta Francia, in GWh?
 
 `agg_energy_measure_region_relative_period` · it · conventions: relative_dates, energy_conversion, unit_scaling
 

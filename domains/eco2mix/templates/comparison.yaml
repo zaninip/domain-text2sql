@@ -276,3 +276,62 @@ templates:
     result:
       columns: [variation_pct]
       order_matters: false
+
+  - template_id: cmp_change_pct_national_two_years
+    family: comparison
+    conventions: [percentage_change, national_aggregate, result_shape]
+    description: >
+      Relative change of one measure over France between two years: the national version of
+      cmp_yearly_change_pct_region, (later - earlier) / earlier over the twelve regions. Train
+      only: coverage rule, decisions.md 2026-10-08.
+    train_only: true
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: [production, demand]}
+      annee_a:
+        range: [2013, 2023]
+      annee_b:
+        range: [2015, 2025]
+
+    constraints:
+      - "annee_b > annee_a"
+
+    max_instances: 35
+
+    # France as a whole, not a region; no "last month", and no production words because
+    # {mesure} can be consumption.
+    must_say:
+      fr: ["France", "national*"]
+      it: ["Francia", "nazional*"]
+    must_not_say:
+      fr: ["mois dernier", "production", "produi*"]
+      it: ["mese scorso", "produzione", "prodott*"]
+
+    questions:
+      fr:
+        - "Comment l'énergie {mesure} a-t-elle évolué en France entre {annee_a} et {annee_b}, en pourcentage ?"
+        - "Variation en pourcentage de l'énergie {mesure} au niveau national de {annee_a} à {annee_b} ?"
+        - "Donne-moi l'évolution en pourcentage de l'énergie {mesure} en France entre {annee_a} et {annee_b}."
+        - "France : de combien l'énergie {mesure} a-t-elle progressé ou reculé entre {annee_a} et {annee_b}, en pourcentage ?"
+        - "Évolution nationale {mesure.de}, {annee_a} contre {annee_b}, en pourcentage ?"
+        - "Entre {annee_a} et {annee_b}, quelle variation en pourcentage pour l'énergie {mesure} en France ?"
+      it:
+        - "Di quanto è cambiata in percentuale l'energia {mesure} in Francia fra il {annee_a} e il {annee_b}?"
+        - "Variazione percentuale dell'energia {mesure} a livello nazionale dal {annee_a} al {annee_b}?"
+        - "Dammi l'evoluzione in percentuale dell'energia {mesure} in Francia fra il {annee_a} e il {annee_b}."
+        - "Francia: di quanto è cresciuta o calata l'energia {mesure} fra il {annee_a} e il {annee_b}, in percentuale?"
+        - "Evoluzione nazionale {mesure.de}, {annee_a} contro {annee_b}, in percentuale?"
+        - "Fra il {annee_a} e il {annee_b}, che variazione percentuale per l'energia {mesure} in Francia?"
+
+    sql: |
+      SELECT 100.0 * (SUM({mesure.sql}) FILTER (WHERE annee = {annee_b})
+                    - SUM({mesure.sql}) FILTER (WHERE annee = {annee_a}))
+                    / SUM({mesure.sql}) FILTER (WHERE annee = {annee_a}) AS variation_pct
+      FROM eco2mix
+      WHERE annee IN ({annee_a}, {annee_b})
+
+    result:
+      columns: [variation_pct]
+      order_matters: false

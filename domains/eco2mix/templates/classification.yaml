@@ -154,3 +154,73 @@ templates:
     result:
       columns: [region, energie_mwh, position]
       order_matters: false
+
+  - template_id: cls_region_vs_average_production_source_year
+    family: classification
+    conventions: [average_of_regions, labels_from_question, energy_conversion]
+    description: >
+      Every region labelled above or below the average of the twelve regional productions of
+      one source over a year: a window AVG over one row per region, only for years where every
+      region has a value, labels in the words of the question (glossary §8). Train only: coverage
+      rule, decisions.md 2026-10-08.
+    train_only: true
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: production}
+      annee:
+        range: [2013, 2025]
+
+    constants:
+      dessus: {fr: au-dessus, it: sopra}
+      dessous: {fr: en dessous, it: sotto}
+
+    max_instances: 35
+
+    # The labels are the question's own words, so every variant names them; and production, not
+    # the consumption of cls_region_vs_average_consumption_year.
+    must_say:
+      fr: ["au-dessus"]
+      it: ["sopra"]
+    must_not_say:
+      fr: ["consomm*"]
+      it: ["consum*"]
+
+    questions:
+      fr:
+        - "Pour {mesure.le} en {annee}, range les régions en deux groupes : au-dessus et en dessous de la moyenne régionale de production."
+        - "Quelles régions dépassaient la moyenne régionale de production {mesure} en {annee} (au-dessus) et lesquelles non (en dessous) ?"
+        - "Chaque région a-t-elle produit plus ou moins d'énergie {mesure} que la moyenne régionale en {annee} ? Réponds au-dessus ou en dessous."
+        - "Comparées à leur moyenne, les régions ont-elles produit au-dessus ou en dessous pour {mesure.le} en {annee} ? Une étiquette par région."
+        - "Étiquette chaque région, au-dessus ou en dessous, selon sa production {mesure} de {annee} par rapport à la moyenne des régions."
+        - "{annee}, énergie {mesure} : marque chaque région au-dessus ou en dessous de la moyenne des douze régions."
+      it:
+        - "Per {mesure.le} nel {annee}, dividi le regioni in due gruppi: sopra e sotto la media regionale di produzione."
+        - "Quali regioni superavano la media regionale di produzione {mesure} nel {annee} (sopra) e quali no (sotto)?"
+        - "Energia {mesure} prodotta nel {annee}: per ogni regione, sopra o sotto la media regionale?"
+        - "Rispetto alla loro media, le regioni hanno prodotto sopra o sotto per {mesure.le} nel {annee}? Un'etichetta per regione."
+        - "Etichetta ogni regione, sopra o sotto, in base alla produzione {mesure} del {annee} rispetto alla media delle regioni."
+        - "{annee}, energia {mesure}: segna ogni regione come sopra o sotto la media delle dodici regioni."
+
+    # A region with no value (NULL: "not available", glossary §7) would be labelled by how SQL
+    # treats NULL in a CASE, not by the data: keep the years where every region has a value.
+    require: |
+      SELECT bool_and(s IS NOT NULL)
+      FROM (SELECT SUM({mesure.sql}) AS s FROM eco2mix WHERE annee = {annee} GROUP BY region)
+
+    sql: |
+      WITH r AS (
+        SELECT region, SUM({mesure.sql}) * 0.5 AS energie_mwh
+        FROM eco2mix
+        WHERE annee = {annee}
+        GROUP BY region
+      )
+      SELECT region, energie_mwh,
+             CASE WHEN energie_mwh > AVG(energie_mwh) OVER () THEN '{dessus}' ELSE '{dessous}' END
+               AS position
+      FROM r
+
+    result:
+      columns: [region, energie_mwh, position]
+      order_matters: false

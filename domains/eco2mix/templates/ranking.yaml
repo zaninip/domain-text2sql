@@ -306,8 +306,8 @@ templates:
       fr:
         - "Quelles ont été les {n} premières filières de production en France en {annee}{unite.suffix} ?"
         - "Les {n} principales sources de production d'électricité en France en {annee}{unite.suffix} ?"
-        - "Donne-moi les {n} filières en tête de la production nationale en {annee}{unite.suffix}."
-        - "Top {n.id} des sources de production en France en {annee}{unite.suffix} ?"
+        - "Quelles {n} filières arrivent en tête de la production nationale en {annee}{unite.suffix} ?"
+        - "En {annee}, top {n.id} français des sources de production{unite.suffix} ?"
         - "{annee} : quelles sont les {n} premières sources de production au niveau national{unite.suffix} ?"
         - "Classement des {n} premières filières de la production française en {annee}{unite.suffix} ?"
       it:
@@ -369,7 +369,7 @@ templates:
     questions:
       fr:
         - "Quelles ont été les {n} demi-heures de plus forte consommation {region.in} en {annee}{unite.suffix} ?"
-        - "Les {n} demi-heures où la consommation a été la plus élevée {region.in} en {annee}{unite.suffix} ?"
+        - "Sur {annee}, cite les {n} demi-heures les plus gourmandes en électricité {region.in}{unite.suffix}."
         - "Donne-moi les {n} demi-heures les plus chargées en consommation {region.in} en {annee}{unite.suffix}."
         - "Top {n.id} des demi-heures de consommation {region.in} en {annee}{unite.suffix} ?"
         - "{region.in} en {annee} : quelles {n} demi-heures ont connu la consommation la plus forte{unite.suffix} ?"
@@ -391,4 +391,75 @@ templates:
 
     result:
       columns: [date_heure, consommation]
+      order_matters: true
+
+  - template_id: rank_regions_gap_to_average_measure_year
+    family: ranking
+    conventions: [average_of_regions, labels_from_question, ranking_tie_break, energy_conversion]
+    description: >
+      Every region's gap to the average of the twelve regions for one measure over a year,
+      from the largest to the smallest, with the label above or below in the words of the
+      question: a window AVG over one row per region, ties broken on the name (glossary §8).
+      Train only: coverage rule, decisions.md 2026-10-08.
+    train_only: true
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: [production, demand]}
+      annee:
+        range: [2013, 2025]
+
+    constants:
+      dessus: {fr: au-dessus, it: sopra}
+      dessous: {fr: en dessous, it: sotto}
+
+    max_instances: 35
+
+    # A gap ("écart"), with the labels named; and no production words, because {mesure} can be
+    # consumption ("l'énergie consommée").
+    must_say:
+      fr: ["écart"]
+      it: ["scarto"]
+    must_not_say:
+      fr: ["production", "produi*"]
+      it: ["produzione", "prodott*"]
+
+    questions:
+      fr:
+        - "Classe les régions selon l'écart de l'énergie {mesure} à la moyenne régionale en {annee}, en indiquant au-dessus ou en dessous."
+        - "En {annee}, quel est l'écart de chaque région à la moyenne régionale pour l'énergie {mesure}, au-dessus ou en dessous, du plus grand au plus petit ?"
+        - "Écart à la moyenne des régions de l'énergie {mesure} en {annee}, région par région, avec au-dessus ou en dessous, par ordre décroissant ?"
+        - "Donne-moi, pour {annee}, l'écart de chaque région à la moyenne régionale d'énergie {mesure}, trié du plus grand au plus petit, avec au-dessus ou en dessous."
+        - "{annee} : classement des régions par écart à la moyenne régionale de l'énergie {mesure}, au-dessus ou en dessous ?"
+        - "Énergie {mesure} en {annee} : quel écart à la moyenne régionale pour chaque région, au-dessus ou en dessous, du plus haut au plus bas ?"
+      it:
+        - "Classifica le regioni in base allo scarto dell'energia {mesure} dalla media regionale nel {annee}, indicando sopra o sotto."
+        - "Nel {annee}, qual è lo scarto di ogni regione dalla media regionale per l'energia {mesure}, sopra o sotto, dal più grande al più piccolo?"
+        - "Scarto dalla media delle regioni dell'energia {mesure} nel {annee}, regione per regione, con sopra o sotto, in ordine decrescente?"
+        - "Dammi, per il {annee}, lo scarto di ogni regione dalla media regionale di energia {mesure}, ordinato dal più grande al più piccolo, con sopra o sotto."
+        - "{annee}: classifica delle regioni per scarto dalla media regionale dell'energia {mesure}, sopra o sotto?"
+        - "Energia {mesure} nel {annee}: che scarto dalla media regionale per ogni regione, sopra o sotto, dal più alto al più basso?"
+
+    # A region with no value (NULL: "not available", glossary §7) would be labelled by how SQL
+    # treats NULL in a CASE, not by the data: keep the years where every region has a value.
+    require: |
+      SELECT bool_and(s IS NOT NULL)
+      FROM (SELECT SUM({mesure.sql}) AS s FROM eco2mix WHERE annee = {annee} GROUP BY region)
+
+    sql: |
+      WITH r AS (
+        SELECT region, SUM({mesure.sql}) * 0.5 AS energie_mwh
+        FROM eco2mix
+        WHERE annee = {annee}
+        GROUP BY region
+      )
+      SELECT region, energie_mwh - AVG(energie_mwh) OVER () AS ecart_mwh,
+             CASE WHEN energie_mwh > AVG(energie_mwh) OVER () THEN '{dessus}' ELSE '{dessous}' END
+               AS position
+      FROM r
+      ORDER BY ecart_mwh DESC, region
+
+    result:
+      columns: [region, ecart_mwh, position]
       order_matters: true

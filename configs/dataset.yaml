@@ -4,6 +4,13 @@ seed: 20260922          # drives slot sampling, alias choice and the template sp
 alias_ratio: 0.25       # share of region mentions written as an alias ("PACA") when one exists
 oversample: 5           # combinations sampled per max_instances; validation keeps the first valid ones
 variants_per_language: 1  # question variants per combination and language, rotated evenly
+# Every convention a validation or test template uses must appear in at least this many train
+# templates (docs/decisions.md, 2026-10-08), checked by tests/test_coverage.py
+min_train_templates_per_convention: 2
+# A train-only variant must not copy the wording of a validation or test variant: its closest
+# one stays under this word-sequence similarity (make similar; ~ the 90th percentile of the
+# original train templates)
+max_train_only_similarity: 0.75
 
 paths:
   templates: domains/eco2mix/templates

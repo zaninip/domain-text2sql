@@ -375,3 +375,219 @@ templates:
     result:
       columns: [part_offshore_pct]
       order_matters: false
+
+  - template_id: rate_avg_coverage_moment_region_year
+    family: rate
+    conventions: [coverage_indicator_average, peak_hours, weekday_weekend]
+    description: >
+      Average of RTE's coverage indicator (TCO) for one source in one region over a year,
+      during one part of the day or the week (night, peaks, weekend, weekdays). A region's
+      "average coverage rate" reads the published indicator (glossary §5), the moment adds
+      its hour or weekday filter (glossary §2). Train only: coverage rule, decisions.md
+      2026-10-08.
+    train_only: true
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: production}
+      region:
+        from: regions
+      moment:
+        from: moments
+      annee:
+        range: [2020, 2025]   # tco_* columns exist from 2020
+
+    max_instances: 35
+
+    # Same guards as rate_avg_coverage_indicator_region_year: the published rate averaged,
+    # not a share of totals and not a load factor.
+    must_say:
+      fr: ["taux de couverture"]
+      it: ["tasso di copertura"]
+    must_not_say:
+      fr: ["part", "pourcentage de", "pourcentage du", "charge"]
+      it: ["quota", "percentuale del", "percentuale di", "carico"]
+
+    questions:
+      fr:
+        - "{moment.in}, combien valait en moyenne le taux de couverture {mesure.de} {region.in} sur {annee} ?"
+        - "Moyenne {annee} du taux de couverture {mesure.de}, calculée seulement {moment.in}, {region.in} ?"
+        - "Je cherche le taux de couverture {mesure.de} {region.in} en {annee}, en moyenne mais uniquement {moment.in}."
+        - "Sur l'année {annee} et {moment.in}, quel niveau moyen a atteint le taux de couverture {mesure.de} {region.in} ?"
+        - "Taux de couverture {mesure.de} {region.in} : sa moyenne {moment.in} en {annee} ?"
+        - "{region.in}, {annee} : le taux de couverture {mesure.de} {moment.in}, en moyenne, ça donne quoi ?"
+      it:
+        - "{moment.in}, quanto valeva in media il tasso di copertura {mesure.de} {region.in} nel {annee}?"
+        - "Media del {annee} del tasso di copertura {mesure.de}, considerando solo {moment.in}, {region.in}?"
+        - "Mi serve il tasso di copertura {mesure.de} {region.in} nel {annee}, in media ma solo {moment.in}."
+        - "Nell'anno {annee} e {moment.in}, che livello medio ha raggiunto il tasso di copertura {mesure.de} {region.in}?"
+        - "Tasso di copertura {mesure.de} {region.in}: la sua media {moment.in} nel {annee}?"
+        - "{region.in}, {annee}: il tasso di copertura {mesure.de} {moment.in}, in media, quanto fa?"
+
+    require: |
+      SELECT count(DISTINCT {mesure.sql}) > 1
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee}
+
+    sql: |
+      SELECT AVG({mesure.tco}) AS taux_couverture_moyen_pct
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee} AND {moment.where}
+
+    result:
+      columns: [taux_couverture_moyen_pct]
+      order_matters: false
+
+  - template_id: rate_avg_coverage_region_month
+    family: rate
+    conventions: [coverage_indicator_average]
+    description: >
+      Average of RTE's coverage indicator (TCO) for one source in one region over one month:
+      the monthly version of the yearly average (glossary §5). Train only: coverage rule,
+      decisions.md 2026-10-08.
+    train_only: true
+
+    slots:
+      mesure:
+        from: measures
+        keep: {kind: production}
+      region:
+        from: regions
+      mois:
+        from: months
+      annee:
+        range: [2020, 2025]   # tco_* columns exist from 2020
+
+    max_instances: 35
+
+    must_say:
+      fr: ["taux de couverture"]
+      it: ["tasso di copertura"]
+    must_not_say:
+      fr: ["part", "pourcentage de", "pourcentage du", "charge"]
+      it: ["quota", "percentuale del", "percentuale di", "carico"]
+
+    questions:
+      fr:
+        - "Combien valait en moyenne le taux de couverture {mesure.de} {region.in} durant le mois {mois.de} {annee} ?"
+        - "Sur {mois} {annee}, quel niveau moyen pour le taux de couverture {mesure.de} {region.in} ?"
+        - "Je cherche la moyenne du taux de couverture {mesure.de} {region.in} pour {mois} {annee}."
+        - "Taux de couverture {mesure.de} {region.in} : sa valeur moyenne {mois.in} {annee} ?"
+        - "{mois} {annee}, {region.in} : le taux de couverture {mesure.de}, en moyenne, ça donne quoi ?"
+        - "Valeur mensuelle moyenne ({mois} {annee}) du taux de couverture {mesure.de} {region.in} ?"
+      it:
+        - "Quanto valeva in media il tasso di copertura {mesure.de} {region.in} durante il mese {mois.de} {annee}?"
+        - "Per {mois} {annee}, che livello medio per il tasso di copertura {mesure.de} {region.in}?"
+        - "Mi serve la media del tasso di copertura {mesure.de} {region.in} per {mois} {annee}."
+        - "Tasso di copertura {mesure.de} {region.in}: il suo valore medio {mois.in} {annee}?"
+        - "{mois} {annee}, {region.in}: il tasso di copertura {mesure.de}, in media, quanto fa?"
+        - "Valore mensile medio ({mois} {annee}) del tasso di copertura {mesure.de} {region.in}?"
+
+    require: |
+      SELECT count(DISTINCT {mesure.sql}) > 1
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee} AND mois = {mois.id}
+
+    sql: |
+      SELECT AVG({mesure.tco}) AS taux_couverture_moyen_pct
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee} AND mois = {mois.id}
+
+    result:
+      columns: [taux_couverture_moyen_pct]
+      order_matters: false
+
+  - template_id: rate_offshore_share_national_month
+    family: rate
+    conventions: [offshore_share, share_ratio_of_sums, national_aggregate]
+    description: >
+      Share of offshore wind in France's wind production over one month: the ratio of the
+      sums over the twelve regions, with `eolien_mw` as denominator (glossary §5). The split
+      exists from 2024. Train only: coverage rule, decisions.md 2026-10-08.
+    train_only: true
+
+    slots:
+      mois:
+        from: months
+      annee:
+        range: [2024, 2026]   # months after June 2026 have no data and are dropped as all-NULL
+
+    max_instances: 35
+
+    must_say:
+      fr: ["offshore", "en mer"]
+      it: ["offshore", "in mare"]
+
+    questions:
+      fr:
+        - "Au niveau national, l'offshore a pesé combien dans l'éolien sur {mois} {annee} ?"
+        - "Proportion d'éolien en mer dans tout l'éolien français pour {mois} {annee} ?"
+        - "France entière, {mois} {annee} : quel pourcentage de l'éolien revient aux installations offshore ?"
+        - "Pourcentage d'offshore dans l'éolien total de la France, mois {mois.de} {annee} ?"
+        - "Sur le mois {mois.de} {annee}, quelle fraction de l'éolien national venait des éoliennes en mer ?"
+        - "Je voudrais savoir combien pesait l'éolien en mer dans l'éolien de la France {mois.in} {annee}."
+      it:
+        - "A livello nazionale, quanto ha pesato l'offshore nell'eolico {mois.in} {annee}?"
+        - "Proporzione di eolico in mare su tutto l'eolico francese per {mois} {annee}?"
+        - "Francia intera, {mois} {annee}: che percentuale dell'eolico spetta agli impianti offshore?"
+        - "Percentuale di offshore sull'eolico totale della Francia, mese {mois.de} {annee}?"
+        - "Nel mese {mois.de} {annee}, che frazione dell'eolico nazionale veniva dalle pale in mare?"
+        - "Vorrei sapere quanto pesava l'eolico offshore sull'eolico della Francia {mois.in} {annee}."
+
+    sql: |
+      SELECT 100.0 * SUM(eolien_offshore_mw) / SUM(eolien_mw) AS part_offshore_pct
+      FROM eco2mix
+      WHERE annee = {annee} AND mois = {mois.id}
+
+    result:
+      columns: [part_offshore_pct]
+      order_matters: false
+
+  - template_id: rate_offshore_share_region_month
+    family: rate
+    conventions: [offshore_share, share_ratio_of_sums]
+    description: >
+      Share of offshore wind in a region's wind production over one month, with `eolien_mw`
+      as denominator (glossary §5). Regions without offshore parks give 0 and are dropped as
+      all-zero. Train only: coverage rule, decisions.md 2026-10-08.
+    train_only: true
+
+    slots:
+      region:
+        from: regions
+      mois:
+        from: months
+      annee:
+        range: [2024, 2026]
+
+    max_instances: 35
+
+    must_say:
+      fr: ["offshore", "en mer"]
+      it: ["offshore", "in mare"]
+
+    questions:
+      fr:
+        - "{mois.in} {annee}, combien de l'éolien produit {region.in} provenait des parcs en mer, en pourcentage ?"
+        - "Pour {mois} {annee}, l'offshore a pesé combien dans l'éolien {region.in} ?"
+        - "Je voudrais la proportion d'éolien offshore {region.in}, rapportée à tout l'éolien, sur {mois} {annee}."
+        - "Éolien {region.in}, {mois} {annee} : quel pourcentage revient aux installations en mer ?"
+        - "Pourcentage d'offshore dans l'éolien total {region.in}, mois {mois.de} {annee} ?"
+        - "Sur le mois {mois.de} {annee}, l'éolien en mer représentait quelle fraction de l'éolien {region.in} ?"
+      it:
+        - "{mois.in} {annee}, quanto dell'eolico prodotto {region.in} proveniva dai parchi offshore, in percentuale?"
+        - "Per {mois} {annee}, quanto ha pesato l'offshore nell'eolico {region.in}?"
+        - "Vorrei la proporzione di eolico offshore {region.in}, rapportata a tutto l'eolico, per {mois} {annee}."
+        - "Eolico {region.in}, {mois} {annee}: che percentuale spetta agli impianti in mare?"
+        - "Percentuale di offshore sull'eolico totale {region.in}, mese {mois.de} {annee}?"
+        - "Nel mese {mois.de} {annee}, l'eolico offshore rappresentava che frazione dell'eolico {region.in}?"
+
+    sql: |
+      SELECT 100.0 * SUM(eolien_offshore_mw) / SUM(eolien_mw) AS part_offshore_pct
+      FROM eco2mix
+      WHERE region = {region.literal} AND annee = {annee} AND mois = {mois.id}
+
+    result:
+      columns: [part_offshore_pct]
+      order_matters: false
