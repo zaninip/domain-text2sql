@@ -13,7 +13,7 @@ lora:
   target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
 
 training:
-  epochs: 1                      # 133 updates, ~3 h on a T4 (docs/decisions.md, training plan)
+  epochs: 1                      # d3: 202 updates, ~4 h on a T4 (docs/decisions.md, training plan)
   save_steps: 50                 # checkpoint + validation loss every ~1/4 epoch (d3: 202 updates)
   learning_rate: 2.0e-4
   lr_scheduler: cosine
