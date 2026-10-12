@@ -11,6 +11,8 @@ that file, so ``--rescore`` re-scores without any model.
 
 import argparse
 import json
+import os
+import sys
 import time
 from collections import Counter
 from collections.abc import Callable, Iterator
@@ -440,6 +442,13 @@ def main() -> None:
     files["summary"].write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(summary, indent=2), flush=True)
     log(f"predictions: {files['predictions']}")
+    if any(row["outcome"] == "timeout" for row in rows):
+        # A timed-out query can leave a DuckDB worker thread running; the normal interpreter
+        # shutdown then aborts ("terminate called without an active exception") and the
+        # process fails although every file is written. Exit without that shutdown.
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(0)
 
 
 if __name__ == "__main__":
