@@ -874,3 +874,35 @@ Format: date, decision, reason, alternatives considered.
   GPU cost); 2 for conventions that are a filter, a column or a ratio and 3 for those needing
   a window or nested queries (saves only 3 templates on 3, since most gaps are of the second
   kind, and adds a classification that is harder to defend than one threshold).
+
+## 2026-10-12 — Training on d3: learning rate 4e-4 kept, step 202 (77.9 % on validation)
+
+- **Runs (train split d3, one epoch = 202 updates, checkpoints every 50):** the centre (lr 2e-4,
+  seed 0; 233.7 min) and lr 4e-4 (seed 0; 259.5 min, launched first by a leftover
+  `TRAIN_ARGS`). Validation loss, centre 0.035 / 0.025 / 0.032 / 0.033 at 50 / 100 / 150 / 200,
+  lr 4e-4 0.041 / 0.043 / 0.036 / 0.034: about four times lower than on d2, as expected now that
+  the training covers the validation conventions (the validation numbers are more optimistic,
+  as disclosed in the coverage entry).
+- **Validation accuracy (402 examples, few-shot on the d3 draw 23.1 % for reference):**
+
+  | | step 100 | step 202 |
+  |---|---|---|
+  | centre, lr 2e-4 | 69.7 % | 68.4 % |
+  | lr 4e-4 | 55.7 % | **77.9 %** |
+
+- **Rule applied (fixed 2026-10-02):** centre steps 100 and 202 are equivalent (34 vs 29,
+  p = 0.61), so the centre is step 100; the best configuration is lr 4e-4 at step 202, which
+  beats it (78 vs 45, p = 0.004); its step 100 is far worse (4 vs 93), so step 202 is kept.
+  The gain is spread over three templates (time-of-day averages 31 -> 62, above/below the
+  regional average 4 -> 18, record day 56 -> 69) against losses on two (top-N regions 64 ->
+  50, weekday/weekend gap 30 -> 18): less concentrated than on d2, still template-level noise.
+- **Side effect noted, not chased on validation:** on the top-N regions question the model now
+  writes `LIMIT` but sometimes forgets `GROUP BY region` (53 of 70 at lr 4e-4 step 100, 10 at
+  step 202), probably from the train-only "N half-hours" template, where `ORDER BY ... LIMIT`
+  needs no grouping because each row is already an instant.
+- **Seed replicate, reading fixed before its result:** lr 4e-4, seed 1, step 202. (1) If it
+  differs from seed 0 at step 202 with p < 0.05 (flag a), stop and discuss. (2) If it also beats
+  the centre (step 100) with p < 0.05, lr 4e-4 is confirmed; otherwise the centre is kept, the
+  simpler choice. (3) The adapter taken to the test is seed 0's, the one the rule chose; the
+  replicate only checks stability, since keeping the better of two seeds would be one more
+  choice made on validation.
