@@ -1,0 +1,17 @@
+{
+  "model": "Qwen/Qwen3-1.7B",
+  "split": "test",
+  "mode": "fine_tuned",
+  "adapter": "zaninip/eco2mix-sql-Qwen3-1.7B-d3-r16-lr0.0002-s0@step100",
+  "tag": "final",
+  "generation": {
+    "max_new_tokens": 256,
+    "batch_size": 8,
+    "dtype": "float16"
+  },
+  "adapter_revision": "0e7e66be934e13816f85aecc87dd24bd06c3f0a1",
+  "device": "Tesla T4",
+  "dtype_used": "float16",
+  "torch": "2.10.0+cu128",
+  "transformers": "5.0.0"
+}

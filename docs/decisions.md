@@ -875,7 +875,7 @@ Format: date, decision, reason, alternatives considered.
   a window or nested queries (saves only 3 templates on 3, since most gaps are of the second
   kind, and adds a classification that is harder to defend than one threshold).
 
-## 2026-10-12 — Training on d3: learning rate 4e-4 kept, step 202 (77.9 % on validation)
+## 2026-10-12 — Training on d3: learning rate 4e-4 kept, step 202 (77.9 % on validation); reversed by the seed replicate, centre step 100 kept
 
 - **Runs (train split d3, one epoch = 202 updates, checkpoints every 50):** the centre (lr 2e-4,
   seed 0; 233.7 min) and lr 4e-4 (seed 0; 259.5 min, launched first by a leftover
@@ -919,3 +919,41 @@ Format: date, decision, reason, alternatives considered.
   averages (seed 1 39, seed 0 62, centre 31 of 70) and the weekday/weekend gap (11, 18, 30), plus
   top-N regions (70, 50, 64). The coverage enrichment of d3 raised the level but did not make
   these two templates stable; this goes into the limitations of the model card.
+
+## 2026-10-14 — Fine-tuned model on the test split: 64.1 %; relative dates handled by the demo
+
+- **Run:** the adapter kept on validation, `zaninip/eco2mix-sql-Qwen3-1.7B-d3-r16-lr0.0002-s0`
+  at step 100 (revision `0e7e66b`, the one evaluated on validation), on the 490 test examples,
+  once, with the same harness and settings as the baselines (tag `final`).
+- **Result:** execution accuracy **64.1 %** (314 of 490), valid SQL 76.9 %; French 70.2 %,
+  Italian 58.0 %. Paired against the base model on the same examples: zero-shot 14.3 % (246 vs
+  2), few-shot with the phase 3 draw 16.5 % (241 vs 8), few-shot with the d3 draw 34.1 % (176 vs
+  29, p < 1e-26). On validation the same adapter scored 69.7 %; the test has constructs that the
+  training covers less, as disclosed in the coverage entry.
+- **Where it fails:** three templates hold almost all the errors, and the lower valid-SQL rate:
+  - `cmp_last_month_vs_year_before_region`, 0 of 70 (also 0 for every baseline): "last month"
+    is not anchored to the last date of the data as the prompt asks. 27 answers use
+    `CURRENT_DATE`, and would be wrong under that reading too (current month instead of the
+    previous one, ratio inverted); 37 invent `year` / `month` columns.
+  - `rank_top_days_national_year`, 39 of 70: 31 answers write `ORDER BY ... LIMIT` without
+    `GROUP BY date`, the side effect already seen on validation (top-N regions).
+  - `mc_hours_share_above_region_year`, 30 of 70: 34 answers (26 in Italian) put an aggregate
+    in `WHERE`; 6 use `tco_*_pct`, NULL before 2020, instead of the MW columns as the prompt
+    says.
+- **Relative dates in the demo (decided with the owner after this result):** a user who writes
+  "last month" means the calendar, not the end of the dataset. The demo therefore resolves
+  relative dates ("ieri", "la settimana scorsa", "il mese scorso", "l'anno scorso", and the
+  French equivalents) against today's date, checks the period against the last date of the data
+  (`max(date)`, overridable by hand in the app configuration), and answers with an error if the
+  period is not covered in full. A covered period is rewritten into explicit dates ("l'anno
+  scorso" -> "nel 2025") before both models see the question; unrecognised relative wording, or
+  SQL with `CURRENT_DATE` / `now()`, also gives an error. The prompt, the training data and the
+  evaluation are unchanged.
+- **Disclosure:** this works around a weakness of the model; it does not fix it. The fine-tuned
+  model did not learn relative dates (0 of 70 on test), and the demo avoids asking it to. The
+  model card and the README say so.
+- **Alternatives considered:** anchoring to the last date of the data and telling the user so in
+  a note (rejected: the user asked about the calendar); refusing every relative date (rejected:
+  "l'anno scorso" is answerable today and must become an error only once it is not); passing the
+  question unchanged with today's date in the prompt (rejected: the demo prompt would differ from
+  the evaluated one, and the model anchors relative dates to the end of the data).
