@@ -396,10 +396,19 @@ def main() -> None:
     parser.add_argument("--out", help="overrides `paths.predictions` (smoke tests write apart)")
     parser.add_argument("--adapter", help="LoRA checkpoint folder or Hub repo (fine_tuned mode)")
     parser.add_argument("--tag", help="short name in the file names: the adapter, or a variant")
+    parser.add_argument(
+        "--few-shot-seed", type=int, help="draw the few-shot examples with this seed, not the ids"
+    )
     args = parser.parse_args()
     config = yaml.safe_load(args.config.read_text(encoding="utf-8"))
     if args.limit:
         config["limit"] = args.limit
+    if args.few_shot_seed is not None:
+        # another draw of the examples (few-shot as a mean over draws): it needs its own tag,
+        # or it would resume, and refuse, the outputs of the frozen draw
+        if not args.tag:
+            raise SystemExit("--few-shot-seed needs a --tag, part of the file names")
+        config["few_shot"] = {"seed": args.few_shot_seed}
     keys = ("model", "split", "mode", "adapter", "tag")
     config |= {key: getattr(args, key) for key in keys if getattr(args, key)}
     if args.out:
