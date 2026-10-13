@@ -906,3 +906,16 @@ Format: date, decision, reason, alternatives considered.
   simpler choice. (3) The adapter taken to the test is seed 0's, the one the rule chose; the
   replicate only checks stability, since keeping the better of two seeds would be one more
   choice made on validation.
+- **Seed replicate result (2026-10-13; repo `zaninip/eco2mix-sql-Qwen3-1.7B-d3-r16-lr0.0004-s1`,
+  step 202, revision `2302b2e`):** 71.9 % on validation (289 of 402, valid SQL 94.8 %), against
+  77.9 % for seed 0. (1) Flag a is raised: seed 1 vs seed 0, 23 vs 47, p = 0.006. (2) Seed 1 does
+  not beat the centre at step 100: 46 vs 37, p = 0.38. **Decision: the centre is kept, lr 2e-4,
+  seed 0, step 100 (69.7 %, `zaninip/eco2mix-sql-Qwen3-1.7B-d3-r16-lr0.0002-s0@step100`), and
+  it is the adapter taken to the test.** Flag a does not change this: it says that lr 4e-4 cannot
+  be told apart from the centre, and in that case the rule already keeps the centre. No further
+  seeds: they would be one more choice made on validation, outside the plan.
+- **What the replicate shows:** seed noise on validation is about 6 points (24 net answers), as
+  large as the learning-rate effect, and it sits in the same templates as on d2: time-of-day
+  averages (seed 1 39, seed 0 62, centre 31 of 70) and the weekday/weekend gap (11, 18, 30), plus
+  top-N regions (70, 50, 64). The coverage enrichment of d3 raised the level but did not make
+  these two templates stable; this goes into the limitations of the model card.
