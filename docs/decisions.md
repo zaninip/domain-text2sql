@@ -957,3 +957,22 @@ Format: date, decision, reason, alternatives considered.
   "l'anno scorso" is answerable today and must become an error only once it is not); passing the
   question unchanged with today's date in the prompt (rejected: the demo prompt would differ from
   the evaluated one, and the model anchors relative dates to the end of the data).
+
+## 2026-10-15 — Few-shot on test as a mean over three draws: 37.1 % (34.1 % to 43.1 %)
+
+- **Why:** few-shot depends on which train examples are drawn: on test the d3 draw doubled the
+  phase 3 draw (34.1 % vs 16.5 %) while validation did not move. One draw is not a fair
+  baseline, so the few-shot number reported is the mean over three draws, with the range.
+- **Runs:** seeds 0, 1 and 2 of the same draw rule (one train example per family, languages
+  alternating) on the d3 train split. The frozen ids in `configs/eval.yaml` are the seed 0 draw
+  (checked), so only seeds 1 and 2 were run (`--few-shot-seed`, tags `d3s1`, `d3s2`); the three
+  draws share no example. Same prompt, decoding and harness as every other test run.
+- **Result:** seed 0 34.1 %, seed 1 34.1 %, seed 2 43.1 %; **mean 37.1 %**. The fine-tuned model
+  (64.1 %) beats each draw on the same examples: 176 vs 29, 186 vs 39, 155 vs 52 (p < 1e-12 for
+  all three).
+- **Where a draw helps:** the gains follow the examples that resemble a test template. Seed 2
+  draws an hours-above-a-threshold example and gets 65 of 70 on `mc_hours_share_above_region_year`,
+  where the fine-tuned model gets 30 (aggregate in `WHERE`); seed 0 draws a cumulative series and
+  is the only one above 0 on `ts_cumulative_production_region_year` (12 vs 67 fine-tuned). The
+  fine-tuned model is not better on every template: one lucky example can beat it on a template
+  it learned badly.

@@ -1,0 +1,26 @@
+{
+  "model": "Qwen/Qwen3-1.7B",
+  "split": "test",
+  "mode": "few_shot",
+  "few_shot_ids": [
+    "agg_pumping_energy_region_year#0013#fr#5",
+    "avg_consumption_hour_season_region#0005#it#0",
+    "cls_main_source_per_region_year#0002#fr#0",
+    "cmp_two_regions_measure_year#0017#it#0",
+    "ext_peak_timestamp_region_year#0002#fr#1",
+    "mc_hours_source_beats_source_season#0019#it#2",
+    "rank_top_instants_consumption_region_year#0025#fr#2",
+    "rate_share_source_production_region_year#0023#it#2",
+    "ts_monthly_energy_region_year#0029#fr#1"
+  ],
+  "tag": "d3s2",
+  "generation": {
+    "max_new_tokens": 256,
+    "batch_size": 8,
+    "dtype": "float16"
+  },
+  "device": "Tesla T4",
+  "dtype_used": "float16",
+  "torch": "2.10.0+cu128",
+  "transformers": "5.0.0"
+}
