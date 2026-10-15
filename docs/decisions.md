@@ -976,3 +976,35 @@ Format: date, decision, reason, alternatives considered.
   is the only one above 0 on `ts_cumulative_production_region_year` (12 vs 67 fine-tuned). The
   fine-tuned model is not better on every template: one lucky example can beat it on a template
   it learned badly.
+
+## 2026-10-15 — Phase 4 closed: summary
+
+- **Model kept:** Qwen3-1.7B with a LoRA adapter, `zaninip/eco2mix-sql-Qwen3-1.7B-d3-r16-lr0.0002-s0`
+  at step 100 (revision `0e7e66b`). Setup: Unsloth's pre-quantized 4-bit base, LoRA r = 16,
+  alpha = 32 on all linear layers (17,432,576 trainable parameters), lr 2e-4 cosine with 5 %
+  warmup, batch 1 x 16 accumulation, adamw_8bit, fp16, loss on the SQL answer only, same system
+  prompt as in evaluation. Train split d3 (3,218 examples, 47 templates); step 100 is about half
+  an epoch.
+- **Compute:** Kaggle T4, peak memory 5.5 GiB of 14.5, about 61-73 s per update; the kept run took
+  233.7 min for one epoch, validation-loss evaluations included. Seven full one-epoch trainings
+  in all (three train splits, learning rate and seed variants), each within one Kaggle session.
+- **Test results (490 examples, 7 templates never seen in training, same harness):**
+
+  | Configuration | Execution accuracy | Valid SQL |
+  |---|---:|---:|
+  | Base, zero-shot | 14.3 % | 86.9 % |
+  | Base, few-shot (mean of 3 draws) | 37.1 % (34.1-43.1 %) | 79.0-90.0 % |
+  | Fine-tuned | **64.1 %** | 76.9 % |
+
+  The fine-tuned model beats zero-shot (246 vs 2) and every few-shot draw (p < 1e-12). On
+  validation the same adapter scored 69.7 %.
+- **What it learned:** the domain conventions of the glossary. Of 21 zero-shot errors sampled
+  in phase 3, 16 are now right; invented filters, unit slips and missing running sums are gone.
+- **Limitations (for the model card):** relative dates not learned (0 of 70; the demo resolves
+  them itself, see the 2026-10-14 entry); on the templates least covered by training it writes
+  SQL that does not run (aggregate in `WHERE`, `LIMIT` without `GROUP BY`), hence a lower
+  valid-SQL rate than the base model; Italian 12 points below French (58.0 % vs 70.2 %); seed
+  noise of about 6 points on validation, concentrated in 2-3 templates; validation is optimistic
+  since the coverage rule (d3) targets its conventions, and the test is the only clean number.
+- **Done when (CLAUDE.md §7):** the fine-tuned model is evaluated on test with the same harness,
+  and the three configurations are in `results/report_test.md`. Next: phase 5, export to GGUF.
