@@ -51,3 +51,34 @@ secondary causes in the note. The same ids are to be classified again for the fi
 
 Nearly every error is a domain convention written in the prompt but not applied, rather than
 generic SQL: the behaviour fine-tuning is meant to teach.
+
+## The same 21 cases, fine-tuned model
+
+The adapter kept on validation (`final` run,
+`results/predictions/Qwen3-1.7B_test_fine_tuned_final.jsonl`). **16 of the 21 are now
+correct**: every case of four templates (time-of-day averages, top months, average coverage,
+cumulative series), and 2 of 3 in both hours-above-a-share and top days. The 5 left:
+
+| # | id | Outcome | Category | Note |
+|---:|---|---|---|---|
+| 4 | cmp_last_month_vs_year_before_region#0023#it#4 | unknown_column | time | "last month" written as columns `year` / `month` that do not exist |
+| 5 | cmp_last_month_vs_year_before_region#0001#fr#5 | wrong_result | time | `current_date` minus one and two months, compared on one day each; not the month a year before |
+| 6 | cmp_last_month_vs_year_before_region#0014#it#1 | unknown_column | time | same as #4 (`mois = year`) |
+| 7 | mc_hours_share_above_region_year#0109#fr#2 | runtime_error | aggregation | yearly `SUM` of production inside `WHERE`; the share is of consumption, at each step |
+| 10 | rank_top_days_national_year#0020#it#3 | group_by_error | aggregation | `ORDER BY ... LIMIT` without `GROUP BY date` |
+
+| Category | Zero-shot | Fine-tuned |
+|---|---:|---:|
+| Wrong aggregation | 9 | 2 |
+| Wrong filter | 6 | 0 |
+| Wrong time handling | 5 | 3 |
+| Wrong unit conversion | 1 (+3) | 0 |
+| Correct | 0 | 16 |
+
+What changed: the invented filters, the unit slips and the missing running sums are gone. What
+is left is narrower and different in kind: the zero-shot errors were valid SQL with the wrong
+meaning, while 4 of the 5 fine-tuned errors do not execute. The model has learned the domain
+conventions but, on the three test templates least covered by the training, it composes SQL
+shapes that break (an aggregate in `WHERE`, a `LIMIT` without the grouping), which is also why
+its valid-SQL rate (76.9 %) is lower than the base model's. Relative dates are not learned at
+all (see the 2026-10-14 entry of `docs/decisions.md`).
