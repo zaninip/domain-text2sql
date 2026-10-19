@@ -19,6 +19,19 @@ model = [
     "peft>=0.17",
     "transformers>=4.56",
 ]
+gguf = [
+    "llama-cpp-python>=0.3.36",  # GGUF models on CPU: latency test, GGUF evaluation, demo
+]
+
+# PyPI has only the source of llama-cpp-python, which needs a C++ toolchain; the project's own
+# index has prebuilt CPU wheels. `explicit`: no other package is looked up there.
+[[tool.uv.index]]
+name = "llama-cpp-cpu"
+url = "https://abetlen.github.io/llama-cpp-python/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+llama-cpp-python = { index = "llama-cpp-cpu" }
 
 [dependency-groups]
 dev = [
