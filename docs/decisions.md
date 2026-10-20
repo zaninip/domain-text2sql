@@ -1008,3 +1008,39 @@ Format: date, decision, reason, alternatives considered.
   since the coverage rule (d3) targets its conventions, and the test is the only clean number.
 - **Done when (CLAUDE.md §7):** the fine-tuned model is evaluated on test with the same harness,
   and the three configurations are in `results/report_test.md`. Next: phase 5, export to GGUF.
+
+## 2026-10-20 — CPU latency of the GGUF models: the demo needs the prefix cache, and works with it
+
+- **Why measured first:** the demo runs on a free CPU Space and every question carries a
+  ~4,600-token system prompt, for two models. If that made the demo too slow, the app design,
+  or even the prompt, would have to change; better to know before the export.
+- **Setup:** `python -m t2sql.eval.latency` (settings in the `cpu` section of
+  `configs/eval.yaml`), base Qwen3-1.7B as ready-made GGUF files (Q4_K_M from
+  `unsloth/Qwen3-1.7B-GGUF`, Q8_0 from `Qwen/Qwen3-1.7B-GGUF`; the fine-tuned model has the same
+  size and architecture, so the same speed), `llama-cpp-python` 0.3.36 CPU wheel, 2 threads
+  like a free Space, on a laptop (i7-1165G7). One test question per template (7), the exact
+  evaluation prompt (4,575 tokens) built by `format_prompt`, greedy, `n_ctx` 8192. "Cold": cache
+  reset before each question; "warm": the system prompt is reused from the previous request
+  (llama-cpp-python keeps the longest shared prefix). Results in `results/latency_cpu.json`.
+- **Result (medians):**
+
+  | | Q4_K_M | Q8_0 |
+  |---|---:|---:|
+  | Cold, first token | 100 s | 144 s |
+  | Warm, first token | 1.5 s | 1.9 s |
+  | Warm, whole answer (max) | 14.8 s (17.7 s) | 16.2 s (22.2 s) |
+  | Generation | 7.5 tokens/s | 6.3 tokens/s |
+  | Memory of one model (weights + KV cache) | 2.5 GB | 2.7 GB |
+
+  Cold and warm answers are identical (7 of 7): the cache changes speed, not results. Cold
+  times grew during the run (Q4 73 s to 133 s), probably the laptop throttling: the Space must be
+  measured again, but the orders of magnitude are clear.
+- **Decisions:** (1) the prompt is kept as evaluated: with the cache the prompt costs ~1.5 s,
+  and generation (~15 s for 40-120 tokens) is the bottleneck. (2) The demo warms each model's
+  cache with the system prompt at startup, streams the SQL as it is generated, queues requests
+  (one llama.cpp model serves one request at a time), runs the two models one after the other
+  or one thread each (to try on the Space), and ships precomputed answers for the curated
+  examples. (3) Q4_K_M vs Q8_0 is left to the accuracy of the GGUF evaluation in phase 5: the
+  speed gap with the cache is only 10-15 %. (4) The model writes SQL only, as designed; the app
+  runs it and shows table, chart or a single number (owner confirmed: no generated sentence,
+  which would double the latency and could misstate the numbers).

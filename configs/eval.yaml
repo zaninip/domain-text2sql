@@ -24,6 +24,11 @@ generation:
   batch_size: 8
   dtype: float16                 # T4 has no bf16; no 4-bit quantization at evaluation time
 
+cpu:                             # GGUF models with llama.cpp (latency test, GGUF evaluation)
+  threads: 2                     # the CPU of a free Hugging Face Space
+  n_ctx: 8192                    # prompt ~4,600 tokens + max_new_tokens, with margin
+  latency_questions: 1           # per test template: the first one by id
+
 paths:
   domain: domains/eco2mix
   database: data/eco2mix.duckdb

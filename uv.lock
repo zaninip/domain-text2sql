@@ -1241,6 +1241,7 @@ dependencies = [
 [package.optional-dependencies]
 gguf = [
     { name = "llama-cpp-python" },
+    { name = "psutil" },
 ]
 model = [
     { name = "accelerate" },
@@ -1262,6 +1263,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "llama-cpp-python", marker = "extra == 'gguf'", specifier = ">=0.3.36", index = "https://abetlen.github.io/llama-cpp-python/whl/cpu" },
     { name = "peft", marker = "extra == 'model'", specifier = ">=0.17" },
+    { name = "psutil", marker = "extra == 'gguf'", specifier = ">=5.9" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "sqlglot", specifier = ">=30.18.0" },
     { name = "transformers", marker = "extra == 'model'", specifier = ">=4.56" },

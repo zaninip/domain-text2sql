@@ -1,0 +1,227 @@
+{
+  "ids": [
+    "avg_production_moment_region_year#0000#fr#4",
+    "cmp_last_month_vs_year_before_region#0000#fr#4",
+    "mc_hours_share_above_region_year#0001#fr#2",
+    "rank_top_days_national_year#0000#fr#0",
+    "rank_top_months_measure_region_year#0000#fr#3",
+    "rate_avg_coverage_indicator_region_year#0000#fr#3",
+    "ts_cumulative_production_region_year#0000#fr#1"
+  ],
+  "models": [
+    {
+      "model": "Qwen3-1.7B-Q4_K_M.gguf",
+      "threads": 2,
+      "memory_gb": 2.54,
+      "cold": [
+        {
+          "first_token_s": 73.35,
+          "total_s": 83.87,
+          "output_tokens": 90,
+          "tokens_per_s": 8.5,
+          "output": "SELECT AVG(eolien_mw) AS moyenne_eolien\nFROM eco2mix\nWHERE region = 'Grand Est'\n  AND annee = 2022\n  AND heure BETWEEN 8 AND 12\n  AND heure BETWEEN 18 AND 20\n  AND date BETWEEN '2022-12-21' AND '2023-03-19';"
+        },
+        {
+          "first_token_s": 92.07,
+          "total_s": 107.11,
+          "output_tokens": 118,
+          "tokens_per_s": 7.8,
+          "output": "SELECT \n    100.0 * SUM(bioenergies_mw) / SUM(consommation_mw) AS part_pct\nFROM \n    eco2mix\nWHERE \n    region = 'Centre-Val de Loire'\n    AND mois = (SELECT MAX(date) FROM eco2mix)\n    AND annee = (SELECT MAX(date) FROM eco2mix)\n    AND date = (SELECT date FROM eco2mix WHERE mois = (SELECT MAX(date) FROM eco2mix) AND annee = (SELECT MAX(date) FROM eco2mix))"
+        },
+        {
+          "first_token_s": 101.66,
+          "total_s": 117.32,
+          "output_tokens": 120,
+          "tokens_per_s": 7.6,
+          "output": "SELECT \n    COUNT(*) * 0.5 AS heures_excedees \nFROM \n    eco2mix \nWHERE \n    region = 'Occitanie' \n    AND annee = 2025 \n    AND hydraulique_mw > 0.25 * consommation_mw\n    AND date_heure >= '2025-01-01 00:00:00' \n    AND date_heure < '2026-06-30 23:30:00'"
+        },
+        {
+          "first_token_s": 94.65,
+          "total_s": 100.65,
+          "output_tokens": 53,
+          "tokens_per_s": 8.7,
+          "output": "SELECT region, annee, mois, heure, consommation_mw * 0.5 AS energie_gwh\nFROM eco2mix\nWHERE annee = 2019\nORDER BY energie_gwh DESC\nLIMIT 5;"
+        },
+        {
+          "first_token_s": 100.3,
+          "total_s": 116.75,
+          "output_tokens": 115,
+          "tokens_per_s": 6.9,
+          "output": "SELECT \n    date, \n    SUM(hydraulique_mw) * 0.5 AS energie_mwh\nFROM \n    eco2mix\nWHERE \n    region = 'Centre-Val de Loire'\n    AND annee = 2022\n    AND date BETWEEN '2022-01-01' AND '2022-12-31'\nGROUP BY \n    date\nORDER BY \n    SUM(hydraulique_mw) * 0.5 DESC\nLIMIT 3;"
+        },
+        {
+          "first_token_s": 103.34,
+          "total_s": 110.75,
+          "output_tokens": 39,
+          "tokens_per_s": 5.1,
+          "output": "SELECT AVG(tco_thermique_pct) FROM eco2mix WHERE region = 'Provence-Alpes-Côte d''Azur' AND annee = 2025;"
+        },
+        {
+          "first_token_s": 133.49,
+          "total_s": 143.73,
+          "output_tokens": 51,
+          "tokens_per_s": 4.9,
+          "output": "SELECT SUM( hydraulique_mw * 0.5 ) AS energie_gwh\nFROM eco2mix\nWHERE region = 'Occitanie' AND annee = 2018\nGROUP BY date\nORDER BY date;"
+        }
+      ],
+      "warm": [
+        {
+          "first_token_s": 1.7,
+          "total_s": 14.76,
+          "output_tokens": 90,
+          "tokens_per_s": 6.8,
+          "output": "SELECT AVG(eolien_mw) AS moyenne_eolien\nFROM eco2mix\nWHERE region = 'Grand Est'\n  AND annee = 2022\n  AND heure BETWEEN 8 AND 12\n  AND heure BETWEEN 18 AND 20\n  AND date BETWEEN '2022-12-21' AND '2023-03-19';"
+        },
+        {
+          "first_token_s": 1.54,
+          "total_s": 17.55,
+          "output_tokens": 118,
+          "tokens_per_s": 7.3,
+          "output": "SELECT \n    100.0 * SUM(bioenergies_mw) / SUM(consommation_mw) AS part_pct\nFROM \n    eco2mix\nWHERE \n    region = 'Centre-Val de Loire'\n    AND mois = (SELECT MAX(date) FROM eco2mix)\n    AND annee = (SELECT MAX(date) FROM eco2mix)\n    AND date = (SELECT date FROM eco2mix WHERE mois = (SELECT MAX(date) FROM eco2mix) AND annee = (SELECT MAX(date) FROM eco2mix))"
+        },
+        {
+          "first_token_s": 1.79,
+          "total_s": 17.65,
+          "output_tokens": 120,
+          "tokens_per_s": 7.5,
+          "output": "SELECT \n    COUNT(*) * 0.5 AS heures_excedees \nFROM \n    eco2mix \nWHERE \n    region = 'Occitanie' \n    AND annee = 2025 \n    AND hydraulique_mw > 0.25 * consommation_mw\n    AND date_heure >= '2025-01-01 00:00:00' \n    AND date_heure < '2026-06-30 23:30:00'"
+        },
+        {
+          "first_token_s": 1.24,
+          "total_s": 8.06,
+          "output_tokens": 53,
+          "tokens_per_s": 7.6,
+          "output": "SELECT region, annee, mois, heure, consommation_mw * 0.5 AS energie_gwh\nFROM eco2mix\nWHERE annee = 2019\nORDER BY energie_gwh DESC\nLIMIT 5;"
+        },
+        {
+          "first_token_s": 1.45,
+          "total_s": 16.56,
+          "output_tokens": 115,
+          "tokens_per_s": 7.5,
+          "output": "SELECT \n    date, \n    SUM(hydraulique_mw) * 0.5 AS energie_mwh\nFROM \n    eco2mix\nWHERE \n    region = 'Centre-Val de Loire'\n    AND annee = 2022\n    AND date BETWEEN '2022-01-01' AND '2022-12-31'\nGROUP BY \n    date\nORDER BY \n    SUM(hydraulique_mw) * 0.5 DESC\nLIMIT 3;"
+        },
+        {
+          "first_token_s": 1.2,
+          "total_s": 6.38,
+          "output_tokens": 39,
+          "tokens_per_s": 7.3,
+          "output": "SELECT AVG(tco_thermique_pct) FROM eco2mix WHERE region = 'Provence-Alpes-Côte d''Azur' AND annee = 2025;"
+        },
+        {
+          "first_token_s": 1.41,
+          "total_s": 8.07,
+          "output_tokens": 51,
+          "tokens_per_s": 7.5,
+          "output": "SELECT SUM( hydraulique_mw * 0.5 ) AS energie_gwh\nFROM eco2mix\nWHERE region = 'Occitanie' AND annee = 2018\nGROUP BY date\nORDER BY date;"
+        }
+      ]
+    },
+    {
+      "model": "Qwen3-1.7B-Q8_0.gguf",
+      "threads": 2,
+      "memory_gb": 2.68,
+      "cold": [
+        {
+          "first_token_s": 158.32,
+          "total_s": 168.44,
+          "output_tokens": 67,
+          "tokens_per_s": 6.5,
+          "output": "SELECT AVG(eolien_mw) AS moyenne_eolien\nFROM eco2mix\nWHERE region = 'Grand Est'\n  AND annee = 2022\n  AND date BETWEEN '2022-06-01' AND '2022-06-30'"
+        },
+        {
+          "first_token_s": 167.47,
+          "total_s": 181.13,
+          "output_tokens": 94,
+          "tokens_per_s": 6.8,
+          "output": "SELECT \n    100.0 * SUM(bioenergies_mw) / SUM(consommation_mw) AS part_pct\nFROM \n    eco2mix\nWHERE \n    region = 'Centre-Val de Loire'\n    AND mois = (SELECT MAX(month) FROM eco2mix)\n    AND annee = (SELECT MAX(year) FROM eco2mix)\n    AND date = (SELECT MAX(date) FROM eco2mix)"
+        },
+        {
+          "first_token_s": 144.08,
+          "total_s": 157.04,
+          "output_tokens": 89,
+          "tokens_per_s": 6.8,
+          "output": "SELECT COUNT(*) * 0.5 AS heures\nFROM eco2mix\nWHERE region = 'Occitanie'\n  AND annee = 2025\n  AND heure BETWEEN 8 AND 12\n  AND tch_hydraulique_pct > 25\n  AND date BETWEEN '2025-01-01' AND '2025-12-31'"
+        },
+        {
+          "first_token_s": 138.66,
+          "total_s": 156.76,
+          "output_tokens": 123,
+          "tokens_per_s": 6.7,
+          "output": "SELECT region, annee, mois, heure, consommation_mw * 0.5 AS energie_gwh\nFROM eco2mix\nWHERE annee = 2019\n  AND mois BETWEEN 1 AND 12\n  AND heure BETWEEN 8 AND 12\n  AND date_heure >= '2019-01-01 00:00'\n  AND date_heure <= '2019-12-31 23:30'\nORDER BY energie_gwh DESC\nLIMIT 5;"
+        },
+        {
+          "first_token_s": 152.19,
+          "total_s": 165.32,
+          "output_tokens": 87,
+          "tokens_per_s": 6.6,
+          "output": "SELECT \n    mois,\n    SUM(hydraulique_mw) * 0.5 AS energie_gwh\nFROM \n    eco2mix\nWHERE \n    region = 'Centre-Val de Loire'\n    AND annee = 2022\n    AND mois BETWEEN 1 AND 12\nGROUP BY \n    mois\nORDER BY \n    energie_gwh DESC\nLIMIT 3;"
+        },
+        {
+          "first_token_s": 141.25,
+          "total_s": 147.23,
+          "output_tokens": 40,
+          "tokens_per_s": 6.5,
+          "output": "SELECT AVG(tco_thermique_pct) FROM eco2mix\nWHERE region = 'Provence-Alpes-Côte d''Azur' AND annee = 2025;"
+        },
+        {
+          "first_token_s": 133.4,
+          "total_s": 149.97,
+          "output_tokens": 117,
+          "tokens_per_s": 7.0,
+          "output": "SELECT SUM(energie_gwh) AS cumulée_gwh\nFROM (\n  SELECT \n    date,\n    SUM(consommation_mw) * 0.5 AS energie_gwh\n  FROM eco2mix\n  WHERE region = 'Occitanie'\n    AND annee = 2018\n    AND date BETWEEN '2018-01-01' AND '2018-12-31'\n  GROUP BY date\n  ORDER BY date\n) AS monthly_data\nORDER BY date;"
+        }
+      ],
+      "warm": [
+        {
+          "first_token_s": 1.64,
+          "total_s": 11.7,
+          "output_tokens": 67,
+          "tokens_per_s": 6.6,
+          "output": "SELECT AVG(eolien_mw) AS moyenne_eolien\nFROM eco2mix\nWHERE region = 'Grand Est'\n  AND annee = 2022\n  AND date BETWEEN '2022-06-01' AND '2022-06-30'"
+        },
+        {
+          "first_token_s": 2.26,
+          "total_s": 16.98,
+          "output_tokens": 94,
+          "tokens_per_s": 6.3,
+          "output": "SELECT \n    100.0 * SUM(bioenergies_mw) / SUM(consommation_mw) AS part_pct\nFROM \n    eco2mix\nWHERE \n    region = 'Centre-Val de Loire'\n    AND mois = (SELECT MAX(month) FROM eco2mix)\n    AND annee = (SELECT MAX(year) FROM eco2mix)\n    AND date = (SELECT MAX(date) FROM eco2mix)"
+        },
+        {
+          "first_token_s": 2.16,
+          "total_s": 16.15,
+          "output_tokens": 89,
+          "tokens_per_s": 6.3,
+          "output": "SELECT COUNT(*) * 0.5 AS heures\nFROM eco2mix\nWHERE region = 'Occitanie'\n  AND annee = 2025\n  AND heure BETWEEN 8 AND 12\n  AND tch_hydraulique_pct > 25\n  AND date BETWEEN '2025-01-01' AND '2025-12-31'"
+        },
+        {
+          "first_token_s": 1.93,
+          "total_s": 22.22,
+          "output_tokens": 123,
+          "tokens_per_s": 6.0,
+          "output": "SELECT region, annee, mois, heure, consommation_mw * 0.5 AS energie_gwh\nFROM eco2mix\nWHERE annee = 2019\n  AND mois BETWEEN 1 AND 12\n  AND heure BETWEEN 8 AND 12\n  AND date_heure >= '2019-01-01 00:00'\n  AND date_heure <= '2019-12-31 23:30'\nORDER BY energie_gwh DESC\nLIMIT 5;"
+        },
+        {
+          "first_token_s": 2.24,
+          "total_s": 15.88,
+          "output_tokens": 87,
+          "tokens_per_s": 6.3,
+          "output": "SELECT \n    mois,\n    SUM(hydraulique_mw) * 0.5 AS energie_gwh\nFROM \n    eco2mix\nWHERE \n    region = 'Centre-Val de Loire'\n    AND annee = 2022\n    AND mois BETWEEN 1 AND 12\nGROUP BY \n    mois\nORDER BY \n    energie_gwh DESC\nLIMIT 3;"
+        },
+        {
+          "first_token_s": 1.69,
+          "total_s": 7.45,
+          "output_tokens": 40,
+          "tokens_per_s": 6.8,
+          "output": "SELECT AVG(tco_thermique_pct) FROM eco2mix\nWHERE region = 'Provence-Alpes-Côte d''Azur' AND annee = 2025;"
+        },
+        {
+          "first_token_s": 1.71,
+          "total_s": 18.55,
+          "output_tokens": 117,
+          "tokens_per_s": 6.9,
+          "output": "SELECT SUM(energie_gwh) AS cumulée_gwh\nFROM (\n  SELECT \n    date,\n    SUM(consommation_mw) * 0.5 AS energie_gwh\n  FROM eco2mix\n  WHERE region = 'Occitanie'\n    AND annee = 2018\n    AND date BETWEEN '2018-01-01' AND '2018-12-31'\n  GROUP BY date\n  ORDER BY date\n) AS monthly_data\nORDER BY date;"
+        }
+      ]
+    }
+  ]
+}

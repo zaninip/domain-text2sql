@@ -21,6 +21,7 @@ model = [
 ]
 gguf = [
     "llama-cpp-python>=0.3.36",  # GGUF models on CPU: latency test, GGUF evaluation, demo
+    "psutil>=5.9",               # memory of the process in the latency test
 ]
 
 # PyPI has only the source of llama-cpp-python, which needs a C++ toolchain; the project's own
