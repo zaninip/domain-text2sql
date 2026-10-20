@@ -10,7 +10,11 @@ llama_cpp:                       # conversion script and llama-quantize, at one 
   binaries: llama-b11669-bin-win-cpu-x64.zip   # prebuilt CPU tools for Windows
   sha256: 37b3efcf962847ca869745fd4ccf7f5e7e8dacfeff9fa3523b4ca8cdc66d632b
 
+# same settings for both models, so that the demo compares them fairly; plain quantization,
+# without an importance matrix (which would need a choice of calibration text)
+quantizations: [Q4_K_M, Q8_0]
+
 paths:
-  merged: data/export/merged     # base + adapter, Hugging Face format
+  hf: data/export/hf             # fine-tuned/ (base + adapter) and base/, Hugging Face format
   llama_cpp: data/export/llama.cpp
   gguf: data/export/gguf

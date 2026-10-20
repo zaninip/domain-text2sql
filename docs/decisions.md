@@ -1044,3 +1044,34 @@ Format: date, decision, reason, alternatives considered.
   speed gap with the cache is only 10-15 %. (4) The model writes SQL only, as designed; the app
   runs it and shows table, chart or a single number (owner confirmed: no generated sentence,
   which would double the latency and could misstate the numbers).
+
+## 2026-10-20 — Export to GGUF: one pipeline for both models, llama.cpp b11669
+
+- **Pipeline (`python -m t2sql.export.gguf`, `configs/export.yaml`, on a CPU):** each model is
+  first saved as a plain Hugging Face folder by `save_hf`: Qwen3-1.7B loaded in float16, the
+  adapter (`...-d3-r16-lr0.0002-s0@step100`, revision `0e7e66b`) merged in for the fine-tuned
+  model, none for the base. Then llama.cpp's `convert_hf_to_gguf.py` writes a float16 GGUF and
+  `llama-quantize` makes Q4_K_M and Q8_0. Outputs in `data/export/` (not in git).
+- **Choices:** (1) merge in float16, the precision of every evaluated merge (the T4 has no bf16),
+  not bf16 or float32. (2) llama.cpp pinned at build b11669 (release v0.7.0): the source at that
+  tag for the conversion script, the prebuilt Windows CPU tools checked against their published
+  SHA-256. (3) The conversion script pins torch 2.11 and transformers 4.57, so it runs in a
+  throwaway `uv run --isolated` environment built from its requirements, not in the project's.
+  (4) The tokenizer files are copied from the base repo rather than saved again: the
+  transformers 4.57 of the converter cannot read the `tokenizer_config.json` written by
+  transformers 5. (5) Plain quantization, the same for both models, no importance matrix (it
+  would need a choice of calibration text).
+- **A fix found on the way:** converted straight from the Hub folder, the base came out with
+  311 tensors against 310: the repo ships a copy of the output head, which Qwen3 ties to the
+  embeddings, and llama-quantize then quantized the two apart (embeddings Q4_K + head Q6_K,
+  against one shared Q6_K matrix for the fine-tuned model). Hence `save_hf` for the base too:
+  `save_pretrained` leaves the tied copy out, and both models now have the same tensors and
+  byte-identical file sizes (Q4_K_M 1.107 GB, the size of Unsloth's published file; Q8_0
+  1.834 GB; f16 3.447 GB).
+- **Checks:** the merge changed only the seven LoRA target layers of all 28 blocks; the embedded
+  chat template is identical to the one used in evaluation; every GGUF loads in
+  llama-cpp-python. The f16 files answer exactly like the GPU evaluation (fine-tuned: 3 of 3 test
+  questions with the first merge, 1 of 1 after the rebuild; base: 1 of 1), so merge and
+  conversion change nothing. Q8_0 and Q4_K_M
+  already differ on single answers (on one question the base Q8_0 and Q4_K_M give two different
+  queries): the loss from quantization is measured next, on the whole test split.

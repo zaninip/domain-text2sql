@@ -8,6 +8,7 @@ CPU. The adapter may sit in a private Hub repo: ``HF_TOKEN`` must be set (``uv r
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 import zipfile
 from pathlib import Path
@@ -24,11 +25,14 @@ LLAMA_CPP_REPO = "https://github.com/ggml-org/llama.cpp"
 TOKENIZER_FILES = ("tokenizer.json", "tokenizer_config.json", "vocab.json", "merges.txt", "LICENSE")
 
 
-def merge(base: str, adapter_spec: str, dtype: str, out_dir: Path) -> dict[str, Any]:
-    """Base weights + LoRA adapter merged into one plain model, saved with its tokenizer.
+def save_hf(base: str, adapter_spec: str | None, dtype: str, out_dir: Path) -> dict[str, Any]:
+    """The base weights, with a LoRA adapter merged in if given, saved as one plain model.
 
-    The base is loaded at ``dtype`` even on a CPU (unlike `t2sql.eval.run.load_model`, which
-    runs float32 there): the merge then happens at the precision of the evaluated model. The
+    Both models of the demo go through here, so that they reach the conversion in the same form:
+    loaded at ``dtype`` even on a CPU (unlike `t2sql.eval.run.load_model`, which runs float32
+    there), so the merge happens at the precision of the evaluated model; saved by
+    ``save_pretrained``, which leaves out the copy of the tied output head that the base repo
+    ships (converted as is, that copy would be quantized apart from the embeddings). The
     tokenizer goes along because it carries the chat template, which the GGUF file embeds: its
     original files are copied, not saved again, since the transformers of the conversion script
     cannot read what a newer transformers writes.
@@ -37,19 +41,22 @@ def merge(base: str, adapter_spec: str, dtype: str, out_dir: Path) -> dict[str, 
 
     import torch
     from huggingface_hub import hf_hub_download
-    from peft import PeftModel
     from transformers import AutoModelForCausalLM
 
-    repo, revision = resolve_adapter(adapter_spec)
-    log(f"adapter {repo} at revision {revision}")
     model = AutoModelForCausalLM.from_pretrained(base, dtype=getattr(torch, dtype))
-    model = PeftModel.from_pretrained(model, repo, revision=revision).merge_and_unload()
+    meta: dict[str, Any] = {"base": base, "dtype": dtype, "adapter": None}
+    if adapter_spec:
+        from peft import PeftModel
+
+        repo, revision = resolve_adapter(adapter_spec)
+        log(f"adapter {repo} at revision {revision}")
+        model = PeftModel.from_pretrained(model, repo, revision=revision).merge_and_unload()
+        meta |= {"adapter": repo, "adapter_revision": revision}
     model.save_pretrained(out_dir)
     for name in TOKENIZER_FILES:
         shutil.copy(hf_hub_download(base, name), out_dir / name)
-    meta = {"base": base, "adapter": repo, "adapter_revision": revision, "dtype": dtype}
     (out_dir / "export_meta.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
-    log(f"merged model: {out_dir}")
+    log(f"saved model: {out_dir}")
     return meta
 
 
@@ -93,17 +100,36 @@ def convert(hf_dir: Path, out_file: Path, llama_cpp_dir: Path) -> None:
     subprocess.run([*environment, "python", *script, "--outfile", str(out_file)], check=True)
 
 
+def quantize(f16_file: Path, out_file: Path, kind: str, tools_dir: Path) -> None:
+    """One quantized GGUF (``kind``: Q4_K_M, Q8_0...) from the float16 one, by llama-quantize."""
+    tool = tools_dir / ("llama-quantize.exe" if os.name == "nt" else "llama-quantize")
+    log(f"quantizing {f16_file.name} -> {out_file.name}")
+    subprocess.run([str(tool), str(f16_file), str(out_file), kind], check=True)
+
+
+def export(name: str, hf_dir: Path, paths: dict[str, Path], kinds: list[str], tools: Path) -> None:
+    """The float16 GGUF of one model, then its quantizations; files already made are kept."""
+    f16 = paths["gguf"] / f"{name}-f16.gguf"
+    if not f16.exists():
+        convert(hf_dir, f16, paths["llama_cpp"])
+    for kind in kinds:
+        if not (out_file := paths["gguf"] / f"{name}-{kind}.gguf").exists():
+            quantize(f16, out_file, kind, tools)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--config", type=Path, default=CONFIG_PATH)
     args = parser.parse_args()
     config = yaml.safe_load(args.config.read_text(encoding="utf-8"))
     paths = {name: ROOT / value for name, value in config["paths"].items()}
-    if not (paths["merged"] / "export_meta.json").exists():  # written last by `merge`
-        merge(config["base"], config["adapter"], config["dtype"], paths["merged"])
     llama = config["llama_cpp"]
-    fetch_llama_cpp(llama["tag"], llama["binaries"], llama["sha256"], paths["llama_cpp"])
-    convert(paths["merged"], paths["gguf"] / "fine-tuned-f16.gguf", paths["llama_cpp"])
+    tools = fetch_llama_cpp(llama["tag"], llama["binaries"], llama["sha256"], paths["llama_cpp"])
+    for name, adapter in (("fine-tuned", config["adapter"]), ("base", None)):
+        hf_dir = paths["hf"] / name
+        if not (hf_dir / "export_meta.json").exists():  # written last by `save_hf`
+            save_hf(config["base"], adapter, config["dtype"], hf_dir)
+        export(name, hf_dir, paths, config["quantizations"], tools)
 
 
 if __name__ == "__main__":
