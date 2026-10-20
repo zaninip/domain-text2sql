@@ -26,6 +26,7 @@ generation:
 
 cpu:                             # GGUF models with llama.cpp (latency test, GGUF evaluation)
   threads: 2                     # the CPU of a free Hugging Face Space
+  eval_threads: 4                # GGUF evaluation: only its speed depends on it
   n_ctx: 8192                    # prompt ~4,600 tokens + max_new_tokens, with margin
   latency_questions: 1           # per test template: the first one by id
 

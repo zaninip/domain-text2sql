@@ -10,6 +10,7 @@ that file, so ``--rescore`` re-scores without any model.
 """
 
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -30,7 +31,9 @@ from t2sql.prompts import chat_messages, system_prompt
 ROOT = Path(__file__).resolve().parents[3]
 CONFIG_PATH = ROOT / "configs" / "eval.yaml"
 # What makes outputs comparable: a resumed run must match on all of these.
-GENERATION_KEYS = ("model", "split", "mode", "few_shot_ids", "adapter", "generation", "dtype_used")
+GENERATION_KEYS = (
+    "model", "split", "mode", "few_shot_ids", "adapter", "gguf", "generation", "dtype_used",
+)  # fmt: skip
 # The three configurations of CLAUDE.md §2.3: fine_tuned is the base model plus a LoRA adapter,
 # prompted like zero_shot (no examples)
 MODES = ("zero_shot", "few_shot", "fine_tuned")
@@ -215,6 +218,54 @@ def generate(
         ]
 
 
+def generate_gguf(
+    llm: Any, prompts: list[str], ids: list[str], max_new_tokens: int, batch_size: int
+) -> Iterator[list[dict[str, Any]]]:
+    """Greedy decoding with llama.cpp, one prompt at a time, yielded ``batch_size`` at a time.
+
+    The rows have the shape of `generate`'s, so saving, resuming and scoring do not change.
+    llama-cpp-python keeps the longest prefix shared with the previous prompt (the system
+    prompt), so only the question is processed; the first prompt pays the whole prompt.
+    ``latency_s`` is the time of that one answer.
+    """
+    rows: list[dict[str, Any]] = []
+    for example_id, prompt in zip(ids, prompts, strict=True):
+        began = time.perf_counter()
+        # temperature 0 is greedy in llama-cpp-python; no repetition penalty, as with generate
+        completion = llm(prompt, max_tokens=max_new_tokens, temperature=0.0, repeat_penalty=1.0)
+        rows.append(
+            {
+                "id": example_id,
+                "output": completion["choices"][0]["text"],
+                "output_tokens": completion["usage"]["completion_tokens"],
+                "latency_s": round(time.perf_counter() - began, 3),
+            }
+        )
+        if len(rows) == batch_size:
+            yield rows
+            rows = []
+    if rows:
+        yield rows
+
+
+def load_gguf(path: str, cpu: dict[str, Any]) -> tuple[Any, dict[str, Any]]:
+    """A GGUF model on the CPU, and what the outputs are generated with (cf. `environment`)."""
+    import llama_cpp  # optional `gguf` extra
+
+    llm = llama_cpp.Llama(path, n_ctx=cpu["n_ctx"], n_threads=cpu["eval_threads"], verbose=False)
+    used = {"device": "cpu", "dtype_used": "gguf", "llama_cpp_python": llama_cpp.__version__}
+    return llm, used | {"threads": cpu["eval_threads"]}
+
+
+def gguf_identity(path: str) -> dict[str, str]:
+    """The file a GGUF run is generated with, by name and content (SHA-256)."""
+    digest = hashlib.sha256()
+    with open(path, "rb") as weights:
+        for block in iter(lambda: weights.read(1 << 24), b""):
+            digest.update(block)
+    return {"file": Path(path).name, "sha256": digest.hexdigest()}
+
+
 def run_name(config: dict[str, Any]) -> str:
     """File name of one run: model (without its organisation), split, mode and adapter tag.
 
@@ -321,6 +372,8 @@ def planned_settings(config: dict[str, Any], examples: list[dict[str, Any]]) -> 
         planned["few_shot_ids"] = [example["id"] for example in examples]
     if config.get("adapter"):
         planned["adapter"] = config["adapter"]
+    if config.get("gguf"):
+        planned["gguf"] = gguf_identity(config["gguf"])
     if config.get("tag"):
         planned["tag"] = config["tag"]
     return planned | {"generation": config["generation"]}
@@ -351,12 +404,16 @@ def generate_missing(
     if not pending:
         return
     settings = config["generation"]
-    tokenizer = load_tokenizer(config["model"])
-    adapter, revision = (
-        resolve_adapter(config["adapter"]) if config.get("adapter") else (None, None)
-    )
-    model = load_model(config["model"], settings["dtype"], allow_cpu, adapter, revision)
-    meta = planned | ({"adapter_revision": revision} if revision else {}) | environment(model)
+    tokenizer = load_tokenizer(config["model"])  # the prompt is built the same way either way
+    if config.get("gguf"):
+        model, used = load_gguf(config["gguf"], config["cpu"])
+        meta = planned | used
+    else:
+        adapter, revision = (
+            resolve_adapter(config["adapter"]) if config.get("adapter") else (None, None)
+        )
+        model = load_model(config["model"], settings["dtype"], allow_cpu, adapter, revision)
+        meta = planned | ({"adapter_revision": revision} if revision else {}) | environment(model)
     log(f"model loaded on {meta['device']} ({meta['dtype_used']})")
     if done:
         if different := mismatches(saved, meta):
@@ -370,9 +427,11 @@ def generate_missing(
     ids = [record["id"] for record in pending]
     batches = -(-len(prompts) // settings["batch_size"])  # ceiling division
     began, generated = time.perf_counter(), 0
-    batch_outputs = generate(
-        tokenizer, model, prompts, ids, settings["max_new_tokens"], settings["batch_size"]
-    )
+    lengths = settings["max_new_tokens"], settings["batch_size"]
+    if config.get("gguf"):
+        batch_outputs = generate_gguf(model, prompts, ids, *lengths)
+    else:
+        batch_outputs = generate(tokenizer, model, prompts, ids, *lengths)
     for number, outputs in enumerate(batch_outputs, start=1):
         append_jsonl(outputs, outputs_path)
         generated += len(outputs)
@@ -396,6 +455,7 @@ def main() -> None:
     parser.add_argument("--out", help="overrides `paths.predictions` (smoke tests write apart)")
     parser.add_argument("--adapter", help="LoRA checkpoint folder or Hub repo (fine_tuned mode)")
     parser.add_argument("--tag", help="short name in the file names: the adapter, or a variant")
+    parser.add_argument("--gguf", help="GGUF file, run by llama.cpp on the CPU (adapter merged)")
     parser.add_argument(
         "--few-shot-seed", type=int, help="draw the few-shot examples with this seed, not the ids"
     )
@@ -409,18 +469,22 @@ def main() -> None:
         if not args.tag:
             raise SystemExit("--few-shot-seed needs a --tag, part of the file names")
         config["few_shot"] = {"seed": args.few_shot_seed}
-    keys = ("model", "split", "mode", "adapter", "tag")
+    keys = ("model", "split", "mode", "adapter", "tag", "gguf")
     config |= {key: getattr(args, key) for key in keys if getattr(args, key)}
     if args.out:
         config["paths"]["predictions"] = args.out
     if config["mode"] not in MODES:
         raise SystemExit(f"mode {config['mode']!r} is not one of {MODES}")
-    # fine_tuned needs an adapter and a tag; a tag alone versions any other run (few-shot
-    # examples drawn on another train split, for instance) so that it never reuses old outputs
-    if (config["mode"] == "fine_tuned") != bool(config.get("adapter")):
-        raise SystemExit("--adapter goes with --mode fine_tuned, and fine_tuned needs one")
-    if config.get("adapter") and not config.get("tag"):
-        raise SystemExit("--adapter needs a --tag, part of the file names")
+    # fine_tuned needs an adapter, or a GGUF file with the adapter merged in, and a tag; a tag
+    # alone versions any other run (few-shot examples drawn on another train split, for
+    # instance) so that it never reuses old outputs
+    adapter, gguf = bool(config.get("adapter")), bool(config.get("gguf"))
+    if adapter and (gguf or config["mode"] != "fine_tuned"):
+        raise SystemExit("--adapter goes with --mode fine_tuned only, and not with --gguf")
+    if config["mode"] == "fine_tuned" and not (adapter or gguf):
+        raise SystemExit("--mode fine_tuned needs an --adapter or a --gguf file")
+    if (adapter or gguf) and not config.get("tag"):
+        raise SystemExit("--adapter and --gguf need a --tag, part of the file names")
     paths = {name: ROOT / value for name, value in config["paths"].items()}
     records = load_records(paths["splits"] / f"{config['split']}.jsonl", config["limit"])
     examples = few_shot_examples(config, paths["splits"])

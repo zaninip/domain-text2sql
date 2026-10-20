@@ -10,6 +10,7 @@ from t2sql.db import connect, list_tables
 from t2sql.eval.run import (
     append_jsonl,
     few_shot_examples,
+    generate_gguf,
     generate_missing,
     generated_length,
     load_model,
@@ -213,3 +214,17 @@ def test_complete_outputs_with_other_few_shot_examples_are_refused_before_any_mo
         generate_missing(config, records, [{"id": "new"}], {}, outputs, meta, allow_cpu=True)
     # the same examples: nothing to do, and no model is loaded either
     generate_missing(config, records, [{"id": "old"}], {}, outputs, meta, allow_cpu=True)
+
+
+def test_gguf_answers_come_greedy_one_by_one_and_saved_by_batch():
+    calls = []
+
+    def fake_llm(prompt, **settings):  # stands for a llama_cpp.Llama, called like one
+        calls.append(settings)
+        return {"choices": [{"text": f"SELECT '{prompt}'"}], "usage": {"completion_tokens": 3}}
+
+    batches = list(generate_gguf(fake_llm, ["a", "b", "c"], ["1", "2", "3"], 256, 2))
+    assert [[row["id"] for row in batch] for batch in batches] == [["1", "2"], ["3"]]
+    assert batches[1][0]["output"] == "SELECT 'c'" and batches[1][0]["output_tokens"] == 3
+    assert all(c["temperature"] == 0.0 and c["repeat_penalty"] == 1.0 for c in calls)
+    assert all(c["max_tokens"] == 256 for c in calls)

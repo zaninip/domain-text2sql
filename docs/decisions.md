@@ -1075,3 +1075,22 @@ Format: date, decision, reason, alternatives considered.
   conversion change nothing. Q8_0 and Q4_K_M
   already differ on single answers (on one question the base Q8_0 and Q4_K_M give two different
   queries): the loss from quantization is measured next, on the whole test split.
+
+## 2026-10-20 — GGUF evaluation on test: plan and rule, fixed before any result
+
+- **What it measures:** the loss from quantization of the two demo models, against their test
+  numbers in float16 (fine-tuned 64.1 %, base zero-shot 14.3 %). The model is already chosen;
+  the test here only picks the file format of the demo and gives the figure for the model card.
+- **How:** the evaluation harness with a llama.cpp backend (`run.py --gguf`): the same prompt,
+  greedy decoding, `max_new_tokens`, SQL extraction and scoring as every other run, with
+  llama-cpp-python 0.3.36 on the CPU, the runtime of the demo (llama.cpp on a GPU uses other
+  kernels, whose answers can differ). Local, offline (`HF_HUB_OFFLINE=1`), resumable.
+- **Order and rule:** (1) the two Q4_K_M files first (fine-tuned and base zero-shot). (2) Paired
+  McNemar of fine-tuned Q4_K_M against fine-tuned float16 on the 490 examples. If Q4_K_M is not
+  worse with p < 0.05, the demo uses Q4_K_M and the Q8_0 files are not evaluated. If it is, the
+  two Q8_0 files are evaluated and the demo uses Q8_0 when it is not worse than float16 with
+  p < 0.05; if Q8_0 loses too, the demo still uses Q8_0, the more precise, and the loss is
+  reported. (3) The base model always takes the same format as the fine-tuned one, so that the
+  demo compares like with like; its own loss is reported, it does not drive the choice.
+- **Reporting:** the headline results stay the float16 ones; the GGUF numbers are reported as
+  the numbers of the models the demo serves.
