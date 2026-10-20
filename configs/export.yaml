@@ -5,5 +5,12 @@ base: Qwen/Qwen3-1.7B            # the base weights of every evaluation
 adapter: zaninip/eco2mix-sql-Qwen3-1.7B-d3-r16-lr0.0002-s0@step100
 dtype: float16                   # the precision of the merge evaluated on the T4
 
+llama_cpp:                       # conversion script and llama-quantize, at one fixed build
+  tag: b11669                    # = release v0.7.0 (2026-10-15)
+  binaries: llama-b11669-bin-win-cpu-x64.zip   # prebuilt CPU tools for Windows
+  sha256: 37b3efcf962847ca869745fd4ccf7f5e7e8dacfeff9fa3523b4ca8cdc66d632b
+
 paths:
   merged: data/export/merged     # base + adapter, Hugging Face format
+  llama_cpp: data/export/llama.cpp
+  gguf: data/export/gguf
