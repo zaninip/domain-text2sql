@@ -1,0 +1,9 @@
+# Export to GGUF (phase 5). Paths are relative to the repository root.
+
+base: Qwen/Qwen3-1.7B            # the base weights of every evaluation
+# the adapter kept on validation and evaluated on test (docs/decisions.md, 2026-10-14)
+adapter: zaninip/eco2mix-sql-Qwen3-1.7B-d3-r16-lr0.0002-s0@step100
+dtype: float16                   # the precision of the merge evaluated on the T4
+
+paths:
+  merged: data/export/merged     # base + adapter, Hugging Face format
