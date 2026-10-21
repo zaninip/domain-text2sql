@@ -1094,3 +1094,34 @@ Format: date, decision, reason, alternatives considered.
   demo compares like with like; its own loss is reported, it does not drive the choice.
 - **Reporting:** the headline results stay the float16 ones; the GGUF numbers are reported as
   the numbers of the models the demo serves.
+
+## 2026-10-20 — GGUF evaluation on test: Q4_K_M kept for the demo (fine-tuned 62.0 %, base 11.6 %)
+
+- **Runs:** the two Q4_K_M files of the export, on the 490 test examples, with `run.py --gguf`
+  (llama-cpp-python 0.3.36, CPU, 4 threads, offline; tags `q4km`). One pause of 27 minutes
+  (the laptop went to standby) only stopped the run; the mean latency it records is inflated by
+  it, so speed is taken from the latency entry, not from these runs.
+- **Rule applied (fixed before the results):** fine-tuned Q4_K_M 62.0 % (304) against float16
+  64.1 % (314): 43 vs 53, McNemar p = 0.36, not worse with p < 0.05. **The demo uses Q4_K_M for
+  both models; the Q8_0 files are not evaluated.**
+- **Base Q4_K_M:** 11.6 % (57) against 14.3 % (70) in float16, 14 vs 27, p = 0.06: a loss close to
+  significance, reported, not used for the choice. In the demo pair the fine-tuned model wins
+  248 vs 1 (62.0 % vs 11.6 %).
+- **What the totals hide:** quantization changes many answers, 236 of 490 identical to float16
+  for the fine-tuned model and 12 of 490 for the base (whose answers are longer and drift
+  more). A different text is not a different result: of the fine-tuned model's 254 changed
+  answers, 59 are right both ways (layout, aliases) and 99 wrong both ways; correctness flips
+  in 96, 43 gained and 53 lost. Greedy decoding is a chain, and rounding the weights is enough
+  to swap two near-tied tokens, after which the query takes another path; the f16 file, which
+  does not round, matched the GPU exactly. The fine-tuned model's templates move both ways (hours above a share 30 -> 51,
+  cumulative series 67 -> 54, top months 56 -> 44, top days 39 -> 30): the same fragility as
+  across seeds, on the same kind of template, with a small net effect. French 172 -> 156,
+  Italian 142 -> 148.
+- **Consequences:** (1) everything the demo shows (curated examples, their correct/incorrect
+  badges, precomputed answers) is generated and checked with the Q4_K_M files it serves, never
+  taken from the float16 predictions, which differ on about one question in five in
+  correctness. (2) Conclusions about a single template are fragile (here, as across seeds): the
+  README and model card speak of totals, or of failures every variant shares, such as relative
+  dates.
+- **For the model card:** test accuracy 64.1 % (float16) and 62.0 % (the Q4_K_M file the demo
+  serves); base 14.3 % and 11.6 %.

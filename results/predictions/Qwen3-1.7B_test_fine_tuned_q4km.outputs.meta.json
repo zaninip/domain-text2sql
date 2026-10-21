@@ -1,0 +1,19 @@
+{
+  "model": "Qwen/Qwen3-1.7B",
+  "split": "test",
+  "mode": "fine_tuned",
+  "gguf": {
+    "file": "fine-tuned-Q4_K_M.gguf",
+    "sha256": "a7ace83b951363d4791fc717bab73513d644ba7ab98d2ee08911a882ea40a702"
+  },
+  "tag": "q4km",
+  "generation": {
+    "max_new_tokens": 256,
+    "batch_size": 8,
+    "dtype": "float16"
+  },
+  "device": "cpu",
+  "dtype_used": "gguf",
+  "llama_cpp_python": "0.3.36",
+  "threads": 4
+}

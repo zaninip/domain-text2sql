@@ -17,8 +17,10 @@ PREDICTIONS_DIR = ROOT / "results" / "predictions"
 REPORT_DIR = ROOT / "results"
 FIRST_OUTCOMES = ("correct", "wrong_result")  # then the failures, most frequent first
 LATENCY_NOTE = (
-    "GPU s/example: time of a batch of 8 questions on the GPU of the run, divided by 8. "
-    "It compares configurations; it is not the wait of one user (the demo runs on a CPU)."
+    "s/example: on a GPU, the time of a batch of 8 questions divided by 8; for the GGUF runs "
+    "(tags q4km...), the time of one question on a laptop CPU with the system prompt cached. "
+    "It compares runs of the same kind; the wait of a demo user is measured apart "
+    "(results/latency_cpu.json)."
 )
 
 
@@ -49,7 +51,7 @@ def percent(value: float) -> str:
 def headline_table(runs: list[dict[str, Any]]) -> str:
     """One line per configuration: the headline numbers of CLAUDE.md §10."""
     lines = [
-        "| Configuration | Examples | Execution accuracy | Valid SQL | GPU s/example | Tokens |",
+        "| Configuration | Examples | Execution accuracy | Valid SQL | s/example | Tokens |",
         "|---|---:|---:|---:|---:|---:|",
     ]
     for run in runs:
