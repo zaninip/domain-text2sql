@@ -1125,3 +1125,34 @@ Format: date, decision, reason, alternatives considered.
   dates.
 - **For the model card:** test accuracy 64.1 % (float16) and 62.0 % (the Q4_K_M file the demo
   serves); base 14.3 % and 11.6 %.
+
+## 2026-10-21 — Phase 5 closed: models published on the Hugging Face Hub
+
+- **Published (public since 2026-10-21):**
+  [zaninip/qwen3-1.7b-eco2mix-sql](https://huggingface.co/zaninip/qwen3-1.7b-eco2mix-sql)
+  (LoRA adapter, revision `58f2466`) and
+  [zaninip/qwen3-1.7b-eco2mix-sql-GGUF](https://huggingface.co/zaninip/qwen3-1.7b-eco2mix-sql-GGUF)
+  (fine-tuned and base Q4_K_M, revision `beaeda9`), each with its model card
+  (`docs/model_card.md`, `docs/model_card_gguf.md`) and the Apache 2.0 licence of the base.
+  New repos rather than the training ones, which keep every checkpoint and stay private.
+- **How:** `python -m t2sql.export.publish` (settings in the `publish` section of
+  `configs/export.yaml`): the adapter files taken from the training repo at the evaluated
+  revision `0e7e66b`, with `base_model_name_or_path` pointed from Unsloth's 4-bit copy to
+  `Qwen/Qwen3-1.7B`, the base the adapter was evaluated on; one commit per repo; every file
+  checked on the Hub by SHA-256 after the upload. Repos are created private and made public by
+  hand once their pages are checked (the owner did so after reviewing both).
+- **Checks:** both pages read their metadata as intended (licence, languages, PEFT and GGUF
+  libraries, model tree Qwen3-1.7B-Base -> Qwen3-1.7B -> adapter -> GGUF); the two usage
+  examples of the cards, run verbatim against the published repos, give the right query for
+  "Production éolienne en Bretagne en 2023, en GWh ?"; files download without a token.
+- **Network:** the home connection drops IPv6 connections to the Hub (curl falls back to IPv4,
+  Python does not), which caused the intermittent failures of the export. The owner set
+  Windows to prefer IPv4 (prefix policy `::ffff:0:0/96` at precedence 60); the script also
+  retries network errors, at most five times, and only those.
+- **Done when (CLAUDE.md §7):** both GGUF models load in llama-cpp-python locally, and the model
+  card is published.
+- **Carried to phase 6:** the demo serves the two Q4_K_M files from the GGUF repo; it processes
+  the system prompt once per model at startup (prefix cache: ~1.5 s to the first token instead
+  of ~100 s), streams the SQL, queues requests, and ships precomputed answers for the curated
+  examples, generated and checked with the Q4_K_M files themselves; relative dates are resolved
+  by the app against today's date, as decided on 2026-10-14.
