@@ -18,3 +18,13 @@ paths:
   hf: data/export/hf             # fine-tuned/ (base + adapter) and base/, Hugging Face format
   llama_cpp: data/export/llama.cpp
   gguf: data/export/gguf
+
+publish:                         # python -m t2sql.export.publish (HF_TOKEN with write access)
+  private: true                  # made public by hand, once the pages are checked on the Hub
+  adapter_repo: zaninip/qwen3-1.7b-eco2mix-sql
+  gguf_repo: zaninip/qwen3-1.7b-eco2mix-sql-GGUF
+  model_card: docs/model_card.md
+  gguf_card: docs/model_card_gguf.md
+  gguf_files:                    # file in paths.gguf -> name in the repo
+    fine-tuned-Q4_K_M.gguf: qwen3-1.7b-eco2mix-sql-Q4_K_M.gguf
+    base-Q4_K_M.gguf: qwen3-1.7b-base-Q4_K_M.gguf
